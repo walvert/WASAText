@@ -37,10 +37,481 @@ paths:
                 type: object
                 properties:
                   identifier:
-                    type: string
-                    example: "abcdef012345"
-  /chats:
+                    type: integer
+                    example: 142
+  
+  /users/{userId}:
+    parameters:
+    - $ref: "#/components/parameters/UserID"
     get:
-      summary: get the list of chats
+      tags:
+        - user
+      summary: Get user by id
+      description: "Returns a sigle user"
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        "404": 
+          description: User not found
+          content:
+            text/plain:
+                schema:
+                  type: string
+                  example: not found
+    post:
+      tags:
+        - user
+      summary: Updates the username 
+      description: 'Updates the username with the one given in the request'
+      operationId: setMyUserName
+      parameters:
+        - name: username
+          in: query
+          description: New username
+          schema:
+            type: string
+            example: "maria"
+      responses:
+        "200":
+          description: Username updated successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ok
+        "400":
+          description: Invalid input
+        "404":
+          description: User not found
+  
+  /users/{userId}/image:
+    parameters:
+    - $ref: "#/components/parameters/UserID"
+    put:
+      tags:
+        - user
+      summary: Sets user profile photo
+      description: "Updates the profile picture with the one given in the request"
+      operationId: setMyPhoto
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+        required: true
+      responses:
+        "200":
+          description: "Image updated succesfully"
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ok
+  
+  /users/{userId}/chats:
+    parameters:
+        - $ref: "#/components/parameters/UserID"
+    get:
+      tags:
+        - chats
+      operationId: getMyConversations
+      summary: Get user chats
+      description: "Get all the user's conversations"
+      responses:
+          "200":
+            description: Chats found
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items: 
+                    $ref: "#/components/schemas/Chat"
+          "204":
+            description: "No Chats"
+    post:
+      tags:
+        - chats
+      summary: Create new Chat
       description: |
+        Send a new message in a conversation. If it's the first one,
+        a new conversation will be created
+      operationId: createChat
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Chat"
+        required: true
+      responses:
+        '201':
+          description: New chat created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+  
+  /users/{userId}/chats/{chatId}:
+    parameters:
+        - $ref: "#/components/parameters/UserID"
+        - $ref: "#/components/parameters/ChatID"
+    get:
+      tags:
+        - chats
+      summary: Get single chat
+      description: "Get a single chat either group or private"
+      operationId: getConversation
+      responses:
+        "200":
+          description: Chat found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chat"
+        "404": {description: "Chat not found"}
+        "401": {description: "Unautorizhed to access the chat"}
+    post:
+      tags:
+        - chats
+      summary: Updates the group name
+      description: 'Updates the group name with the one given in the request'
+      operationId: setGroupName
+      parameters:
+        - name: chatName
+          in: query
+          description: New group name
+          schema:
+            type: string
+            example: "Study group"
+      responses:
+        "200":
+          description: Chat name updated successfully
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ok
+        '400':
+          description: Invalid input
+    delete:
+      tags:
+        - chats
+      summary: Delete chat
+      description: "Delete a chat"
+      operationId: deleteChat
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+        - $ref: "#/components/parameters/ChatID"
+      responses:
+        "200":
+          description: Chat deleted
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: deleted
+        "404":
+          description: Chat not found
+  
+  /users/{userId}/chats/{chatId}/participants:
+    parameters:
+    - $ref: "#/components/parameters/UserID"
+    - $ref: "#/components/parameters/ChatID"
+    put:
+      tags:
+        - chats
+      operationId: addToGroup
+      summary: Add user to group
+      description: "Add an user to a a group. If user is already present, nothing will change"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        "201":
+          description: User added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        "204":
+          description: User already present
+    delete:
+      tags:
+        - chats
+      summary: Leave group
+      description: "Remove an user from a group. Users can only remove themselves."
+      operationId: leaveGroup
+      responses:
+        "200":
+          description: Left the group
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: pong
+        "404":
+          description: Group not found
+    
+      
+  /users/{userId}/chats/{chatId}/image:
+    parameters:
+    - $ref: "#/components/parameters/UserID"
+    - $ref: "#/components/parameters/ChatID"
+    put:
+      tags:
+        - chats
+      summary: Sets group profile photo
+      description: "Updates the group profile picture with the one given in the request"
+      operationId: setGroupPhoto
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+        required: true
+      responses:
+        "200":
+          description: "Group photo updated succesfully"
+  /users/{userId}/chats/{chatId}/messages:
+    parameters:
+        - $ref: "#/components/parameters/UserID"
+        - $ref: "#/components/parameters/ChatID"
+    get:
+      tags:
+        - messages
+      summary: Get chat messages
+      description: "Get all messages of a chat"
+      operationId: getMessages
+      responses:
+          "200":
+            description: Messages found
+            content: 
+              application/json:
+                schema:
+                  type: array
+                  items: 
+                    $ref: "#/components/schemas/Message"
+    post:
+      tags:
+        - messages
+      summary: Send a message
+      description: |
+        Send a new message in a conversation. If it's the first one,
+        a new conversation will be created
+      operationId: sendMessage
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Message"
+        required: true
+      responses:
+        '201':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          
+  /users/{userId}/chats/{chatId}/messages/{messageId}:
+    parameters:
+        - $ref: "#/components/parameters/UserID"
+        - $ref: "#/components/parameters/ChatID"
+        - $ref: "#/components/parameters/MessageID"
+    get:
+      tags:
+        - messages
+      summary: Forward a message
+      description: "Get a message to forward it"
+      operationId: forwardMessage
+      responses:
+        "200":
+          description: Message found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        "404":
+          description: Message not found
+    delete:
+      tags:
+        - messages
+      summary: Delete message
+      description: "Delete a message"
+      operationId: deleteMessage
+      responses:
+        "200":
+          description: Message deleted succesfully
+        "404":
+          description: Message not found
+  /users/{userId}/chats/{chatId}/messages/{messageId}/comments:
+    parameters:
+        - $ref: "#/components/parameters/UserID"
+        - $ref: "#/components/parameters/ChatID"
+        - $ref: "#/components/parameters/MessageID"
+    get:
+      tags:
+        - comments
+      operationId: getComments
+      summary: Get message comments
+      description: "Get all the message's comments"
+      responses:
+          "200":
+            description: Comments found
+            content: 
+              application/json:
+                schema:
+                  type: array
+                  items: 
+                    $ref: "#/components/schemas/User"
+          "204":
+            description: "No Comments"
+    put:
+      tags:
+        - comments
+      operationId: commentMessage
+      summary: Comment a message
+      description: "Add a comment to a message. If user's comment is already present, nothing will change"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        "200":
+          description: Comment added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        "204": 
+          description: Comment already present
+  /users/{userId}/chats/{chatId}/messages/{messageId}/comments/{userId}:
+    parameters:
+        - $ref: "#/components/parameters/UserID"
+        - $ref: "#/components/parameters/ChatID"
+        - $ref: "#/components/parameters/MessageID"
+    delete:
+      tags:
+        - comments
+      summary: Delete comment
+      operationId: uncommentMessage
+      description: "Remove user comment from a message. If no comment is present, nothing will change"
+      responses:
+        "200": {description: Comment removed succesfully}
+        "204": {description: Comment not present}
+      
+      
+
+components:
+  schemas:
+    User:
+      title: User
+      description: Unique user
+      type: object
+      properties:
+        id:
+          description: Unique identifier for the user
+          type: integer
+          example: 223
+          readOnly: True
+        username:
+          description: username
+          type: string
+          example: 'mario'
+          minLength: 3
+          maxLength: 16
+    Chat:
+      title: Chat
+      description: Generic chat
+      type: object
+      properties:
+        id:
+          description: Unique identifier for the chat
+          type: integer
+          example: 223
+          readOnly: True
+        messages:  
+          description: messages in the chat
+          type: array
+          items:
+            $ref: "#/components/schemas/Message"
+        participants:
+          description: users involved in the chat
+          type: array
+          items: 
+            $ref: "#/components/schemas/User"
+        isGroup:
+          description: identifies chat as a group or private chat
+          type: boolean
+          example: true
+        chatName:
+          description: Chat title, user name or group name
+          type: string
+          example: "Study group"
+          minLength: 3
+          maxLength: 24
+    Message:
+      title: Message
+      description: Single message
+      type: object
+      properties:
+        id:
+          description: Unique identifier for the message
+          type: integer
+          example: 223
+          readOnly: True
+        text:
+          description: message text
+          type: string
+          example: "hello world"
+          minLength: 1
+          maxLength: 250
+        time:
+          description: Date and time when the message is sent
+          type: string
+          format: date-time
+          example: "2024-10-11T12:14:23Z"
+          readOnly: true
+        comments:
+          description: Message comments
+          type: array
+          items: 
+            $ref: "#/components/schemas/User"
+  parameters:
+    UserID:
+      schema:
+          type: number
+          format: integer
+          example: 134
+      name: userId
+      in: path
+      required: true 
+      description: User identifier
+    ChatID:
+      schema:
+          type: number
+          format: integer
+          example: 134
+      name: chatId
+      in: path
+      required: true 
+      description: Chat identifier
+    MessageID:
+      schema:
+          type: number
+          format: integer
+          example: 134
+      name: messageId
+      in: path
+      required: true 
+      description: Message identifier
+        
         
