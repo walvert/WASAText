@@ -4,6 +4,19 @@ info:
   description: | 
     API for messaging app WASAText
   version: 0.0.1
+security:
+  - bearerAuth: []
+tags:
+  - name: login
+    description: login operations
+  - name: user
+    description: user operations
+  - name: chats
+    description: chats operations
+  - name: messages
+    description: messages operations
+  - name: comments
+    description: comment operations
 paths:
   /session:
     post:
@@ -39,10 +52,9 @@ paths:
                   identifier:
                     type: integer
                     example: 142
-  
   /users/{userId}:
     parameters:
-    - $ref: "#/components/parameters/UserID"
+      - $ref: "#/components/parameters/UserID"
     get:
       tags:
         - user
@@ -87,10 +99,9 @@ paths:
           description: Invalid input
         "404":
           description: User not found
-  
   /users/{userId}/image:
     parameters:
-    - $ref: "#/components/parameters/UserID"
+      - $ref: "#/components/parameters/UserID"
     put:
       tags:
         - user
@@ -112,10 +123,9 @@ paths:
               schema:
                 type: string
                 example: ok
-  
   /users/{userId}/chats:
     parameters:
-        - $ref: "#/components/parameters/UserID"
+      - $ref: "#/components/parameters/UserID"
     get:
       tags:
         - chats
@@ -154,11 +164,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Chat'
-  
   /users/{userId}/chats/{chatId}:
     parameters:
-        - $ref: "#/components/parameters/UserID"
-        - $ref: "#/components/parameters/ChatID"
+      - $ref: "#/components/parameters/UserID"
+      - $ref: "#/components/parameters/ChatID"
     get:
       tags:
         - chats
@@ -216,11 +225,10 @@ paths:
                 example: deleted
         "404":
           description: Chat not found
-  
   /users/{userId}/chats/{chatId}/participants:
     parameters:
-    - $ref: "#/components/parameters/UserID"
-    - $ref: "#/components/parameters/ChatID"
+      - $ref: "#/components/parameters/UserID"
+      - $ref: "#/components/parameters/ChatID"
     put:
       tags:
         - chats
@@ -257,12 +265,10 @@ paths:
                 example: pong
         "404":
           description: Group not found
-    
-      
   /users/{userId}/chats/{chatId}/image:
     parameters:
-    - $ref: "#/components/parameters/UserID"
-    - $ref: "#/components/parameters/ChatID"
+      - $ref: "#/components/parameters/UserID"
+      - $ref: "#/components/parameters/ChatID"
     put:
       tags:
         - chats
@@ -281,8 +287,8 @@ paths:
           description: "Group photo updated succesfully"
   /users/{userId}/chats/{chatId}/messages:
     parameters:
-        - $ref: "#/components/parameters/UserID"
-        - $ref: "#/components/parameters/ChatID"
+      - $ref: "#/components/parameters/UserID"
+      - $ref: "#/components/parameters/ChatID"
     get:
       tags:
         - messages
@@ -319,12 +325,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
-          
   /users/{userId}/chats/{chatId}/messages/{messageId}:
     parameters:
-        - $ref: "#/components/parameters/UserID"
-        - $ref: "#/components/parameters/ChatID"
-        - $ref: "#/components/parameters/MessageID"
+      - $ref: "#/components/parameters/UserID"
+      - $ref: "#/components/parameters/ChatID"
+      - $ref: "#/components/parameters/MessageID"
     get:
       tags:
         - messages
@@ -353,9 +358,9 @@ paths:
           description: Message not found
   /users/{userId}/chats/{chatId}/messages/{messageId}/comments:
     parameters:
-        - $ref: "#/components/parameters/UserID"
-        - $ref: "#/components/parameters/ChatID"
-        - $ref: "#/components/parameters/MessageID"
+      - $ref: "#/components/parameters/UserID"
+      - $ref: "#/components/parameters/ChatID"
+      - $ref: "#/components/parameters/MessageID"
     get:
       tags:
         - comments
@@ -395,9 +400,9 @@ paths:
           description: Comment already present
   /users/{userId}/chats/{chatId}/messages/{messageId}/comments/{userId}:
     parameters:
-        - $ref: "#/components/parameters/UserID"
-        - $ref: "#/components/parameters/ChatID"
-        - $ref: "#/components/parameters/MessageID"
+      - $ref: "#/components/parameters/UserID"
+      - $ref: "#/components/parameters/ChatID"
+      - $ref: "#/components/parameters/MessageID"
     delete:
       tags:
         - comments
@@ -407,8 +412,6 @@ paths:
       responses:
         "200": {description: Comment removed succesfully}
         "204": {description: Comment not present}
-      
-      
 
 components:
   schemas:
@@ -513,5 +516,7 @@ components:
       in: path
       required: true 
       description: Message identifier
-        
-        
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
