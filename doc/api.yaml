@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: WASAText
-  description: | 
+  description: |
     API for messaging app WASAText
   version: 0.0.1
 security:
@@ -35,9 +35,10 @@ paths:
               type: object
               properties:
                 name:
+                  description: Username
                   type: string
                   example: Maria
-                  pattern: 'ˆ.*?$'
+                  pattern: "^[a-zA-Z0-9_-]+$"
                   minLength: 3
                   maxLength: 16
         required: true
@@ -48,8 +49,10 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Unique user identifier
                 properties:
                   identifier:
+                    description: User identifier
                     type: integer
                     example: 142
   /users/{userId}:
@@ -59,7 +62,8 @@ paths:
       tags:
         - user
       summary: Get user by id
-      description: "Returns a sigle user"
+      description: "Returns a single user"
+      operationId: getUser
       responses:
         "200":
           description: User found
@@ -67,38 +71,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
-        "404": 
-          description: User not found
-          content:
-            text/plain:
-                schema:
-                  type: string
-                  example: not found
-    post:
+        "404":
+          $ref: '#/components/responses/Response'
+    put:
       tags:
         - user
-      summary: Updates the username 
+      summary: Updates the username
       description: 'Updates the username with the one given in the request'
       operationId: setMyUserName
-      parameters:
-        - name: username
-          in: query
-          description: New username
-          schema:
-            type: string
-            example: "maria"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Chat"
+        required: true
       responses:
         "200":
           description: Username updated successfully
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                example: ok
+                $ref: "#/components/schemas/User"
         "400":
-          description: Invalid input
+          $ref: '#/components/responses/Response'
         "404":
-          description: User not found
+          $ref: '#/components/responses/Response'
   /users/{userId}/image:
     parameters:
       - $ref: "#/components/parameters/UserID"
@@ -113,16 +110,12 @@ paths:
           application/octet-stream:
             schema:
               type: string
+              description: image
               format: binary
         required: true
       responses:
         "200":
-          description: "Image updated succesfully"
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: ok
+          $ref: '#/components/responses/Response'
   /users/{userId}/chats:
     parameters:
       - $ref: "#/components/parameters/UserID"
@@ -133,16 +126,18 @@ paths:
       summary: Get user chats
       description: "Get all the user's conversations"
       responses:
-          "200":
-            description: Chats found
-            content:
-              application/json:
-                schema:
-                  type: array
-                  items: 
-                    $ref: "#/components/schemas/Chat"
-          "204":
-            description: "No Chats"
+        "200":
+          description: Chats found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Chat"
+                minItems: 1
+                maxItems: 999
+        "204":
+          description: "No Chats"
     post:
       tags:
         - chats
@@ -181,8 +176,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Chat"
-        "404": {description: "Chat not found"}
-        "401": {description: "Unautorizhed to access the chat"}
+        "404":
+          $ref: "#/components/responses/Response"
+        "401":
+          $ref: "#/components/responses/Response"
     post:
       tags:
         - chats
@@ -195,36 +192,31 @@ paths:
           description: New group name
           schema:
             type: string
+            description: Group name
             example: "Study group"
+            pattern: "^[a-zA-Z0-9_-]+$"
+            minLength: 3
+            maxLength: 24
       responses:
         "200":
           description: Chat name updated successfully
           content:
-            text/plain:
+            application/json:
               schema:
-                type: string
-                example: ok
+                $ref: "#/components/schemas/Chat"
         '400':
-          description: Invalid input
+          $ref: "#/components/responses/Response"
     delete:
       tags:
         - chats
       summary: Delete chat
       description: "Delete a chat"
       operationId: deleteChat
-      parameters:
-        - $ref: "#/components/parameters/UserID"
-        - $ref: "#/components/parameters/ChatID"
       responses:
         "200":
-          description: Chat deleted
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: deleted
+          $ref: "#/components/responses/Response"
         "404":
-          description: Chat not found
+          $ref: "#/components/responses/Response"
   /users/{userId}/chats/{chatId}/participants:
     parameters:
       - $ref: "#/components/parameters/UserID"
@@ -257,14 +249,9 @@ paths:
       operationId: leaveGroup
       responses:
         "200":
-          description: Left the group
-          content:
-            text/plain:
-              schema:
-                type: string
-                example: pong
+          $ref: "#/components/responses/Response"
         "404":
-          description: Group not found
+          $ref: "#/components/responses/Response"
   /users/{userId}/chats/{chatId}/image:
     parameters:
       - $ref: "#/components/parameters/UserID"
@@ -279,12 +266,13 @@ paths:
         content:
           application/octet-stream:
             schema:
+              description: image
               type: string
               format: binary
         required: true
       responses:
         "200":
-          description: "Group photo updated succesfully"
+          $ref: "#/components/responses/Response"
   /users/{userId}/chats/{chatId}/messages:
     parameters:
       - $ref: "#/components/parameters/UserID"
@@ -296,14 +284,16 @@ paths:
       description: "Get all messages of a chat"
       operationId: getMessages
       responses:
-          "200":
-            description: Messages found
-            content: 
-              application/json:
-                schema:
-                  type: array
-                  items: 
-                    $ref: "#/components/schemas/Message"
+        "200":
+          description: Messages found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+                minItems: 1
+                maxItems: 99999
     post:
       tags:
         - messages
@@ -344,7 +334,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Message'
         "404":
-          description: Message not found
+          $ref: "#/components/responses/Response"
     delete:
       tags:
         - messages
@@ -353,9 +343,9 @@ paths:
       operationId: deleteMessage
       responses:
         "200":
-          description: Message deleted succesfully
+          $ref: "#/components/responses/Response"
         "404":
-          description: Message not found
+          $ref: "#/components/responses/Response"
   /users/{userId}/chats/{chatId}/messages/{messageId}/comments:
     parameters:
       - $ref: "#/components/parameters/UserID"
@@ -368,16 +358,18 @@ paths:
       summary: Get message comments
       description: "Get all the message's comments"
       responses:
-          "200":
-            description: Comments found
-            content: 
-              application/json:
-                schema:
-                  type: array
-                  items: 
-                    $ref: "#/components/schemas/User"
-          "204":
-            description: "No Comments"
+        "200":
+          description: Comments found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+                minItems: 1
+                maxItems: 9999
+        "204":
+          description: "No Comments"
     put:
       tags:
         - comments
@@ -395,14 +387,15 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        "204": 
+                $ref: '#/components/schemas/Comment'
+        "204":
           description: Comment already present
-  /users/{userId}/chats/{chatId}/messages/{messageId}/comments/{userId}:
+  /users/{userId}/chats/{chatId}/messages/{messageId}/comments/{commentId}:
     parameters:
       - $ref: "#/components/parameters/UserID"
       - $ref: "#/components/parameters/ChatID"
       - $ref: "#/components/parameters/MessageID"
+      - $ref: "#/components/parameters/CommentID"
     delete:
       tags:
         - comments
@@ -410,8 +403,10 @@ paths:
       operationId: uncommentMessage
       description: "Remove user comment from a message. If no comment is present, nothing will change"
       responses:
-        "200": {description: Comment removed succesfully}
-        "204": {description: Comment not present}
+        "200":
+          $ref: "#/components/responses/Response"
+        "204":
+          description: Comment not present
 
 components:
   schemas:
@@ -429,6 +424,7 @@ components:
           description: username
           type: string
           example: 'mario'
+          pattern: "^[a-zA-Z0-9_-]+$"
           minLength: 3
           maxLength: 16
     Chat:
@@ -441,16 +437,20 @@ components:
           type: integer
           example: 223
           readOnly: True
-        messages:  
+        messages:
           description: messages in the chat
           type: array
           items:
             $ref: "#/components/schemas/Message"
+          minItems: 1
+          maxItems: 99999
         participants:
           description: users involved in the chat
           type: array
-          items: 
+          items:
             $ref: "#/components/schemas/User"
+          minItems: 3
+          maxItems: 999
         isGroup:
           description: identifies chat as a group or private chat
           type: boolean
@@ -459,6 +459,7 @@ components:
           description: Chat title, user name or group name
           type: string
           example: "Study group"
+          pattern: "^[a-zA-Z0-9_-]+$"
           minLength: 3
           maxLength: 24
     Message:
@@ -475,47 +476,99 @@ components:
           description: message text
           type: string
           example: "hello world"
+          pattern: "^[a-zA-Z0-9_-]+$"
           minLength: 1
           maxLength: 250
-        time:
+        timestamp:
           description: Date and time when the message is sent
           type: string
           format: date-time
+          pattern: "^[a-zA-Z0-9_-]{20}$"
           example: "2024-10-11T12:14:23Z"
           readOnly: true
         comments:
           description: Message comments
           type: array
-          items: 
-            $ref: "#/components/schemas/User"
+          items:
+            $ref: "#/components/schemas/Comment"
+          minItems: 0
+          maxItems: 999
+    Comment:
+      title: Comment
+      description: Single comment
+      type: object
+      properties:
+        userId:
+          description: Unique identifier for the comment's user
+          type: integer
+          example: 223
+          readOnly: True
+        timestamp:
+          description: Date and time when the comment is put
+          type: string
+          format: date-time
+          pattern: "^[a-zA-Z0-9_-]{20}$"
+          example: "2024-10-11T12:14:23Z"
+          readOnly: true
   parameters:
     UserID:
       schema:
-          type: number
-          format: integer
-          example: 134
+        type: number
+        format: integer
+        example: 134
       name: userId
       in: path
-      required: true 
+      required: true
       description: User identifier
     ChatID:
       schema:
-          type: number
-          format: integer
-          example: 134
+        type: number
+        format: integer
+        example: 134
       name: chatId
       in: path
-      required: true 
+      required: true
       description: Chat identifier
     MessageID:
       schema:
-          type: number
-          format: integer
-          example: 134
+        type: number
+        format: integer
+        example: 134
       name: messageId
       in: path
-      required: true 
+      required: true
       description: Message identifier
+    CommentID:
+      schema:
+        type: number
+        format: integer
+        example: 134
+      name: commentId
+      in: path
+      required: true
+      description: Comment identifier
+  responses:
+    Response:
+      description: Operation response
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                description: Response code
+                pattern: "^[1-9]{3}$"
+                example: "200"
+                minLength: 3
+                maxLength: 3
+              message:
+                type: string
+                description: Response message
+                pattern: "^[a-zA-z]+$"
+                minLength: 2
+                maxLength: 99
+                example: "Successful operation"
   securitySchemes:
     bearerAuth:
       type: http
