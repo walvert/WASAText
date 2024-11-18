@@ -163,6 +163,16 @@ paths:
     parameters:
       - $ref: "#/components/parameters/UserID"
       - $ref: "#/components/parameters/ChatID"
+      - name: chatName
+        in: query
+        description: New group name
+        schema:
+          type: string
+          description: Group name
+          example: "Study group"
+          pattern: "^[a-zA-Z0-9_-]+$"
+          minLength: 3
+          maxLength: 24
     get:
       tags:
         - chats
@@ -186,17 +196,6 @@ paths:
       summary: Updates the group name
       description: 'Updates the group name with the one given in the request'
       operationId: setGroupName
-      parameters:
-        - name: chatName
-          in: query
-          description: New group name
-          schema:
-            type: string
-            description: Group name
-            example: "Study group"
-            pattern: "^[a-zA-Z0-9_-]+$"
-            minLength: 3
-            maxLength: 24
       responses:
         "200":
           description: Chat name updated successfully
