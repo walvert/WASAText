@@ -574,7 +574,7 @@ components:
               message:
                 type: string
                 description: Response message
-                pattern: "^[a-zA-z ]+$"
+                pattern: "^[a-zA-Z ]+$"
                 minLength: 2
                 maxLength: 99
                 example: "Successful operation"
