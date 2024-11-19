@@ -112,6 +112,8 @@ paths:
               type: string
               description: image
               format: binary
+              minLength: 1
+              maxLength: 99999
         required: true
       responses:
         "200":
@@ -131,6 +133,7 @@ paths:
           content:
             application/json:
               schema:
+                description: chats
                 type: array
                 items:
                   $ref: "#/components/schemas/Chat"
@@ -170,7 +173,7 @@ paths:
           type: string
           description: Group name
           example: "Study group"
-          pattern: "^[a-zA-Z0-9_-]+$"
+          pattern: "^[a-zA-Z0-9_ -]+$"
           minLength: 3
           maxLength: 24
     get:
@@ -268,6 +271,8 @@ paths:
               description: image
               type: string
               format: binary
+              minLength: 1
+              maxLength: 99999
         required: true
       responses:
         "200":
@@ -288,6 +293,7 @@ paths:
           content:
             application/json:
               schema:
+                description: chat messages
                 type: array
                 items:
                   $ref: "#/components/schemas/Message"
@@ -379,7 +385,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/Comment'
       responses:
         "200":
           description: Comment added
@@ -458,7 +464,7 @@ components:
           description: Chat title, user name or group name
           type: string
           example: "Study group"
-          pattern: "^[a-zA-Z0-9_-]+$"
+          pattern: "^[a-zA-Z0-9_ -]+$"
           minLength: 3
           maxLength: 24
     Message:
@@ -475,7 +481,7 @@ components:
           description: message text
           type: string
           example: "hello world"
-          pattern: "^[a-zA-Z0-9_-]+$"
+          pattern: "^[a-zA-Z0-9_ -]+$"
           minLength: 1
           maxLength: 250
         timestamp:
@@ -485,6 +491,8 @@ components:
           pattern: "^[a-zA-Z0-9_-]{20}$"
           example: "2024-10-11T12:14:23Z"
           readOnly: true
+          minLength: 20
+          maxLength: 20
         comments:
           description: Message comments
           type: array
@@ -506,9 +514,11 @@ components:
           description: Date and time when the comment is put
           type: string
           format: date-time
-          pattern: "^[a-zA-Z0-9_-]{20}$"
+          pattern: "^[a-zA-Z0-9_ -]{20}$"
           example: "2024-10-11T12:14:23Z"
           readOnly: true
+          minLength: 20
+          maxLength: 20
   parameters:
     UserID:
       schema:
@@ -557,14 +567,14 @@ components:
               code:
                 type: string
                 description: Response code
-                pattern: "^[1-9]{3}$"
+                pattern: "^[1-9 ]{3}$"
                 example: "200"
                 minLength: 3
                 maxLength: 3
               message:
                 type: string
                 description: Response message
-                pattern: "^[a-zA-z]+$"
+                pattern: "^[a-zA-z ]+$"
                 minLength: 2
                 maxLength: 99
                 example: "Successful operation"
