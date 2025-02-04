@@ -73,6 +73,8 @@ paths:
                 $ref: '#/components/schemas/User'
         "404":
           $ref: '#/components/responses/Response'
+        "500":
+          $ref: '#/components/responses/Response'
     put:
       tags:
         - user
@@ -83,7 +85,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Chat"
+              $ref: "#/components/schemas/User"
         required: true
       responses:
         "200":
@@ -95,6 +97,8 @@ paths:
         "400":
           $ref: '#/components/responses/Response'
         "404":
+          $ref: '#/components/responses/Response'
+        "500":
           $ref: '#/components/responses/Response'
   /users/{userId}/image:
     parameters:

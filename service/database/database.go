@@ -34,14 +34,19 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 )
 
 // AppDatabase is the high level interface for the DB
 type AppDatabase interface {
 	GetName() (string, error)
 	SetName(name string) error
-
 	Ping() error
+	CreateUser(username string) (types.User, error)
+	GetUser(id int) (types.User, error)
+	EditUsername(id int, username string) (types.User, error)
+	UsernameExists(username string) bool
+	EditUserImage(id int, username string) error
 }
 
 type appdbimpl struct {
@@ -55,15 +60,15 @@ func New(db *sql.DB) (AppDatabase, error) {
 		return nil, errors.New("database is required when building a AppDatabase")
 	}
 
-	// Check if table exists. If not, the database is empty, and we need to create the structure
-	var tableName string
-	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='example_table';`).Scan(&tableName)
-	if errors.Is(err, sql.ErrNoRows) {
-		sqlStmt := `CREATE TABLE example_table (id INTEGER NOT NULL PRIMARY KEY, name TEXT);`
-		_, err = db.Exec(sqlStmt)
-		if err != nil {
-			return nil, fmt.Errorf("error creating database structure: %w", err)
-		}
+	sqlStmt := `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE);
+				CREATE TABLE IF NOT EXISTS chats (id INTEGER PRIMARY KEY, participants TEXT);
+				CREATE TABLE IF NOT EXISTS image_paths (id INTEGER PRIMARY KEY, path TEXT NOT NULL,FOREIGN KEY (id) REFERENCES users (id) ON DELETE CASCADE);
+				CREATE TABLE IF NOT EXISTS user_chats (user_id INTEGER,chat_id INTEGER,FOREIGN KEY (user_id) REFERENCES users(id),FOREIGN KEY (chat_id) REFERENCES chats(id),PRIMARY KEY (user_id, chat_id));
+				CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY,chat_id INTEGER,user_id INTEGER,content TEXT NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE, FOREIGN KEY (user_id) REFERENCES users(id));`
+
+	_, err := db.Exec(sqlStmt)
+	if err != nil {
+		return nil, fmt.Errorf("error creating database structure: %w", err)
 	}
 
 	return &appdbimpl{
