@@ -49,7 +49,7 @@ func (rt *_router) uploadUserImage(w http.ResponseWriter, r *http.Request, ps ht
 
 	// Generate unique filename
 	ext := filepath.Ext(header.Filename)
-	imagePath := fmt.Sprintf("%s/user_%d%s", uploadDir, id, ext)
+	imagePath := fmt.Sprintf("%suser_%d%s", uploadDir, id, ext)
 
 	// Create the new file
 	outFile, err := os.Create(imagePath)

@@ -13,6 +13,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.GET("/users/:id", rt.getUser)
 	rt.router.PUT("/users/:id", rt.editUsername)
 	rt.router.PUT("/users/:id/image", rt.uploadUserImage)
+	rt.router.POST("/users/:id/chats", rt.createChat)
 
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)
