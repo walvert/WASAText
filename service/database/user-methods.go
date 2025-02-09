@@ -1,8 +1,6 @@
 package database
 
 import (
-	"database/sql"
-	"errors"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 )
 
@@ -34,7 +32,7 @@ func (db *appdbimpl) CreateUser(username string) (types.User, error) {
 	return user, nil
 }
 
-func (db *appdbimpl) SetMyPhoto(id int, path string) error {
+/*func (db *appdbimpl) SetMyPhoto(id int, path string) error {
 	var existingPath string
 	err := db.c.QueryRow("SELECT path FROM image_paths WHERE id = ?", id).Scan(&existingPath)
 
@@ -55,7 +53,7 @@ func (db *appdbimpl) SetMyPhoto(id int, path string) error {
 	}
 
 	return nil
-}
+}*/
 
 func (db *appdbimpl) SetMyUsername(user types.User) error {
 	_, err := db.c.Exec("UPDATE users SET username = ? WHERE id = ?", user.Username, user.ID)
