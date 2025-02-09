@@ -17,14 +17,14 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	myChat, err := rt.db.CreateChat(chat)
+	err = rt.db.CreateChat(chat)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(myChat)
+	w.WriteHeader(http.StatusCreated)
+	err = json.NewEncoder(w).Encode(chat)
 	if err != nil {
 		rt.baseLogger.WithError(err).Error("Failed to encode response")
 		http.Error(w, "Failed to return user", http.StatusInternalServerError)

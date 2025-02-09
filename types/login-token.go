@@ -1,5 +1,5 @@
 package types
 
-type LoginToken struct {
+type LoginRequest struct {
 	Username string `json:"username"`
 }

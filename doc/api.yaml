@@ -49,12 +49,12 @@ paths:
             application/json:
               schema:
                 type: object
-                description: Unique user identifier
+                description: Unique user bearer token
                 properties:
                   identifier:
-                    description: User identifier
-                    type: integer
-                    example: 142
+                    description: Bearer token
+                    type: string
+                    example: "12et43-35432-g53kg5"
   /users/{userId}:
     parameters:
       - $ref: "#/components/parameters/UserID"
@@ -85,7 +85,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/User"
+              $ref: "#/components/schemas/LoginRequest"
         required: true
       responses:
         "200":
@@ -201,7 +201,7 @@ paths:
       tags:
         - chats
       summary: Updates the group name
-      description: 'Updates the group name with the one given in the request'
+      description: "Updates the group name with the one given in the request"
       operationId: setGroupName
       responses:
         "200":
@@ -523,6 +523,18 @@ components:
           readOnly: true
           minLength: 20
           maxLength: 20
+    LoginRequest:
+      title: Login Request
+      description: Request consists in a string
+      type: object
+      properties:
+        username:
+          description: username
+          type: string
+          example: 'mario'
+          pattern: "^[a-zA-Z0-9_-]+$"
+          minLength: 3
+          maxLength: 16
   parameters:
     UserID:
       schema:

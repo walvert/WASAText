@@ -1,8 +1,7 @@
 package types
 
 type Chat struct {
-	ID           int       `json:"id"`
-	Name         string    `json:"name"`
-	Participants []User    `json:"participants"`
-	Messages     []Message `json:"messages"`
+	ID      int    `db:"id"`
+	Name    string `db:"name"`
+	IsGroup bool   `db:"is_group"`
 }

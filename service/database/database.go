@@ -40,12 +40,16 @@ import (
 // AppDatabase is the high level interface for the DB
 type AppDatabase interface {
 	Ping() error
+	GetUserById(id int) (types.User, error)
+	GetUserByUsername(username string) (types.User, error)
 	CreateUser(username string) (types.User, error)
-	GetUser(id int) (types.User, error)
-	EditUsername(id int, username string) (types.User, error)
-	UsernameExists(username string) bool
-	EditUserImage(id int, username string) error
-	CreateChat(chat types.Chat) (types.Chat, error)
+	SetMyUsername(user types.User) error
+	SetMyPhoto(id int, username string) error
+	CreateChat(chat types.Chat) error
+	SendMessage(message types.Message) (types.Message, error)
+	SetToken(token types.BearerToken) error
+	ValidateToken(token types.BearerToken) (bool, error)
+	UpsertToken(token types.BearerToken) error
 }
 
 type appdbimpl struct {
@@ -59,11 +63,35 @@ func New(db *sql.DB) (AppDatabase, error) {
 		return nil, errors.New("database is required when building a AppDatabase")
 	}
 
-	sqlStmt := `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE);
-				CREATE TABLE IF NOT EXISTS chats (id INTEGER PRIMARY KEY, chat_name TEXT, participants TEXT);
-				CREATE TABLE IF NOT EXISTS image_paths (id INTEGER PRIMARY KEY, path TEXT NOT NULL,FOREIGN KEY (id) REFERENCES users (id) ON DELETE CASCADE);
-				CREATE TABLE IF NOT EXISTS user_chats (user_id INTEGER NOT NULL, chat_id INTEGER NOT NULL, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE, PRIMARY KEY (user_id, chat_id));
-				CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, chat_id INTEGER,user_id INTEGER,content TEXT NOT NULL,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE, FOREIGN KEY (user_id) REFERENCES users(id));`
+	sqlStmt := `CREATE TABLE IF NOT EXISTS users (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					username TEXT NOT NULL UNIQUE
+                );
+				CREATE TABLE IF NOT EXISTS chats (
+					id INTEGER PRIMARY KEY,
+					chat_name TEXT DEFAULT '',
+					is_group BOOLEAN DEFAULT FALSE
+				);
+				CREATE TABLE IF NOT EXISTS user_chats (
+					user_id INTEGER NOT NULL,
+					chat_id INTEGER NOT NULL,
+					FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+					FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE,
+					PRIMARY KEY (user_id, chat_id)
+				);
+				CREATE TABLE IF NOT EXISTS messages (
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
+					chat_id INTEGER NOT NULL,
+					user_id INTEGER,
+					content TEXT NOT NULL,
+					created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+					FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE,
+					 FOREIGN KEY (user_id) REFERENCES users(id)
+				);
+				CREATE TABLE IF NOT EXISTS tokens (
+    				user_id  INTEGER PRIMARY KEY NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    				token TEXT NOT NULL
+  				)`
 
 	_, err := db.Exec(sqlStmt)
 	if err != nil {

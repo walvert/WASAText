@@ -10,11 +10,11 @@ import (
 	"strconv"
 )
 
-func (rt *_router) editUsername(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) setMyUsername(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.Header().Set("Content-Type", "application/json")
-	var user types.User
+	var username types.LoginRequest
 
-	err := json.NewDecoder(r.Body).Decode(&user)
+	err := json.NewDecoder(r.Body).Decode(&username)
 	if err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
@@ -27,7 +27,12 @@ func (rt *_router) editUsername(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	user, err = rt.db.EditUsername(id, user.Username)
+	user := types.User{
+		ID:       id,
+		Username: username.Username,
+	}
+
+	err = rt.db.SetMyUsername(user)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "User not found", http.StatusNotFound)

@@ -1,13 +1,20 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 )
 
-func (rt *_router) login(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	rt.wrap(rt.loginHandler)(w, r, ps)
+}
+
+func (rt *_router) loginHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	w.Header().Set("content-type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -15,29 +22,60 @@ func (rt *_router) login(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		return
 	}
 
-	var username types.LoginToken
-	var user types.User
+	var username types.LoginRequest
 	err := json.NewDecoder(r.Body).Decode(&username)
 	if err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	// Check if username already exists
-	if rt.db.UsernameExists(username.Username) {
-		http.Error(w, "Username already exists", http.StatusConflict)
+	// Check if username is missing
+	if username.Username == "" {
+		http.Error(w, "Username is required", http.StatusBadRequest)
 		return
 	}
 
-	user, err = rt.db.CreateUser(username.Username)
+	// Get or create user
+	user, err := rt.db.GetUserByUsername(username.Username)
 	if err != nil {
-		http.Error(w, "Failed to insert user", http.StatusInternalServerError)
-		return
+		if errors.Is(err, sql.ErrNoRows) {
+			user, err = rt.db.CreateUser(username.Username)
+			if err != nil {
+				rt.baseLogger.WithError(err).Error("Failed to create user")
+				http.Error(w, "Failed to create user", http.StatusInternalServerError)
+				return
+			}
+		} else {
+			rt.baseLogger.WithError(err).Error("Failed to fetch user")
+			http.Error(w, "Failed to fetch user", http.StatusInternalServerError)
+			return
+		}
 	}
-	w.WriteHeader(http.StatusCreated)
-	err = json.NewEncoder(w).Encode(user)
+
+	// Get bearer token
+	token := ctx.ReqUUID.String()
+
+	userToken := types.BearerToken{
+		Token:  ctx.ReqUUID.String(),
+		UserID: user.ID,
+	}
+
+	err = rt.db.UpsertToken(userToken)
 	if err != nil {
-		http.Error(w, "Failed to return user", http.StatusInternalServerError)
+		rt.baseLogger.WithError(err).Error("Failed to set token")
+		http.Error(w, "Failed to set token", http.StatusInternalServerError)
+	}
+
+	// Create response
+	response := types.LoginResponse{
+		Token: token,
+	}
+
+	// Encode and send response
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		rt.baseLogger.WithError(err).Error("Failed to encode response")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 

@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-func (rt *_router) uploadUserImage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.Header().Set("Content-Type", "image/png")
 
 	idParam := ps.ByName("id")
@@ -41,7 +41,7 @@ func (rt *_router) uploadUserImage(w http.ResponseWriter, r *http.Request, ps ht
 	}(file)
 
 	// Ensure upload directory exists
-	uploadDir := "uploads/"
+	uploadDir := "uploads/user"
 	err = os.MkdirAll(uploadDir, os.ModePerm)
 	if err != nil {
 		return
@@ -49,7 +49,7 @@ func (rt *_router) uploadUserImage(w http.ResponseWriter, r *http.Request, ps ht
 
 	// Generate unique filename
 	ext := filepath.Ext(header.Filename)
-	imagePath := fmt.Sprintf("%suser_%d%s", uploadDir, id, ext)
+	imagePath := fmt.Sprintf("%s%d%s", uploadDir, id, ext)
 
 	// Create the new file
 	outFile, err := os.Create(imagePath)
@@ -71,9 +71,5 @@ func (rt *_router) uploadUserImage(w http.ResponseWriter, r *http.Request, ps ht
 		return
 	}
 
-	err = rt.db.EditUserImage(id, imagePath)
-	if err != nil {
-		http.Error(w, "Failed to save image", http.StatusInternalServerError)
-	}
 	w.WriteHeader(http.StatusCreated)
 }

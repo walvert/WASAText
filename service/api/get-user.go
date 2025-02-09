@@ -19,9 +19,10 @@ func (rt *_router) getUser(w http.ResponseWriter, r *http.Request, ps httprouter
 		return
 	}
 
-	user, err := rt.db.GetUser(id)
+	user, err := rt.db.GetUserById(id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
+			rt.baseLogger.WithError(err).Error("User not found")
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		}
@@ -29,7 +30,6 @@ func (rt *_router) getUser(w http.ResponseWriter, r *http.Request, ps httprouter
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(user)
 	if err != nil {
 		rt.baseLogger.WithError(err).Error("Failed to encode response")
