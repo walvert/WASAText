@@ -44,7 +44,6 @@ type AppDatabase interface {
 	GetUserByUsername(username string) (types.User, error)
 	CreateUser(username string) (types.User, error)
 	SetMyUsername(user types.User) error
-	SetMyPhoto(id int, username string) error
 	CreateChat(chat types.Chat) error
 	SendMessage(message types.Message) (types.Message, error)
 	SetToken(token types.BearerToken) error
