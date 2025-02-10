@@ -8,12 +8,13 @@ import (
 func (rt *_router) Handler() http.Handler {
 	// Register routes
 	rt.router.POST("/session", rt.doLogin)
-	rt.router.GET("/users/:userId/chats", rt.authMiddleware(rt.getMyConversations))
 	rt.router.PUT("/users/:userId", rt.authMiddleware(rt.setMyUsername))
 	rt.router.PUT("/users/:userId/image", rt.authMiddleware(rt.setMyPhoto))
 	rt.router.POST("/users/:userId/chats", rt.authMiddleware(rt.sendFirstMessage))
+	rt.router.GET("/users/:userId/chats", rt.authMiddleware(rt.getMyConversations))
 	rt.router.GET("/users/:userId/chats/:chatId", rt.authMiddleware(rt.getConversation))
 	rt.router.POST("/users/:userId/chats/:chatId/messages", rt.authMiddleware(rt.sendMessage))
+	rt.router.DELETE("/users/:userId/chats/:chatId/messages/:messageId", rt.authMiddleware(rt.authDeleteMessage(rt.deleteMessage)))
 
 	/*
 		 doLogin (see simplified login) √
@@ -24,7 +25,7 @@ func (rt *_router) Handler() http.Handler {
 		• forwardMessage
 		• commentMessage
 		• uncommentMessage
-		• deleteMessage
+		• deleteMessage					√
 		• addToGroup
 		• leaveGroup
 		• setGroupName

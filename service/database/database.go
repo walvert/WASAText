@@ -46,7 +46,6 @@ type AppDatabase interface {
 	SetMyUsername(user types.User) error
 	CreateChat(chatName string, isGroup bool) (int, error)
 	SendMessage(chatID int, userID int, content string) error
-	SetToken(token types.BearerToken) error
 	ValidateToken(token types.BearerToken) (bool, error)
 	UpsertToken(token types.BearerToken) error
 	GetPrivateChatID(user1ID int, user2ID int) (int, error)
@@ -54,6 +53,9 @@ type AppDatabase interface {
 	AddPrivateChat(chat types.PrivateChat) error
 	GetUserChats(userID int) ([]types.Chat, error)
 	GetConversation(chatID int) ([]types.Message, error)
+	DeleteMessage(messageID int) error
+	CommentMessage(messageID int, userID int) error
+	DeleteComment(messageID int, userID int) error
 }
 
 type appdbimpl struct {
@@ -95,11 +97,11 @@ func New(db *sql.DB) (AppDatabase, error) {
 				CREATE TABLE IF NOT EXISTS messages (
 					id INTEGER PRIMARY KEY AUTOINCREMENT,
 					chat_id INTEGER NOT NULL,
-					user_id INTEGER,
-					content TEXT NOT NULL,
+					sender_id INTEGER,
+					text TEXT NOT NULL,
 					created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 					FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE,
-					FOREIGN KEY (user_id) REFERENCES users(id)
+					FOREIGN KEY (sender_id) REFERENCES users(id)
 				);
 				CREATE TABLE IF NOT EXISTS tokens (
     				user_id  INTEGER PRIMARY KEY NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -78,6 +78,11 @@ func (rt *_router) sendFirstMessage(w http.ResponseWriter, r *http.Request, ps h
 			}
 		}
 	} else if len(messageRequest.Receivers) >= 1 {
+		if messageRequest.ChatName == "" {
+			http.Error(w, "Must specify a chat name", http.StatusBadRequest)
+			return
+		}
+
 		chatID, err := rt.db.CreateChat(messageRequest.ChatName, true)
 		if err != nil {
 			rt.baseLogger.WithError(err).Error("Error creating group chat")

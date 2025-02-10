@@ -25,3 +25,7 @@ type Comment struct {
 	MessageID int `db:"message_id"`
 	UserID    int `db:"user_id"`
 }
+
+type DeleteRequest struct {
+	SenderID int `json:"sender_id"`
+}
