@@ -14,7 +14,7 @@ import (
 func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.Header().Set("Content-Type", "image/png")
 
-	idParam := ps.ByName("id")
+	idParam := ps.ByName("userId")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)

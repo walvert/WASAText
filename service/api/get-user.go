@@ -12,7 +12,7 @@ import (
 func (rt *_router) getUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.Header().Set("content-type", "application/json")
 
-	idParam := ps.ByName("id")
+	idParam := ps.ByName("userId")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)

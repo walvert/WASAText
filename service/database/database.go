@@ -44,11 +44,14 @@ type AppDatabase interface {
 	GetUserByUsername(username string) (types.User, error)
 	CreateUser(username string) (types.User, error)
 	SetMyUsername(user types.User) error
-	CreateChat(chat types.Chat) error
-	SendMessage(message types.Message) (types.Message, error)
+	CreateChat(chatName string, isGroup bool) (int, error)
+	SendMessage(chatID int, userID int, content string) error
 	SetToken(token types.BearerToken) error
 	ValidateToken(token types.BearerToken) (bool, error)
 	UpsertToken(token types.BearerToken) error
+	GetPrivateChatID(user1ID int, user2ID int) (int, error)
+	AddChatToUser(userID int, chatID int) error
+	AddPrivateChat(chat types.PrivateChat) error
 }
 
 type appdbimpl struct {
@@ -67,7 +70,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 					username TEXT NOT NULL UNIQUE
                 );
 				CREATE TABLE IF NOT EXISTS chats (
-					id INTEGER PRIMARY KEY,
+					id INTEGER PRIMARY KEY AUTOINCREMENT,
 					chat_name TEXT DEFAULT '',
 					is_group BOOLEAN DEFAULT FALSE
 				);
@@ -78,6 +81,15 @@ func New(db *sql.DB) (AppDatabase, error) {
 					FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE,
 					PRIMARY KEY (user_id, chat_id)
 				);
+				CREATE TABLE IF NOT EXISTS private_chats(
+    				user1_id INTEGER,
+    				user2_id INTEGER,
+    				chat_id INTEGER NOT NULL UNIQUE,
+    				PRIMARY KEY (user1_id, user2_id),
+    				FOREIGN KEY (user1_id) REFERENCES users(id),
+    				FOREIGN KEY (user2_id) REFERENCES users(id)
+				);
+
 				CREATE TABLE IF NOT EXISTS messages (
 					id INTEGER PRIMARY KEY AUTOINCREMENT,
 					chat_id INTEGER NOT NULL,
@@ -85,7 +97,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 					content TEXT NOT NULL,
 					created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 					FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE,
-					 FOREIGN KEY (user_id) REFERENCES users(id)
+					FOREIGN KEY (user_id) REFERENCES users(id)
 				);
 				CREATE TABLE IF NOT EXISTS tokens (
     				user_id  INTEGER PRIMARY KEY NOT NULL REFERENCES users(id) ON DELETE CASCADE,

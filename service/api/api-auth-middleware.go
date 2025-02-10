@@ -23,7 +23,7 @@ func (rt *_router) AuthMiddleware(next httprouter.Handle) httprouter.Handle {
 			return
 		}
 
-		idParam := ps.ByName("id")
+		idParam := ps.ByName("userId")
 		id, err := strconv.Atoi(idParam)
 		authToken := types.BearerToken{
 			Token:  token,

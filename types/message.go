@@ -2,10 +2,19 @@ package types
 
 import "time"
 
+type FirstMessageRequest struct {
+	Text      string `json:"text"`
+	ChatName  string `json:"chat_name"`
+	Receivers []int  `json:"receivers"`
+}
+type MessageRequest struct {
+	ChatID int    `json:"chat_id"`
+	Text   string `json:"text"`
+}
 type Message struct {
-	ID        int       `json:"id"`
-	Text      string    `json:"text"`
-	ChatID    int       `json:"chat_id"`
-	UserID    int       `json:"user_id"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int       `db:"id"`
+	Text      string    `db:"text"`
+	ChatID    int       `db:"chat_id"`
+	SenderID  int       `db:"sender_id"`
+	CreatedAt time.Time `db:"created_at"`
 }
