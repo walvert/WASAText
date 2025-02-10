@@ -7,13 +7,30 @@ import (
 // Handler returns an instance of httprouter.Router that handle APIs registered here
 func (rt *_router) Handler() http.Handler {
 	// Register routes
-	rt.router.GET("/context", rt.wrap(rt.getContextReply))
 	rt.router.POST("/session", rt.doLogin)
-	rt.router.GET("/users/:userId", rt.getUser)
-	rt.router.PUT("/users/:userId", rt.AuthMiddleware(rt.setMyUsername))
-	rt.router.PUT("/users/:userId/image", rt.AuthMiddleware(rt.setMyPhoto))
-	rt.router.POST("/users/:userId/chats", rt.AuthMiddleware(rt.sendFirstMessage))
-	rt.router.POST("/users/:userId/chats/:chatId/messages", rt.AuthMiddleware(rt.sendMessage))
+	rt.router.GET("/users/:userId/chats", rt.authMiddleware(rt.getMyConversations))
+	rt.router.PUT("/users/:userId", rt.authMiddleware(rt.setMyUsername))
+	rt.router.PUT("/users/:userId/image", rt.authMiddleware(rt.setMyPhoto))
+	rt.router.POST("/users/:userId/chats", rt.authMiddleware(rt.sendFirstMessage))
+	rt.router.GET("/users/:userId/chats/:chatId", rt.authMiddleware(rt.getConversation))
+	rt.router.POST("/users/:userId/chats/:chatId/messages", rt.authMiddleware(rt.sendMessage))
+
+	/*
+		 doLogin (see simplified login) √
+		• setMyUserName 				√
+		• getMyConversations			√
+		• getConversation				√
+		• sendMessage					√
+		• forwardMessage
+		• commentMessage
+		• uncommentMessage
+		• deleteMessage
+		• addToGroup
+		• leaveGroup
+		• setGroupName
+		• setMyPhoto					√
+		• setGroupPhoto
+	*/
 
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)

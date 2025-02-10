@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-func (rt *_router) AuthMiddleware(next httprouter.Handle) httprouter.Handle {
+func (rt *_router) authMiddleware(next httprouter.Handle) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		token := r.Header.Get("Authorization")
 		if token == "" {

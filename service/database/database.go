@@ -52,6 +52,8 @@ type AppDatabase interface {
 	GetPrivateChatID(user1ID int, user2ID int) (int, error)
 	AddChatToUser(userID int, chatID int) error
 	AddPrivateChat(chat types.PrivateChat) error
+	GetUserChats(userID int) ([]types.Chat, error)
+	GetConversation(chatID int) ([]types.Message, error)
 }
 
 type appdbimpl struct {
@@ -102,6 +104,10 @@ func New(db *sql.DB) (AppDatabase, error) {
 				CREATE TABLE IF NOT EXISTS tokens (
     				user_id  INTEGER PRIMARY KEY NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     				token TEXT NOT NULL
+  				);
+				CREATE TABLE IF NOT EXISTS comments (
+    				message_id  INTEGER PRIMARY KEY NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    				user_id INTEGER NOT NULL
   				)`
 
 	_, err := db.Exec(sqlStmt)
