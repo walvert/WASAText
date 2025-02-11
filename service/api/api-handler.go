@@ -15,6 +15,8 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.GET("/users/:userId/chats/:chatId", rt.authMiddleware(rt.getConversation))
 	rt.router.POST("/users/:userId/chats/:chatId/messages", rt.authMiddleware(rt.sendMessage))
 	rt.router.DELETE("/users/:userId/chats/:chatId/messages/:messageId", rt.authMiddleware(rt.authDeleteMessage(rt.deleteMessage)))
+	rt.router.DELETE("/users/:userId/chats/:chatId/messages/:messageId/comments", rt.deleteComment)
+	rt.router.PUT("/users/:userId/chats/:chatId/messages/:messageId/comments", rt.commentMessage)
 
 	/*
 		 doLogin (see simplified login) √
