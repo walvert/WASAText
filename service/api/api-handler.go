@@ -13,10 +13,14 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.POST("/users/:userId/chats", rt.authMiddleware(rt.sendFirstMessage))
 	rt.router.GET("/users/:userId/chats", rt.authMiddleware(rt.getMyConversations))
 	rt.router.GET("/users/:userId/chats/:chatId", rt.authMiddleware(rt.getConversation))
+	rt.router.PUT("/users/:userId/chats/:chatId", rt.authMiddleware(rt.setGroupName))
+	rt.router.PUT("/users/:userId/chats/:chatId/image", rt.authMiddleware(rt.setGroupPhoto))
+	rt.router.POST("/users/:userId/chats/:chatId/members", rt.authMiddleware(rt.addToGroup))
+	rt.router.DELETE("/users/:userId/chats/:chatId/members", rt.authMiddleware(rt.LeaveGroup))
 	rt.router.POST("/users/:userId/chats/:chatId/messages", rt.authMiddleware(rt.sendMessage))
 	rt.router.DELETE("/users/:userId/chats/:chatId/messages/:messageId", rt.authMiddleware(rt.authDeleteMessage(rt.deleteMessage)))
-	rt.router.DELETE("/users/:userId/chats/:chatId/messages/:messageId/comments", rt.deleteComment)
-	rt.router.PUT("/users/:userId/chats/:chatId/messages/:messageId/comments", rt.commentMessage)
+	rt.router.DELETE("/users/:userId/chats/:chatId/messages/:messageId/comments", rt.authMiddleware(rt.deleteComment))
+	rt.router.PUT("/users/:userId/chats/:chatId/messages/:messageId/comments", rt.authMiddleware(rt.commentMessage))
 
 	/*
 		 doLogin (see simplified login) √
@@ -25,14 +29,14 @@ func (rt *_router) Handler() http.Handler {
 		• getConversation				√
 		• sendMessage					√
 		• forwardMessage
-		• commentMessage
-		• uncommentMessage
+		• commentMessage				√
+		• uncommentMessage				√
 		• deleteMessage					√
-		• addToGroup
-		• leaveGroup
-		• setGroupName
+		• addToGroup					√
+		• leaveGroup					√
+		• setGroupName					√
 		• setMyPhoto					√
-		• setGroupPhoto
+		• setGroupPhoto					√
 	*/
 
 	// Special routes

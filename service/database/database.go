@@ -56,6 +56,10 @@ type AppDatabase interface {
 	DeleteMessage(messageID int) error
 	CommentMessage(messageID int, userID int) error
 	DeleteComment(messageID int, userID int) error
+	GetSenderId(messageId int) (int, error)
+	AddToGroup(chatID int, userID int) error
+	LeaveGroup(userId int, chatId int) error
+	SetGroupName(chatId int, chatName string) error
 }
 
 type appdbimpl struct {

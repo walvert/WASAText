@@ -1,6 +1,8 @@
 package api
 
 import (
+	"database/sql"
+	"errors"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 	"github.com/gofrs/uuid"
 	"github.com/julienschmidt/httprouter"
@@ -42,6 +44,42 @@ func (rt *_router) authMiddleware(next httprouter.Handle) httprouter.Handle {
 			return
 		}
 
+		next(w, r, ps)
+	}
+}
+
+func (rt *_router) authDeleteMessage(next httprouter.Handle) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+		idParam := ps.ByName("userId")
+		id, err := strconv.Atoi(idParam)
+		if err != nil {
+			http.Error(w, "Invalid user ID", http.StatusBadRequest)
+			return
+		}
+
+		idParam = ps.ByName("messageId")
+		messageId, err := strconv.Atoi(idParam)
+		if err != nil {
+			http.Error(w, "Invalid user ID", http.StatusBadRequest)
+			return
+		}
+
+		senderId, err := rt.db.GetSenderId(messageId)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w, "Message not found", http.StatusNotFound)
+				return
+			} else {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+
+		if valid := id == senderId; !valid {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
 		next(w, r, ps)
 	}
 }

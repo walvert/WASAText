@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 )
 
@@ -17,6 +18,22 @@ func (db *appdbimpl) CreateChat(chatName string, isGroup bool) (int, error) {
 
 func (db *appdbimpl) AddChatToUser(userID int, chatID int) error {
 	_, err := db.c.Exec("INSERT INTO user_chats (user_id, chat_id) VALUES (?, ?)", userID, chatID)
+	return err
+}
+
+func (db *appdbimpl) AddToGroup(chatID int, userID int) error {
+	var isGroup bool
+
+	err := db.c.QueryRow("SELECT is_group FROM chats WHERE id = ?", chatID).Scan(&isGroup)
+	if err != nil {
+		return err
+	}
+
+	if !isGroup {
+		return errors.New("unauthorized")
+	}
+
+	_, err = db.c.Exec("INSERT INTO user_chats (user_id, chat_id) VALUES (?, ?)", userID, chatID)
 	return err
 }
 

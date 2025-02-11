@@ -329,7 +329,7 @@ paths:
       - $ref: "#/components/parameters/UserID"
       - $ref: "#/components/parameters/ChatID"
       - $ref: "#/components/parameters/MessageID"
-    get:
+    post:
       tags:
         - messages
       summary: Forward a message
