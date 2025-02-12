@@ -37,12 +37,12 @@ func (db *appdbimpl) AddToGroup(chatID int, userID int) error {
 	return err
 }
 
-func (db *appdbimpl) AddPrivateChat(chat types.PrivateChat) error {
+func (db *appdbimpl) AddPrivateChat(user1Id int, user2Id int, chatId int) error {
 	_, err := db.c.Exec(
 		"INSERT INTO private_chats (user1_id, user2_id, chat_id) VALUES (?, ?, ?)",
-		chat.User1ID,
-		chat.User2ID,
-		chat.ChatID)
+		user1Id,
+		user2Id,
+		chatId)
 	return err
 }
 
@@ -80,4 +80,32 @@ func (db *appdbimpl) GetUserChats(userID int) ([]types.Chat, error) {
 		chats = append(chats, chat)
 	}
 	return chats, rows.Err()
+}
+
+func (db *appdbimpl) GetConversation(chatID int) ([]types.Message, error) {
+	var messages []types.Message
+
+	rows, err := db.c.Query(`
+        SELECT id, chat_id, sender_id, text, created_at, is_forward
+        FROM messages
+        WHERE chat_id = ?`, chatID)
+	if err != nil {
+		return nil, err
+	}
+	defer func(rows *sql.Rows) {
+		err = rows.Close()
+		if err != nil {
+			return
+		}
+	}(rows)
+
+	for rows.Next() {
+		var message types.Message
+		err := rows.Scan(&message.ID, &message.ChatID, &message.SenderID, &message.Text, &message.CreatedAt, &message.IsForward)
+		if err != nil {
+			return nil, err
+		}
+		messages = append(messages, message)
+	}
+	return messages, rows.Err()
 }

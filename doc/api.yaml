@@ -58,23 +58,6 @@ paths:
   /users/{userId}:
     parameters:
       - $ref: "#/components/parameters/UserID"
-    get:
-      tags:
-        - user
-      summary: Get user by id
-      description: "Returns a single user"
-      operationId: getUser
-      responses:
-        "200":
-          description: User found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
-        "404":
-          $ref: '#/components/responses/Response'
-        "500":
-          $ref: '#/components/responses/Response'
     put:
       tags:
         - user

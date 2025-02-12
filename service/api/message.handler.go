@@ -13,7 +13,7 @@ import (
 func (rt *_router) sendFirstMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.Header().Set("Content-Type", "application/json")
 	var messageRequest types.FirstMessageRequest
-	var chatID int
+	var chatId int
 
 	err := json.NewDecoder(r.Body).Decode(&messageRequest)
 	if err != nil {
@@ -22,57 +22,46 @@ func (rt *_router) sendFirstMessage(w http.ResponseWriter, r *http.Request, ps h
 	}
 
 	idParam := ps.ByName("userId")
-	userID, err := strconv.Atoi(idParam)
+	userId, err := strconv.Atoi(idParam)
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
 	if len(messageRequest.Receivers) == 1 {
-		user1ID := userID
-		user2ID := messageRequest.Receivers[0]
+		user1Id := userId
+		user2Id := messageRequest.Receivers[0]
 
-		if user2ID <= user1ID {
-			user1ID, user2ID = user2ID, user1ID
+		if user2Id <= user1Id {
+			user1Id, user2Id = user2Id, user1Id
 		}
 
-		chatID, err = rt.db.GetPrivateChatID(user1ID, user2ID)
+		chatId, err = rt.db.GetPrivateChatID(user1Id, user2Id)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
-				chatID, err = rt.db.CreateChat(messageRequest.ChatName, false)
+				chatId, err = rt.db.CreateChat(messageRequest.ChatName, false)
 				if err != nil {
-					rt.baseLogger.WithError(err).Error("Error creating chat")
 					http.Error(w, "Error creating chat", http.StatusInternalServerError)
 					return
 				}
 
-				err = rt.db.AddChatToUser(user1ID, chatID)
+				err = rt.db.AddChatToUser(user1Id, chatId)
 				if err != nil {
-					rt.baseLogger.WithError(err).Error("Error adding chat to user 1")
 					http.Error(w, "Error adding chat", http.StatusInternalServerError)
 					return
 				}
 
-				err = rt.db.AddChatToUser(user2ID, chatID)
+				err = rt.db.AddChatToUser(user2Id, chatId)
 				if err != nil {
-					rt.baseLogger.WithError(err).Error("Error adding chat to user 2")
 					http.Error(w, "Error adding chat", http.StatusInternalServerError)
 					return
 				}
 
-				privateChat := types.PrivateChat{
-					User1ID: user1ID,
-					User2ID: user2ID,
-					ChatID:  chatID,
-				}
-
-				err = rt.db.AddPrivateChat(privateChat)
+				err = rt.db.AddPrivateChat(user1Id, user2Id, chatId)
 				if err != nil {
-					rt.baseLogger.WithError(err).Error("Error adding private chat")
 					http.Error(w, "Error adding private chat", http.StatusInternalServerError)
 				}
 			} else {
-				rt.baseLogger.WithError(err).Error("Error getting private chat")
 				http.Error(w, "Error getting chat", http.StatusInternalServerError)
 				return
 			}
@@ -85,14 +74,12 @@ func (rt *_router) sendFirstMessage(w http.ResponseWriter, r *http.Request, ps h
 
 		chatID, err := rt.db.CreateChat(messageRequest.ChatName, true)
 		if err != nil {
-			rt.baseLogger.WithError(err).Error("Error creating group chat")
 			http.Error(w, "Error creating group chat", http.StatusInternalServerError)
 			return
 		}
 
-		err = rt.db.AddChatToUser(userID, chatID)
+		err = rt.db.AddChatToUser(userId, chatID)
 		if err != nil {
-			rt.baseLogger.WithError(err).Error("Error adding chat to user 1")
 			http.Error(w, "Error adding chat", http.StatusInternalServerError)
 			return
 		}
@@ -100,16 +87,14 @@ func (rt *_router) sendFirstMessage(w http.ResponseWriter, r *http.Request, ps h
 		for _, receiverID := range messageRequest.Receivers {
 			err = rt.db.AddChatToUser(receiverID, chatID)
 			if err != nil {
-				rt.baseLogger.WithError(err).Error("Error adding chat to array user")
 				http.Error(w, "Error adding chat", http.StatusInternalServerError)
 				return
 			}
 		}
 	}
 
-	err = rt.db.SendMessage(chatID, userID, messageRequest.Text)
+	err = rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.IsForward)
 	if err != nil {
-		rt.baseLogger.WithError(err).Error("Failed to send message")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -139,7 +124,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	err = rt.db.SendMessage(chatID, userID, messageRequest.Text)
+	err = rt.db.SendMessage(chatID, userID, messageRequest.Text, messageRequest.IsForward)
 	if err != nil {
 		rt.baseLogger.WithError(err).Error("Failed to send message")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -230,5 +215,91 @@ func (rt *_router) deleteComment(w http.ResponseWriter, r *http.Request, ps http
 
 func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.Header().Set("Content-Type", "application/json")
+	var request types.ForwardRequest
+	var chatId int
 
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	idParam := ps.ByName("messageId")
+	messageId, err := strconv.Atoi(idParam)
+	if err != nil {
+		http.Error(w, "Invalid message id", http.StatusBadRequest)
+		return
+	}
+
+	idParam = ps.ByName("userId")
+	userId, err := strconv.Atoi(idParam)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		return
+	}
+
+	text, err := rt.db.GetMessageText(messageId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Message not found", http.StatusNotFound)
+			return
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	for _, recipient := range request.Recipients {
+		if recipient.Type == "chat" {
+			err = rt.db.SendMessage(recipient.ID, userId, text, true)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else if recipient.Type == "user" {
+			user1Id := userId
+			user2Id := recipient.ID
+
+			if user2Id <= user1Id {
+				user1Id, user2Id = user2Id, user1Id
+			}
+
+			chatId, err = rt.db.GetPrivateChatID(user1Id, user2Id)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					chatId, err = rt.db.CreateChat("", false)
+					if err != nil {
+						http.Error(w, "Error creating chat", http.StatusInternalServerError)
+						return
+					}
+
+					err = rt.db.AddChatToUser(user1Id, chatId)
+					if err != nil {
+						http.Error(w, "Error adding chat", http.StatusInternalServerError)
+						return
+					}
+
+					err = rt.db.AddChatToUser(user2Id, chatId)
+					if err != nil {
+						http.Error(w, "Error adding chat", http.StatusInternalServerError)
+						return
+					}
+
+					err = rt.db.AddPrivateChat(user1Id, user2Id, chatId)
+					if err != nil {
+						http.Error(w, "Error adding private chat", http.StatusInternalServerError)
+					}
+				} else {
+					http.Error(w, "Error getting chat", http.StatusInternalServerError)
+					return
+				}
+
+				err = rt.db.SendMessage(chatId, userId, text, true)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}
+		}
+	}
 }

@@ -45,12 +45,12 @@ type AppDatabase interface {
 	CreateUser(username string) (types.User, error)
 	SetMyUsername(user types.User) error
 	CreateChat(chatName string, isGroup bool) (int, error)
-	SendMessage(chatID int, userID int, content string) error
+	SendMessage(chatID int, userID int, content string, isForward bool) error
 	ValidateToken(token types.BearerToken) (bool, error)
 	UpsertToken(token types.BearerToken) error
 	GetPrivateChatID(user1ID int, user2ID int) (int, error)
 	AddChatToUser(userID int, chatID int) error
-	AddPrivateChat(chat types.PrivateChat) error
+	AddPrivateChat(user1Id int, user2Id int, chatId int) error
 	GetUserChats(userID int) ([]types.Chat, error)
 	GetConversation(chatID int) ([]types.Message, error)
 	DeleteMessage(messageID int) error
@@ -60,6 +60,7 @@ type AppDatabase interface {
 	AddToGroup(chatID int, userID int) error
 	LeaveGroup(userId int, chatId int) error
 	SetGroupName(chatId int, chatName string) error
+	GetMessageText(messageID int) (string, error)
 }
 
 type appdbimpl struct {
@@ -103,6 +104,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 					chat_id INTEGER NOT NULL,
 					sender_id INTEGER,
 					text TEXT NOT NULL,
+					is_forward BOOLEAN DEFAULT FALSE,
 					created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 					FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE,
 					FOREIGN KEY (sender_id) REFERENCES users(id)
