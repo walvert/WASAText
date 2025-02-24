@@ -19,6 +19,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.DELETE("/users/:userId/chats/:chatId/members", rt.authMiddleware(rt.LeaveGroup))
 	rt.router.POST("/users/:userId/chats/:chatId/messages", rt.authMiddleware(rt.sendMessage))
 	rt.router.DELETE("/users/:userId/chats/:chatId/messages/:messageId", rt.authMiddleware(rt.authDeleteMessage(rt.deleteMessage)))
+	rt.router.POST("/users/:userId/chats/:chatId/messages/:messageId", rt.authMiddleware(rt.forwardMessage))
 	rt.router.DELETE("/users/:userId/chats/:chatId/messages/:messageId/comments", rt.authMiddleware(rt.deleteComment))
 	rt.router.PUT("/users/:userId/chats/:chatId/messages/:messageId/comments", rt.authMiddleware(rt.commentMessage))
 
@@ -28,7 +29,7 @@ func (rt *_router) Handler() http.Handler {
 		• getMyConversations			√
 		• getConversation				√
 		• sendMessage					√
-		• forwardMessage
+		• forwardMessage				√
 		• commentMessage				√
 		• uncommentMessage				√
 		• deleteMessage					√

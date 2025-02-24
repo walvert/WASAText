@@ -45,7 +45,7 @@ type AppDatabase interface {
 	CreateUser(username string) (types.User, error)
 	SetMyUsername(user types.User) error
 	CreateChat(chatName string, isGroup bool) (int, error)
-	SendMessage(chatID int, userID int, content string, isForward bool) error
+	SendMessage(chatID int, userID int, text string, msgType string, isForward bool) (int, error)
 	ValidateToken(token types.BearerToken) (bool, error)
 	UpsertToken(token types.BearerToken) error
 	GetPrivateChatID(user1ID int, user2ID int) (int, error)
@@ -61,6 +61,7 @@ type AppDatabase interface {
 	LeaveGroup(userId int, chatId int) error
 	SetGroupName(chatId int, chatName string) error
 	GetMessageText(messageID int) (string, error)
+	GetMessageType(messageID int) (string, error)
 }
 
 type appdbimpl struct {
@@ -102,6 +103,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 				CREATE TABLE IF NOT EXISTS messages (
 					id INTEGER PRIMARY KEY AUTOINCREMENT,
 					chat_id INTEGER NOT NULL,
+					msg_type TEXT NOT NULL,
 					sender_id INTEGER,
 					text TEXT NOT NULL,
 					is_forward BOOLEAN DEFAULT FALSE,

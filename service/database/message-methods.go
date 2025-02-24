@@ -2,12 +2,14 @@ package database
 
 import "fmt"
 
-func (db *appdbimpl) SendMessage(chatID int, userID int, content string, isForward bool) error {
-	_, err := db.c.Exec(
-		"INSERT INTO messages (chat_id, sender_id, text, is_forward) VALUES (?, ?, ?, ?) RETURNING id, chat_id, sender_id, text, is_forward, created_at",
-		chatID, userID, content, isForward)
+func (db *appdbimpl) SendMessage(chatID int, userID int, text string, msgType string, isForward bool) (int, error) {
+	var messageId int
 
-	return err
+	err := db.c.QueryRow(
+		"INSERT INTO messages (chat_id, sender_id, text, msg_type, is_forward) VALUES (?, ?, ?, ?, ?) RETURNING id",
+		chatID, userID, text, msgType, isForward).Scan(&messageId)
+
+	return messageId, err
 }
 
 func (db *appdbimpl) DeleteMessage(messageId int) error {
@@ -87,4 +89,16 @@ func (db *appdbimpl) GetMessageText(messageID int) (string, error) {
 	}
 
 	return text, nil
+}
+
+func (db *appdbimpl) GetMessageType(messageID int) (string, error) {
+	var msgType string
+
+	err := db.c.QueryRow(`SELECT msg_type FROM messages WHERE id = ?`,
+		messageID).Scan(&msgType)
+	if err != nil {
+		return "", err
+	}
+
+	return msgType, nil
 }

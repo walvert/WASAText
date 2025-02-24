@@ -4,6 +4,7 @@ import "time"
 
 type FirstMessageRequest struct {
 	Text      string `json:"text"`
+	Type      string `json:"type"`
 	ChatName  string `json:"chat_name"`
 	Receivers []int  `json:"receivers"`
 	IsForward bool   `json:"is_forward"`
@@ -11,12 +12,14 @@ type FirstMessageRequest struct {
 
 type MessageRequest struct {
 	ChatID    int    `json:"chat_id"`
+	Type      string `db:"type"`
 	Text      string `json:"text"`
 	IsForward bool   `json:"is_forward"`
 }
 
 type Message struct {
 	ID        int       `db:"id"`
+	Type      string    `db:"type"`
 	Text      string    `db:"text"`
 	ChatID    int       `db:"chat_id"`
 	SenderID  int       `db:"sender_id"`

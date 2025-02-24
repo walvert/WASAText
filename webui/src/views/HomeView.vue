@@ -11,6 +11,7 @@ export default {
 		async refresh() {
 			this.loading = true;
 			this.errormsg = null;
+			const token = sessionStorage.getItem(token)
 			try {
 				let response = await this.$axios.get("/");
 				this.some_data = response.data;
