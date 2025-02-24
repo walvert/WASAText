@@ -28,22 +28,6 @@ func (db *appdbimpl) DeleteMessage(messageId int) error {
 	return nil
 }
 
-func (db *appdbimpl) LeaveGroup(chatId int, userId int) error {
-	result, err := db.c.Exec(`DELETE FROM user_chats
-                            WHERE user_id = ? AND chat_id = ?`,
-		userId, chatId)
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
-		return fmt.Errorf("message not found or unauthorized")
-	}
-
-	return nil
-}
-
 func (db *appdbimpl) GetSenderId(messageId int) (int, error) {
 	var senderId int
 

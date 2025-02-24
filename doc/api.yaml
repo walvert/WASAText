@@ -163,24 +163,7 @@ paths:
           pattern: "^[a-zA-Z0-9_ -]+$"
           minLength: 3
           maxLength: 24
-    get:
-      tags:
-        - chats
-      summary: Get single chat
-      description: "Get a single chat either group or private"
-      operationId: getConversation
-      responses:
-        "200":
-          description: Chat found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Chat"
-        "404":
-          $ref: "#/components/responses/Response"
-        "401":
-          $ref: "#/components/responses/Response"
-    post:
+    put:
       tags:
         - chats
       summary: Updates the group name
@@ -206,11 +189,11 @@ paths:
           $ref: "#/components/responses/Response"
         "404":
           $ref: "#/components/responses/Response"
-  /users/{userId}/chats/{chatId}/participants:
+  /users/{userId}/chats/{chatId}/members:
     parameters:
       - $ref: "#/components/parameters/UserID"
       - $ref: "#/components/parameters/ChatID"
-    put:
+    post:
       tags:
         - chats
       operationId: addToGroup
@@ -437,7 +420,7 @@ components:
             $ref: "#/components/schemas/Message"
           minItems: 1
           maxItems: 99999
-        participants:
+        members:
           description: users involved in the chat
           type: array
           items:
