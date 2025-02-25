@@ -13,6 +13,8 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
+	"time"
 )
 
 func (rt *_router) sendFirstMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -105,61 +107,19 @@ func (rt *_router) sendFirstMessage(w http.ResponseWriter, r *http.Request, ps h
 			return
 		}
 	} else {
-		file, header, err := r.FormFile("file")
-		if err != nil {
-			http.Error(w, "File upload failed", http.StatusBadRequest)
-			return
-		}
-
-		defer func(file multipart.File) {
-			err := file.Close()
-			if err != nil {
-				http.Error(w, "File close failed", http.StatusBadRequest)
-				return
-			}
-		}(file)
-
-		ext := filepath.Ext(header.Filename)
-		allowedTypes := map[string]string{
-			".jpg":  "image",
-			".jpeg": "image",
-			".png":  "image",
-			".gif":  "gif",
-			".mp4":  "video",
-			".mov":  "video",
-		}
-
-		_, valid := allowedTypes[ext]
-		if !valid {
-			http.Error(w, "Unsupported file format", http.StatusBadRequest)
-			return
-		}
-
-		messageId, err := rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type,
-			messageRequest.IsForward)
+		messageId, err := rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		filePath := fmt.Sprintf("uploads/media/%d%s", messageId, header.Filename)
-		outFile, err := os.Create(filePath)
-		if err != nil {
-			http.Error(w, "Failed to save file", http.StatusInternalServerError)
-			return
-		}
+		// Step 2: Rename the file using message_id
+		ext := filepath.Ext(messageRequest.MediaURL) // Get file extension
+		newFilePath := fmt.Sprintf("uploads/media/msg_%d%s", messageId, ext)
 
-		defer func(outFile *os.File) {
-			err := outFile.Close()
-			if err != nil {
-				http.Error(w, "Failed to save file", http.StatusInternalServerError)
-				return
-			}
-		}(outFile)
-
-		_, err = io.Copy(outFile, file)
+		err = os.Rename(messageRequest.MediaURL, newFilePath) // Rename file
 		if err != nil {
-			http.Error(w, "Failed to save image", http.StatusInternalServerError)
+			http.Error(w, "Failed to rename file", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -176,82 +136,39 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	idParam := ps.ByName("userId")
-	userID, err := strconv.Atoi(idParam)
+	userId, err := strconv.Atoi(idParam)
 	if err != nil {
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
 
 	idParam = ps.ByName("chatId")
-	chatID, err := strconv.Atoi(idParam)
+	chatId, err := strconv.Atoi(idParam)
 	if err != nil {
 		http.Error(w, "Invalid chat ID", http.StatusBadRequest)
 		return
 	}
 
-	messageType := r.FormValue("type")
-	if messageType == "text" {
-		_, err = rt.db.SendMessage(chatID, userID, messageRequest.Text, messageRequest.Type, messageRequest.IsForward)
+	if messageRequest.Type == "text" {
+		_, err = rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	} else {
-		file, header, err := r.FormFile("file")
-		if err != nil {
-			http.Error(w, "File upload failed", http.StatusBadRequest)
-			return
-		}
-		defer func(file multipart.File) {
-			err := file.Close()
-			if err != nil {
-				http.Error(w, "File close failed", http.StatusBadRequest)
-				return
-			}
-		}(file)
-
-		ext := filepath.Ext(header.Filename)
-		allowedTypes := map[string]string{
-			".jpg":  "image",
-			".jpeg": "image",
-			".png":  "image",
-			".gif":  "gif",
-			".mp4":  "video",
-			".mov":  "video",
-		}
-
-		// Validate file type
-		msgType, valid := allowedTypes[ext]
-		if !valid {
-			http.Error(w, "Unsupported file format", http.StatusBadRequest)
-			return
-		}
-
-		messageId, err := rt.db.SendMessage(chatID, userID, msgType, messageType, messageRequest.IsForward)
+		messageId, err := rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Save file to disk
-		filePath := fmt.Sprintf("uploads/media/%d%s", messageId, header.Filename)
-		outFile, err := os.Create(filePath)
-		if err != nil {
-			http.Error(w, "Failed to save file", http.StatusInternalServerError)
-			return
-		}
+		// Step 2: Rename the file using message_id
+		ext := filepath.Ext(messageRequest.MediaURL) // Get file extension
+		newFilePath := fmt.Sprintf("uploads/media/msg_%d%s", messageId, ext)
 
-		defer func(outFile *os.File) {
-			err := outFile.Close()
-			if err != nil {
-				http.Error(w, "Failed to save file", http.StatusInternalServerError)
-				return
-			}
-		}(outFile)
-
-		_, err = io.Copy(outFile, file)
+		err = os.Rename(messageRequest.MediaURL, newFilePath) // Rename file
 		if err != nil {
-			http.Error(w, "Failed to save image", http.StatusInternalServerError)
+			http.Error(w, "Failed to rename file", http.StatusInternalServerError)
 			return
 		}
 	}
@@ -386,74 +303,7 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 	}
 
 	for _, recipient := range request.Recipients {
-		if recipient.Type == "chat" {
-			if messageType == "text" {
-				_, err = rt.db.SendMessage(chatId, userId, text, messageType, true)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-			} else {
-				file, header, err := r.FormFile("file")
-				if err != nil {
-					http.Error(w, "File upload failed", http.StatusBadRequest)
-					return
-				}
-
-				defer func(file multipart.File) {
-					err := file.Close()
-					if err != nil {
-						http.Error(w, "File close failed", http.StatusBadRequest)
-						return
-					}
-				}(file)
-
-				ext := filepath.Ext(header.Filename)
-				allowedTypes := map[string]string{
-					".jpg":  "image",
-					".jpeg": "image",
-					".png":  "image",
-					".gif":  "gif",
-					".mp4":  "video",
-					".mov":  "video",
-				}
-
-				// Validate file type
-				msgType, valid := allowedTypes[ext]
-				if !valid {
-					http.Error(w, "Unsupported file format", http.StatusBadRequest)
-					return
-				}
-
-				msgId, err := rt.db.SendMessage(chatId, userId, msgType, messageType, true)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-
-				// Save file to disk
-				filePath := fmt.Sprintf("uploads/media/%d%s", msgId, header.Filename)
-				outFile, err := os.Create(filePath)
-				if err != nil {
-					http.Error(w, "Failed to save file", http.StatusInternalServerError)
-					return
-				}
-
-				defer func(outFile *os.File) {
-					err := outFile.Close()
-					if err != nil {
-						http.Error(w, "Failed to save file", http.StatusInternalServerError)
-						return
-					}
-				}(outFile)
-
-				_, err = io.Copy(outFile, file)
-				if err != nil {
-					http.Error(w, "Failed to save image", http.StatusInternalServerError)
-					return
-				}
-			}
-		} else if recipient.Type == "user" {
+		if recipient.Type == "user" {
 			user1Id := userId
 			user2Id := recipient.ID
 
@@ -490,74 +340,133 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 					http.Error(w, "Error getting chat", http.StatusInternalServerError)
 					return
 				}
-
-				if messageType == "text" {
-					_, err = rt.db.SendMessage(chatId, userId, text, messageType, true)
-					if err != nil {
-						http.Error(w, err.Error(), http.StatusInternalServerError)
-						return
-					}
-				} else {
-					file, header, err := r.FormFile("file")
-					if err != nil {
-						http.Error(w, "File upload failed", http.StatusBadRequest)
-						return
-					}
-
-					defer func(file multipart.File) {
-						err := file.Close()
-						if err != nil {
-							http.Error(w, "File close failed", http.StatusBadRequest)
-							return
-						}
-					}(file)
-
-					ext := filepath.Ext(header.Filename)
-					allowedTypes := map[string]string{
-						".jpg":  "image",
-						".jpeg": "image",
-						".png":  "image",
-						".gif":  "gif",
-						".mp4":  "video",
-						".mov":  "video",
-					}
-
-					// Validate file type
-					msgType, valid := allowedTypes[ext]
-					if !valid {
-						http.Error(w, "Unsupported file format", http.StatusBadRequest)
-						return
-					}
-
-					msgId, err := rt.db.SendMessage(chatId, userId, msgType, messageType, true)
-					if err != nil {
-						http.Error(w, err.Error(), http.StatusInternalServerError)
-						return
-					}
-
-					// Save file to disk
-					filePath := fmt.Sprintf("uploads/media/%d%s", msgId, header.Filename)
-					outFile, err := os.Create(filePath)
-					if err != nil {
-						http.Error(w, "Failed to save file", http.StatusInternalServerError)
-						return
-					}
-
-					defer func(outFile *os.File) {
-						err := outFile.Close()
-						if err != nil {
-							http.Error(w, "Failed to save file", http.StatusInternalServerError)
-							return
-						}
-					}(outFile)
-
-					_, err = io.Copy(outFile, file)
-					if err != nil {
-						http.Error(w, "Failed to save image", http.StatusInternalServerError)
-						return
-					}
-				}
 			}
 		}
+
+		if messageType == "text" {
+			_, err = rt.db.SendMessage(chatId, userId, text, messageType, true)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			newMessageId, err := rt.db.SendMessage(chatId, userId, text, messageType, true)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			files, err := os.ReadDir("uploads/media")
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			var ext string
+			for _, file := range files {
+				name := file.Name()
+				if strings.HasPrefix(name, "msg_"+strconv.Itoa(messageId)+".") {
+					ext = filepath.Ext(name) // Returns extension with dot (e.g., ".jpg")
+				}
+			}
+
+			originalPath := fmt.Sprintf("uploads/media/msg_%d%s", messageId, ext)
+			originalFile, err := os.Open(originalPath)
+			if err != nil {
+				http.Error(w, "Error opening file", http.StatusInternalServerError)
+				return
+			}
+			defer func(originalFile *os.File) {
+				err := originalFile.Close()
+				if err != nil {
+					http.Error(w, "Error closing file", http.StatusInternalServerError)
+					return
+				}
+			}(originalFile)
+
+			newPath := fmt.Sprintf("uploads/media/msg_%d%s", newMessageId, ext)
+			newFile, err := os.Create(newPath)
+			if err != nil {
+				http.Error(w, "Error creating file", http.StatusInternalServerError)
+				return
+			}
+			defer func(newFile *os.File) {
+				err := newFile.Close()
+				if err != nil {
+					http.Error(w, "Error closing file", http.StatusInternalServerError)
+					return
+				}
+			}(newFile)
+
+			_, err = io.Copy(newFile, originalFile)
+			if err != nil {
+				http.Error(w, "Error copying file", http.StatusInternalServerError)
+				return
+			}
+		}
+	}
+}
+
+func (rt *_router) uploadMessageMedia(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Parse the form
+	err := r.ParseMultipartForm(10 << 20) // 10 MB max
+	if err != nil {
+		http.Error(w, "File too large", http.StatusBadRequest)
+		return
+	}
+
+	// Get the file
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		http.Error(w, "Invalid file upload", http.StatusBadRequest)
+		return
+	}
+	defer func(file multipart.File) {
+		err := file.Close()
+		if err != nil {
+			http.Error(w, "File close failed", http.StatusBadRequest)
+			return
+		}
+	}(file)
+
+	// Generate a temporary unique filename (UUID or timestamp)
+	ext := filepath.Ext(header.Filename)
+	tempFileName := fmt.Sprintf("temp_%d%s", time.Now().UnixNano(), ext)
+	filePath := filepath.Join("uploads/media", tempFileName)
+
+	// Ensure upload directory exists
+	err = os.MkdirAll("uploads/media", os.ModePerm)
+	if err != nil {
+		http.Error(w, "Failed to create upload directory", http.StatusInternalServerError)
+		return
+	}
+
+	// Create and save the file
+	dst, err := os.Create(filePath)
+	if err != nil {
+		http.Error(w, "Failed to save file", http.StatusInternalServerError)
+		return
+	}
+	defer func(dst *os.File) {
+		err := dst.Close()
+		if err != nil {
+			http.Error(w, "Failed to save file", http.StatusInternalServerError)
+			return
+		}
+	}(dst)
+
+	_, err = io.Copy(dst, file)
+	if err != nil {
+		http.Error(w, "Failed to write file", http.StatusInternalServerError)
+		return
+	}
+
+	// Respond with the temporary file path
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(map[string]string{"media_url": filePath})
+	if err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
 	}
 }
