@@ -101,13 +101,13 @@ func (rt *_router) sendFirstMessage(w http.ResponseWriter, r *http.Request, ps h
 	}
 
 	if messageRequest.Type == "text" {
-		_, err = rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward)
+		_, err = rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward, 0)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	} else {
-		messageId, err := rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward)
+		messageId, err := rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward, 0)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -150,13 +150,13 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 	}
 
 	if messageRequest.Type == "text" {
-		_, err = rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward)
+		_, err = rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward, messageRequest.ReplyTo)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	} else {
-		messageId, err := rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward)
+		messageId, err := rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward, messageRequest.ReplyTo)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -344,13 +344,13 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		}
 
 		if messageType == "text" {
-			_, err = rt.db.SendMessage(chatId, userId, text, messageType, true)
+			_, err = rt.db.SendMessage(chatId, userId, text, messageType, true, 0)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		} else {
-			newMessageId, err := rt.db.SendMessage(chatId, userId, text, messageType, true)
+			newMessageId, err := rt.db.SendMessage(chatId, userId, text, messageType, true, 0)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -361,6 +361,7 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
+
 			var ext string
 			for _, file := range files {
 				name := file.Name()
@@ -375,13 +376,11 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 				http.Error(w, "Error opening file", http.StatusInternalServerError)
 				return
 			}
-			defer func(originalFile *os.File) {
-				err := originalFile.Close()
-				if err != nil {
-					http.Error(w, "Error closing file", http.StatusInternalServerError)
-					return
-				}
-			}(originalFile)
+			err = originalFile.Close()
+			if err != nil {
+				http.Error(w, "Error closing file", http.StatusInternalServerError)
+				return
+			}
 
 			newPath := fmt.Sprintf("uploads/media/msg_%d%s", newMessageId, ext)
 			newFile, err := os.Create(newPath)
@@ -389,13 +388,11 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 				http.Error(w, "Error creating file", http.StatusInternalServerError)
 				return
 			}
-			defer func(newFile *os.File) {
-				err := newFile.Close()
-				if err != nil {
-					http.Error(w, "Error closing file", http.StatusInternalServerError)
-					return
-				}
-			}(newFile)
+			err = newFile.Close()
+			if err != nil {
+				http.Error(w, "Error closing file", http.StatusInternalServerError)
+				return
+			}
 
 			_, err = io.Copy(newFile, originalFile)
 			if err != nil {

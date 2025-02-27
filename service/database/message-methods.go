@@ -2,12 +2,12 @@ package database
 
 import "fmt"
 
-func (db *appdbimpl) SendMessage(chatID int, userID int, text string, msgType string, isForward bool) (int, error) {
+func (db *appdbimpl) SendMessage(chatID int, userID int, text string, msgType string, isForward bool, replyTo int) (int, error) {
 	var messageId int
 
 	err := db.c.QueryRow(
-		"INSERT INTO messages (chat_id, sender_id, text, msg_type, is_forward) VALUES (?, ?, ?, ?, ?) RETURNING id",
-		chatID, userID, text, msgType, isForward).Scan(&messageId)
+		"INSERT INTO messages (chat_id, sender_id, text, msg_type, is_forward, reply_to) VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
+		chatID, userID, text, msgType, isForward, replyTo).Scan(&messageId)
 
 	return messageId, err
 }

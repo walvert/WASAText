@@ -17,6 +17,7 @@ type MessageRequest struct {
 	MediaURL  string `json:"media_url"`
 	Text      string `json:"text"`
 	IsForward bool   `json:"is_forward"`
+	ReplyTo   int    `json:"reply_to"`
 }
 
 type Message struct {
@@ -26,6 +27,7 @@ type Message struct {
 	ChatID    int       `db:"chat_id"`
 	SenderID  int       `db:"sender_id"`
 	IsForward bool      `db:"is_forward"`
+	ReplyTo   int       `db:"reply_to"`
 	CreatedAt time.Time `db:"created_at"`
 }
 
