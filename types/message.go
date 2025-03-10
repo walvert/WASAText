@@ -48,3 +48,9 @@ type ForwardRecipient struct {
 	ID   int    `json:"id"`
 	Type string `json:"type"`
 }
+
+type LastRead struct {
+	UserID    int `db:"user_id"`
+	ChatID    int `db:"chat_id"`
+	MessageID int `db:"message_id"`
+}

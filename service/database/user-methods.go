@@ -13,23 +13,23 @@ func (db *appdbimpl) GetUserById(id int) (types.User, error) {
 	return user, err
 }
 
-func (db *appdbimpl) GetUserByUsername(username string) (types.User, error) {
-	var user types.User
+func (db *appdbimpl) GetUserByUsername(username string) (int, error) {
+	var userId int
 
-	err := db.c.QueryRow("SELECT * FROM users WHERE username = ?", username).
-		Scan(&user.ID, &user.Username)
+	err := db.c.QueryRow("SELECT id FROM users WHERE username = ?", username).
+		Scan(&userId)
 
-	return user, err
+	return userId, err
 }
 
-func (db *appdbimpl) CreateUser(username string) (types.User, error) {
-	var user types.User
+func (db *appdbimpl) CreateUser(username string) (int, error) {
+	var userId int
 
-	err := db.c.QueryRow("INSERT INTO users (username) VALUES ($1) RETURNING id, username", username).Scan(&user.ID, &user.Username)
+	err := db.c.QueryRow("INSERT INTO users (username) VALUES (?) RETURNING id", username).Scan(&userId)
 	if err != nil {
-		return user, err
+		return 0, err
 	}
-	return user, nil
+	return userId, nil
 }
 
 /*func (db *appdbimpl) SetMyPhoto(id int, path string) error {

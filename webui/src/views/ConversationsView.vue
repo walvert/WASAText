@@ -230,7 +230,7 @@ export default {
 		// Check if user is authenticated
 		const token = localStorage.getItem('token');
 		if (!token) {
-			this.$router.push('/login');
+			this.$router.push('/session');
 			return;
 		}
 

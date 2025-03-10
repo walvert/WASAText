@@ -22,7 +22,7 @@
 								>
 							</div>
 
-							<ErrorMsg v-if="error" :message="error" />
+							<ErrorMsg v-if="error" :message="error"/>
 
 							<div class="d-grid gap-2 mt-4">
 								<button
@@ -30,7 +30,7 @@
 									class="btn btn-primary"
 									:disabled="loading || !username.trim()"
 								>
-									<LoadingSpinner v-if="loading" class="me-2" />
+									<LoadingSpinner v-if="loading" class="me-2"/>
 									<span>Enter</span>
 								</button>
 							</div>
@@ -67,19 +67,19 @@ export default {
 				this.loading = true;
 
 				// Make API call to login
-				const response = await this.$axios.post('/login', {
+				const response = await this.$axios.post('/session', {
 					username: this.username.trim()
 				});
 
 				// Store auth token in localStorage
-				const token = response.data.token;
+				const {token, id} = response.data;
 				localStorage.setItem('token', token);
 
 				// Set default auth header for future requests
 				this.$axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
 				// Redirect to conversations view
-				this.$router.push('/conversations');
+				this.$router.push('/chats');
 
 			} catch (err) {
 				console.error('Login failed', err);

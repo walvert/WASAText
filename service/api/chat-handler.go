@@ -106,13 +106,20 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 	w.Header().Set("Content-Type", "application/json")
 
 	idParam := ps.ByName("chatId")
-	chatID, err := strconv.Atoi(idParam)
+	chatId, err := strconv.Atoi(idParam)
 	if err != nil {
 		http.Error(w, "Invalid chat ID", http.StatusBadRequest)
 		return
 	}
 
-	messages, err := rt.db.GetConversation(chatID)
+	idParam = ps.ByName("userId")
+	userId, err := strconv.Atoi(idParam)
+	if err != nil {
+		http.Error(w, "Invalid chat ID", http.StatusBadRequest)
+		return
+	}
+
+	messages, err := rt.db.GetConversation(userId, chatId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
+	"math"
 )
 
 func (db *appdbimpl) CreateChat(chatName string, isGroup bool) (int, error) {
@@ -66,10 +67,7 @@ func (db *appdbimpl) GetUserChats(userID int) ([]types.Chat, error) {
 		return nil, err
 	}
 	defer func(rows *sql.Rows) {
-		err = rows.Close()
-		if err != nil {
-			return
-		}
+		_ = rows.Close()
 	}(rows)
 
 	for rows.Next() {
@@ -82,13 +80,15 @@ func (db *appdbimpl) GetUserChats(userID int) ([]types.Chat, error) {
 	return chats, rows.Err()
 }
 
-func (db *appdbimpl) GetConversation(chatID int) ([]types.Message, error) {
+func (db *appdbimpl) GetConversation(userId int, chatID int) ([]types.Message, error) {
 	var messages []types.Message
 
 	rows, err := db.c.Query(`
-        SELECT id, chat_id, sender_id, text, created_at, is_forward
+        SELECT id, chat_id, sender_id, text, created_at, is_forward, reply_to
         FROM messages
-        WHERE chat_id = ?`, chatID)
+        WHERE chat_id = ?
+        ORDER BY created_at DESC`, chatID)
+
 	if err != nil {
 		return nil, err
 	}
@@ -99,13 +99,70 @@ func (db *appdbimpl) GetConversation(chatID int) ([]types.Message, error) {
 		}
 	}(rows)
 
+	var mostRecentID int
+
 	for rows.Next() {
 		var message types.Message
-		err := rows.Scan(&message.ID, &message.ChatID, &message.SenderID, &message.Text, &message.CreatedAt, &message.IsForward)
+		err = rows.Scan(&message.ID, &message.ChatID, &message.SenderID, &message.Text, &message.CreatedAt, &message.IsForward, &message.ReplyTo)
 		if err != nil {
 			return nil, err
 		}
+
+		if len(messages) == 0 {
+			mostRecentID = message.ID
+		}
+
 		messages = append(messages, message)
 	}
+
+	_, err = db.c.Exec(`
+		INSERT INTO last_read (user_id, chat_id, message_id)
+		VALUES (?, ?, ?)
+		ON CONFLICT (user_id, chat_id)
+		DO UPDATE SET message_id = excluded.message_id`,
+		userId, chatID, mostRecentID)
+
 	return messages, rows.Err()
+}
+
+func (db *appdbimpl) GetLastRead(chatID int) (int, error) {
+	var lastRead = math.MaxInt
+	var chatMembers []int
+
+	rows, err := db.c.Query(`
+		SELECT user_id from user_chats WHERE chat_id = ?`, chatID)
+	if err != nil {
+		return 0, err
+	}
+
+	for rows.Next() {
+		var userId int
+		err = rows.Scan(&userId)
+		if err != nil {
+			return 0, err
+		}
+		chatMembers = append(chatMembers, userId)
+	}
+	err = rows.Close()
+	if err != nil {
+		return 0, err
+	}
+
+	for _, userId := range chatMembers {
+		var userLastRead int
+
+		err = db.c.QueryRow(`
+			SELECT message_id from last_read WHERE chat_id = ? AND user_id = ?`,
+			chatID, userId).Scan(&userLastRead)
+		if err != nil {
+			return 0, err
+		}
+
+		if userLastRead < lastRead {
+			lastRead = userLastRead
+		}
+
+	}
+
+	return lastRead, nil
 }

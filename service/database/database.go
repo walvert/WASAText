@@ -41,8 +41,8 @@ import (
 type AppDatabase interface {
 	Ping() error
 	GetUserById(id int) (types.User, error)
-	GetUserByUsername(username string) (types.User, error)
-	CreateUser(username string) (types.User, error)
+	GetUserByUsername(username string) (int, error)
+	CreateUser(username string) (int, error)
 	SetMyUsername(user types.User) error
 	CreateChat(chatName string, isGroup bool) (int, error)
 	SendMessage(chatID int, userID int, text string, msgType string, isForward bool, replyTo int) (int, error)
@@ -52,7 +52,7 @@ type AppDatabase interface {
 	AddChatToUser(userID int, chatID int) error
 	AddPrivateChat(user1Id int, user2Id int, chatId int) error
 	GetUserChats(userID int) ([]types.Chat, error)
-	GetConversation(chatID int) ([]types.Message, error)
+	GetConversation(userId int, chatID int) ([]types.Message, error)
 	DeleteMessage(messageID int) error
 	CommentMessage(messageID int, userID int) error
 	DeleteComment(messageID int, userID int) error
@@ -82,7 +82,9 @@ func New(db *sql.DB) (AppDatabase, error) {
 				CREATE TABLE IF NOT EXISTS chats (
 					id INTEGER PRIMARY KEY AUTOINCREMENT,
 					chat_name TEXT DEFAULT '',
-					is_group BOOLEAN DEFAULT FALSE
+					is_group BOOLEAN DEFAULT FALSE,
+					last_msg_text TEXT DEFAULT '',
+					last_msg_time DATETIME DEFAULT NULL,
 				);
 				CREATE TABLE IF NOT EXISTS user_chats (
 					user_id INTEGER NOT NULL,
@@ -119,7 +121,13 @@ func New(db *sql.DB) (AppDatabase, error) {
 				CREATE TABLE IF NOT EXISTS comments (
     				message_id  INTEGER PRIMARY KEY NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
     				user_id INTEGER NOT NULL
-  				)`
+  				);
+				CREATE TABLE IF NOT EXISTS last_read (
+					user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+					chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+					message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+					PRIMARY KEY (user_id, chat_id)
+				)`
 
 	_, err := db.Exec(sqlStmt)
 	if err != nil {

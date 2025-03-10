@@ -11,6 +11,7 @@ type LoginRequest struct {
 
 type LoginResponse struct {
 	Token string `json:"token"`
+	ID    int    `json:"id"`
 }
 
 type BearerToken struct {
