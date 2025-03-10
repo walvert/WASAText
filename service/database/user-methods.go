@@ -82,7 +82,7 @@ func (db *appdbimpl) LeaveGroup(chatId int, userId int) error {
 
 	rowsAffected, _ := result.RowsAffected()
 	if rowsAffected == 0 {
-		return fmt.Errorf("message not found or unauthorized")
+		return fmt.Errorf("user not found")
 	}
 
 	return nil
