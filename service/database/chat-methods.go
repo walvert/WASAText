@@ -59,7 +59,7 @@ func (db *appdbimpl) GetUserChats(userID int) ([]types.Chat, error) {
 	var chats []types.Chat
 
 	rows, err := db.c.Query(`
-        SELECT id, chat_name, is_group
+        SELECT id, chat_name, is_group, last_msg_text, last_msg_time, last_msg_type
         FROM chats
         INNER JOIN user_chats ON id = chat_id
         WHERE user_id = ?`, userID)
@@ -72,7 +72,7 @@ func (db *appdbimpl) GetUserChats(userID int) ([]types.Chat, error) {
 
 	for rows.Next() {
 		var chat types.Chat
-		if err := rows.Scan(&chat.ID, &chat.Name, &chat.IsGroup); err != nil {
+		if err := rows.Scan(&chat.ID, &chat.Name, &chat.IsGroup, &chat.LastMsgText, &chat.LastMsgTime, &chat.LastMsgType); err != nil {
 			return nil, err
 		}
 		chats = append(chats, chat)

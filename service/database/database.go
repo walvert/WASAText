@@ -85,6 +85,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 					is_group BOOLEAN DEFAULT FALSE,
 					last_msg_text TEXT DEFAULT '',
 					last_msg_time DATETIME DEFAULT NULL,
+					last_msg_type TEXT DEFAULT ''
 				);
 				CREATE TABLE IF NOT EXISTS user_chats (
 					user_id INTEGER NOT NULL,

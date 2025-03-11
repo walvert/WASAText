@@ -8,6 +8,7 @@ type Chat struct {
 	IsGroup     bool      `db:"is_group"`
 	LastMsgText string    `db:"last_msg_text"`
 	LastMsgTime time.Time `db:"last_msg_time"`
+	LastMsgType string    `db:"last_msg_type"`
 }
 
 type ChatNameRequest struct {
