@@ -10,7 +10,7 @@ instance.interceptors.request.use(
 	config => {
 		const token = localStorage.getItem('token');
 		if (token) {
-			config.headers['Authorization'] = `Bearer ${token}`;
+			config.headers['Authorization'] = `${token}`;
 		}
 		return config;
 	},
@@ -25,10 +25,24 @@ instance.interceptors.response.use(
 		return response;
 	},
 	error => {
+		console.error('API Error:', {
+			url: error.config?.url,
+			status: error.response?.status,
+			data: error.response?.data,
+			headers: error.response?.headers
+		});
+
 		if (error.response && error.response.status === 401) {
+			console.log('401 error detected, removing token and redirecting to login');
+
 			// Token is invalid or expired
 			localStorage.removeItem('token');
-			window.location.href = '/#/session';
+			localStorage.removeItem('user');
+
+			// Only redirect if we're not already on the session page
+			if (window.location.hash !== '#/session') {
+				window.location.href = '/#/session';
+			}
 		}
 		return Promise.reject(error);
 	}

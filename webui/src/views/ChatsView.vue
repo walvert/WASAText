@@ -4,42 +4,87 @@
 			<!-- Sidebar with conversation list -->
 			<div class="col-md-4 col-lg-3 sidebar">
 				<div class="sidebar-sticky pt-3">
+					<!-- Welcome message -->
+					<div class="welcome-section px-3 mb-3">
+						<h6 class="text-muted mb-0">Welcome @{{ currentUsername || 'User' }}</h6>
+					</div>
+
+					<!-- Header with title and action icons -->
 					<div class="d-flex justify-content-between align-items-center px-3 mb-3">
-						<h5 class="mb-0">Conversations</h5>
-						<button class="btn btn-sm btn-outline-primary" @click="showNewChatModal = true">
-							<span class="feather">+</span> New Chat
-						</button>
+						<h5 class="mb-0">Chats</h5>
+						<div class="d-flex gap-2">
+							<button
+								class="btn btn-sm btn-outline-secondary p-1"
+								@click="showNewChatModal = true"
+								title="New Chat"
+							>
+								<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+									<path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+								</svg>
+							</button>
+							<button
+								class="btn btn-sm btn-outline-secondary p-1"
+								@click="showProfileModal = true"
+								title="Edit Profile"
+							>
+								<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+									<path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
+								</svg>
+							</button>
+							<button
+								class="btn btn-sm btn-outline-danger p-1"
+								@click="logout"
+								title="Logout"
+							>
+								<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+									<path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
+									<path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
+								</svg>
+							</button>
+						</div>
 					</div>
 
 					<LoadingSpinner v-if="loading" class="d-flex justify-content-center my-5" />
 					<ErrorMsg v-if="error" :message="error" class="mx-3" />
 
-					<div v-if="!loading && !error" class="list-group list-group-flush">
+					<!-- Modern chat list -->
+					<div v-if="!loading && !error" class="chat-list">
 						<div
 							v-for="chat in chats"
-							:key="chat.id"
-							class="list-group-item list-group-item-action"
-							:class="{ active: selectedChatId === chat.id }"
-							@click="selectChat(chat.id)"
+							:key="chat.ID"
+							class="chat-item"
+							:class="{ active: selectedChatId === chat.ID }"
+							@click="selectChat(chat.ID)"
 						>
-							<div class="d-flex w-100 justify-content-between">
-								<h6 class="mb-1">
-									{{ getChatName(chat) }}
-								</h6>
-								<small v-if="chat.lastMessage" class="text-nowrap">
-									{{ formatTime(chat.lastMessage.created_at) }}
-								</small>
+							<div class="chat-avatar">
+								<div class="avatar-circle">
+									<span class="avatar-text">{{ getChatInitials(chat) }}</span>
+								</div>
 							</div>
-							<p v-if="chat.lastMessage" class="mb-1 text-truncate">
-								{{ chat.lastMessage.text }}
-							</p>
-							<small v-if="chat.is_group" class="text-muted">
-								Group · {{ chat.memberCount || 0 }} members
-							</small>
+							<div class="chat-info">
+								<div class="chat-header">
+									<h6 class="chat-name">{{ getChatName(chat) }}</h6>
+									<span class="chat-time">{{ formatTime(chat.LastMsgTime) }}</span>
+								</div>
+								<div class="chat-preview">
+									<p class="last-message">{{ getLastMessagePreview(chat) }}</p>
+									<div class="message-type-indicator">
+										<span v-if="chat.LastMsgType === 'text'" class="message-type-icon">💬</span>
+										<span v-else-if="chat.LastMsgType === 'image'" class="message-type-icon">📷</span>
+										<span v-else class="message-type-icon">📎</span>
+									</div>
+								</div>
+							</div>
 						</div>
 
-						<div v-if="chats.length === 0" class="text-center p-4 text-muted">
-							No conversations yet.
+						<div v-if="chats.length === 0" class="empty-state">
+							<div class="empty-icon">
+								<svg width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
+									<path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+								</svg>
+							</div>
+							<h6 class="text-muted">No conversations yet</h6>
+							<p class="text-muted small">Start chatting by creating a new conversation</p>
 						</div>
 					</div>
 				</div>
@@ -65,7 +110,7 @@
 					<div class="chat-header p-3 border-bottom">
 						<div class="d-flex justify-content-between align-items-center">
 							<h5 class="mb-0">{{ selectedChat ? getChatName(selectedChat) : '' }}</h5>
-							<div v-if="selectedChat && selectedChat.is_group" class="dropdown">
+							<div v-if="selectedChat && selectedChat.IsGroup" class="dropdown">
 								<button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
 									<span class="feather">⋮</span>
 								</button>
@@ -185,15 +230,46 @@
 				</div>
 			</div>
 		</div>
+
+		<!-- Profile Modal -->
+		<div class="modal fade" tabindex="-1" id="profileModal" v-if="showProfileModal">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title">Edit Profile</h5>
+						<button type="button" class="btn-close" @click="showProfileModal = false"></button>
+					</div>
+					<div class="modal-body">
+						<div class="mb-3">
+							<label class="form-label">Username</label>
+							<input type="text" class="form-control" v-model="editUsername" placeholder="Enter new username">
+						</div>
+						<ErrorMsg v-if="profileError" :message="profileError" />
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" @click="showProfileModal = false">Cancel</button>
+						<button
+							type="button"
+							class="btn btn-primary"
+							@click="updateProfile"
+							:disabled="profileLoading"
+						>
+							<LoadingSpinner v-if="profileLoading" class="me-2" />
+							Update
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
 	</div>
 </template>
 
 <script>
 export default {
-	name: 'ConversationsView',
+	name: 'ChatsView',
 	data() {
 		return {
-			// Conversations list
+			// Chats list
 			chats: [],
 			loading: true,
 			error: null,
@@ -208,6 +284,7 @@ export default {
 
 			// User info
 			currentUserId: null,
+			currentUsername: null,
 
 			// Modals
 			showNewChatModal: false,
@@ -218,24 +295,46 @@ export default {
 			newChatError: null,
 
 			showRenameGroupModal: false,
-			showAddMemberModal: false
+			showAddMemberModal: false,
+
+			// Profile modal
+			showProfileModal: false,
+			editUsername: '',
+			profileLoading: false,
+			profileError: null
 		}
 	},
 	computed: {
 		selectedChat() {
-			return this.chats.find(chat => chat.id === this.selectedChatId);
+			return this.chats.find(chat => chat.ID === this.selectedChatId);
 		}
 	},
 	async created() {
 		// Check if user is authenticated
 		const token = localStorage.getItem('token');
 		if (!token) {
-			this.$router.push('/session');
+			console.log('No token found, emitting logout');
+			this.$emit('logout');
 			return;
 		}
 
+		console.log('Token found, setting up ChatsView');
+
+		// Get user data from localStorage
+		const userData = localStorage.getItem('user');
+		if (userData) {
+			try {
+				const user = JSON.parse(userData);
+				this.currentUsername = user.username;
+				console.log('Loaded username from localStorage:', this.currentUsername);
+			} catch (e) {
+				console.error('Error parsing user data from localStorage', e);
+			}
+		}
+
 		// Set default auth header
-		this.$axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+		this.$axios.defaults.headers.common['Authorization'] = `${token}`;
+		console.log('Set Authorization header');
 
 		// Fetch user chats
 		await this.fetchChats();
@@ -253,27 +352,31 @@ export default {
 				this.loading = true;
 				this.error = null;
 
-				// Get user chats
-				const response = await this.$axios.get('/chats');
-				this.chats = response.data;
+				console.log('Fetching chats with token:', localStorage.getItem('token') ? 'present' : 'missing');
 
-				// Get current user ID
-				// Note: This depends on how you're storing the user info
-				// You might need to modify this based on your API
-				const userResponse = await this.$axios.get('/user');
-				this.currentUserId = userResponse.data.id;
+				// Get user chats - the backend should identify the user from the token
+				const response = await this.$axios.get('/chats');
+				console.log('Chats fetched successfully:', response.data);
+				this.chats = response.data;
 
 			} catch (err) {
 				console.error('Failed to fetch chats', err);
+				console.error('Error details:', {
+					status: err.response?.status,
+					data: err.response?.data,
+					headers: err.response?.headers
+				});
+
 				this.error = 'Failed to load conversations. Please try again.';
+
+				// If it's an auth error, logout
+				if (err.response?.status === 401) {
+					console.log('401 error in fetchChats, logging out');
+					this.$emit('logout');
+				}
 			} finally {
 				this.loading = false;
 			}
-		},
-
-		async selectChat(chatId) {
-			this.selectedChatId = chatId;
-			await this.fetchMessages(chatId);
 		},
 
 		async fetchMessages(chatId) {
@@ -281,11 +384,11 @@ export default {
 				this.loadingMessages = true;
 				this.messagesError = null;
 
-				const response = await this.$axios.get(`/chats/${chatId}/messages`);
+				const response = await this.$axios.get(`/chats/${chatId}`);
 				this.messages = response.data;
 
 				// Scroll to bottom of messages
-				this.$nextTick(() => {
+				await this.$nextTick(() => {
 					this.scrollToBottom();
 				});
 
@@ -305,7 +408,7 @@ export default {
 
 				await this.$axios.post(`/chats/${this.selectedChatId}/messages`, {
 					text: this.newMessage.trim(),
-					msgType: 'text' // Based on your backend
+					msgType: 'text'
 				});
 
 				// Clear input and refresh messages
@@ -347,7 +450,7 @@ export default {
 
 					// Refresh chats and select the new one
 					await this.fetchChats();
-					this.selectChat(response.data.id);
+					this.selectChat(response.data.ID);
 
 				} else {
 					// Create group chat
@@ -361,7 +464,7 @@ export default {
 
 					// Refresh chats and select the new one
 					await this.fetchChats();
-					this.selectChat(response.data.id);
+					this.selectChat(response.data.ID);
 				}
 
 			} catch (err) {
@@ -369,6 +472,64 @@ export default {
 				this.newChatError = err.response?.data?.message || 'Failed to create conversation. Please try again.';
 			} finally {
 				this.newChatLoading = false;
+			}
+		},
+
+		async updateProfile() {
+			if (!this.editUsername.trim()) {
+				this.profileError = 'Username is required';
+				return;
+			}
+
+			try {
+				this.profileLoading = true;
+				this.profileError = null;
+
+				await this.$axios.put('/user', {
+					username: this.editUsername.trim(),
+				});
+
+				// Update current user info
+				this.currentUsername = this.editUsername.trim();
+
+				// Update localStorage with new user data
+				localStorage.setItem('username', this.currentUsername);
+
+				// If you store user data as JSON object, update it
+				const userData = {
+					id: this.currentUserId,
+					username: this.currentUsername,
+				};
+				localStorage.setItem('user', JSON.stringify(userData));
+
+				// Close modal
+				this.showProfileModal = false;
+
+				// Show success message
+				alert('Profile updated successfully!');
+
+			} catch (err) {
+				console.error('Failed to update profile', err);
+				this.profileError = err.response?.data?.message || 'Failed to update profile. Please try again.';
+			} finally {
+				this.profileLoading = false;
+			}
+		},
+
+		async logout() {
+			if (confirm('Are you sure you want to logout?')) {
+				// Clear all localStorage data
+				localStorage.removeItem('token');
+				localStorage.removeItem('user');
+
+				// Clear axios auth header
+				delete this.$axios.defaults.headers.common['Authorization'];
+
+				// Stop polling
+				this.stopPolling();
+
+				// Emit logout event to App.vue
+				this.$emit('logout');
 			}
 		},
 
@@ -388,14 +549,47 @@ export default {
 			}
 		},
 
+		selectChat(chatId) {
+			this.selectedChatId = chatId;
+			this.fetchMessages(chatId);
+		},
+
 		getChatName(chat) {
-			if (chat.is_group) {
-				return chat.chat_name || 'Unnamed Group';
+			if (chat.IsGroup) {
+				return chat.Name || 'Unnamed Group';
 			} else {
-				// For private chats, show the other user's name
-				// This depends on your API response structure
-				return chat.otherUsername || chat.chat_name || 'Private Chat';
+				// For private chats, use the Name field (which should contain the other user's name)
+				return chat.Name || 'Private Chat';
 			}
+		},
+
+		getChatInitials(chat) {
+			const name = this.getChatName(chat);
+			if (chat.IsGroup) {
+				// For groups, use first letter of group name
+				return name.charAt(0).toUpperCase();
+			} else {
+				// For private chats, use first letter of each word (up to 2 letters)
+				const words = name.split(' ');
+				if (words.length >= 2) {
+					return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+				}
+				return name.charAt(0).toUpperCase();
+			}
+		},
+
+		getLastMessagePreview(chat) {
+			if (!chat.LastMsgText) {
+				return 'No messages yet';
+			}
+
+			// Truncate long messages
+			const maxLength = 40;
+			if (chat.LastMsgText.length > maxLength) {
+				return chat.LastMsgText.substring(0, maxLength) + '...';
+			}
+
+			return chat.LastMsgText;
 		},
 
 		formatTime(timestamp) {
@@ -407,6 +601,20 @@ export default {
 			// If today, show time only
 			if (date.toDateString() === now.toDateString()) {
 				return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+			}
+
+			// If yesterday
+			const yesterday = new Date(now);
+			yesterday.setDate(now.getDate() - 1);
+			if (date.toDateString() === yesterday.toDateString()) {
+				return 'Yesterday';
+			}
+
+			// If this week (within 7 days)
+			const weekAgo = new Date(now);
+			weekAgo.setDate(now.getDate() - 7);
+			if (date > weekAgo) {
+				return date.toLocaleDateString([], { weekday: 'short' });
 			}
 
 			// If this year, show month and day
@@ -453,6 +661,12 @@ export default {
 	height: 100vh;
 	border-right: 1px solid rgba(0, 0, 0, 0.1);
 	overflow-y: auto;
+	background-color: #f8f9fa;
+}
+
+.welcome-section {
+	border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+	padding-bottom: 12px;
 }
 
 .chat-container {
@@ -464,6 +678,133 @@ export default {
 	overflow-y: auto;
 }
 
+/* Modern chat list styles */
+.chat-list {
+	padding: 0;
+}
+
+.chat-item {
+	display: flex;
+	align-items: center;
+	padding: 12px 16px;
+	cursor: pointer;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+	transition: all 0.2s ease;
+	background-color: white;
+	margin-bottom: 1px;
+}
+
+.chat-item:hover {
+	background-color: #f0f2f5;
+}
+
+.chat-item.active {
+	background-color: #e3f2fd;
+	border-left: 4px solid #2196f3;
+}
+
+.chat-avatar {
+	margin-right: 12px;
+	flex-shrink: 0;
+}
+
+.avatar-circle {
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+}
+
+.avatar-text {
+	color: white;
+	font-weight: 600;
+	font-size: 16px;
+	line-height: 1;
+}
+
+.chat-info {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.chat-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 4px;
+}
+
+.chat-name {
+	font-size: 14px;
+	font-weight: 600;
+	color: #1a1a1a;
+	margin: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	flex: 1;
+}
+
+.chat-time {
+	font-size: 12px;
+	color: #65676b;
+	margin-left: 8px;
+	white-space: nowrap;
+}
+
+.chat-preview {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.last-message {
+	font-size: 13px;
+	color: #65676b;
+	margin: 0;
+	flex: 1;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	line-height: 1.3;
+}
+
+.message-type-indicator {
+	flex-shrink: 0;
+}
+
+.message-type-icon {
+	font-size: 12px;
+	opacity: 0.7;
+}
+
+.empty-state {
+	text-align: center;
+	padding: 40px 20px;
+	color: #65676b;
+}
+
+.empty-icon {
+	margin-bottom: 16px;
+	opacity: 0.5;
+}
+
+.empty-state h6 {
+	margin-bottom: 8px;
+	font-weight: 600;
+}
+
+.empty-state p {
+	margin: 0;
+	font-size: 13px;
+}
+
+/* Message styles */
 .message {
 	display: flex;
 	margin-bottom: 12px;
@@ -507,9 +848,27 @@ export default {
 	cursor: pointer;
 }
 
+/* Icon buttons styling */
+.btn-sm.p-1 {
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.btn-sm.p-1:hover {
+	transform: scale(1.1);
+	transition: transform 0.2s ease;
+}
+
 /* Make modal visible */
 .modal {
 	display: block !important;
 	background-color: rgba(0, 0, 0, 0.5);
+}
+
+.gap-2 {
+	gap: 0.5rem;
 }
 </style>

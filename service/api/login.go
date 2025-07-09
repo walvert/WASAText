@@ -62,7 +62,6 @@ func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter
 	// Create response
 	response := types.LoginResponse{
 		Token: token,
-		ID:    userId,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

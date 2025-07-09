@@ -1,21 +1,9 @@
 package database
 
 import (
-	"database/sql"
 	"errors"
-	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 	"math"
 )
-
-func (db *appdbimpl) CreateChat(chatName string, isGroup bool) (int, error) {
-	var chatID int
-	err := db.c.QueryRow(
-		"INSERT INTO chats (chat_name, is_group) VALUES (?,?) RETURNING id",
-		chatName,
-		isGroup).Scan(&chatID)
-
-	return chatID, err
-}
 
 func (db *appdbimpl) AddChatToUser(userID int, chatID int) error {
 	_, err := db.c.Exec("INSERT INTO user_chats (user_id, chat_id) VALUES (?, ?)", userID, chatID)
@@ -53,76 +41,6 @@ func (db *appdbimpl) GetPrivateChatID(user1ID int, user2ID int) (int, error) {
 		user1ID,
 		user2ID).Scan(&chatID)
 	return chatID, err
-}
-
-func (db *appdbimpl) GetUserChats(userID int) ([]types.Chat, error) {
-	var chats []types.Chat
-
-	rows, err := db.c.Query(`
-        SELECT id, chat_name, is_group, last_msg_text, last_msg_time, last_msg_type
-        FROM chats
-        INNER JOIN user_chats ON id = chat_id
-        WHERE user_id = ?`, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer func(rows *sql.Rows) {
-		_ = rows.Close()
-	}(rows)
-
-	for rows.Next() {
-		var chat types.Chat
-		if err := rows.Scan(&chat.ID, &chat.Name, &chat.IsGroup, &chat.LastMsgText, &chat.LastMsgTime, &chat.LastMsgType); err != nil {
-			return nil, err
-		}
-		chats = append(chats, chat)
-	}
-	return chats, rows.Err()
-}
-
-func (db *appdbimpl) GetConversation(userId int, chatID int) ([]types.Message, error) {
-	var messages []types.Message
-
-	rows, err := db.c.Query(`
-        SELECT id, chat_id, sender_id, text, created_at, is_forward, reply_to
-        FROM messages
-        WHERE chat_id = ?
-        ORDER BY created_at DESC`, chatID)
-
-	if err != nil {
-		return nil, err
-	}
-	defer func(rows *sql.Rows) {
-		err = rows.Close()
-		if err != nil {
-			return
-		}
-	}(rows)
-
-	var mostRecentID int
-
-	for rows.Next() {
-		var message types.Message
-		err = rows.Scan(&message.ID, &message.ChatID, &message.SenderID, &message.Text, &message.CreatedAt, &message.IsForward, &message.ReplyTo)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(messages) == 0 {
-			mostRecentID = message.ID
-		}
-
-		messages = append(messages, message)
-	}
-
-	_, err = db.c.Exec(`
-		INSERT INTO last_read (user_id, chat_id, message_id)
-		VALUES (?, ?, ?)
-		ON CONFLICT (user_id, chat_id)
-		DO UPDATE SET message_id = excluded.message_id`,
-		userId, chatID, mostRecentID)
-
-	return messages, rows.Err()
 }
 
 func (db *appdbimpl) GetLastRead(chatID int) (int, error) {

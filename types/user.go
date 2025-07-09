@@ -11,10 +11,19 @@ type LoginRequest struct {
 
 type LoginResponse struct {
 	Token string `json:"token"`
-	ID    int    `json:"id"`
 }
 
 type BearerToken struct {
 	Token  string `db:"token"`
 	UserID int    `db:"user_id"`
+}
+
+type UsernameRequest struct {
+	Username string `json:"username"`
+}
+
+type SetImageResponse struct {
+	Success  bool   `json:"success"`
+	Message  string `json:"message"`
+	ImageURL string `json:"image_url"`
 }

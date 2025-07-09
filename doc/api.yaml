@@ -5,7 +5,7 @@ info:
     API for messaging app WASAText
   version: 0.0.1
 security:
-  - bearerAuth: []
+  - bearerAuth: [ ]
 tags:
   - name: login
     description: login operations
@@ -20,7 +20,7 @@ tags:
 paths:
   /session:
     post:
-      tags: ["login"]
+      tags: [ "login" ]
       summary: Logs in the user
       description: |
         If the user does not exist, it will be created,
@@ -55,20 +55,19 @@ paths:
                     description: Bearer token
                     type: string
                     example: "12et43-35432-g53kg5"
-  /users/{userId}:
-    parameters:
-      - $ref: "#/components/parameters/UserID"
+  /users:
     put:
       tags:
         - user
       summary: Updates the username
-      description: 'Updates the username with the one given in the request'
+      description: 'Updates the username with the one given in the request.
+                    Requires a valid Bearer token in the Authorization header.'
       operationId: setMyUserName
       requestBody:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LoginRequest"
+              $ref: "#/components/schemas/UsernameRequest"
         required: true
       responses:
         "200":
@@ -78,36 +77,60 @@ paths:
               schema:
                 $ref: "#/components/schemas/User"
         "400":
-          $ref: '#/components/responses/Response'
+          $ref: '#/components/responses/BadRequestError'
         "404":
-          $ref: '#/components/responses/Response'
+          $ref: '#/components/responses/NotFoundError'
         "500":
-          $ref: '#/components/responses/Response'
-  /users/{userId}/image:
-    parameters:
-      - $ref: "#/components/parameters/UserID"
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/image:
     put:
       tags:
         - user
       summary: Sets user profile photo
-      description: "Updates the profile picture with the one given in the request"
+      description: >
+        Updates the profile picture for the authenticated user.
+        Requires a valid Bearer token in the Authorization header.
       operationId: setMyPhoto
       requestBody:
-        content:
-          application/octet-stream:
-            schema:
-              type: string
-              description: image
-              format: binary
-              minLength: 1
-              maxLength: 99999
         required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The image file to upload.
       responses:
         "200":
-          $ref: '#/components/responses/Response'
-  /users/{userId}/chats:
-    parameters:
-      - $ref: "#/components/parameters/UserID"
+          description: Profile image updated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Profile image updated successfully.
+                  imageUrl:
+                    type: string
+                    format: uri
+                    example: https://cdn.example.com/users/12345/profile.jpg
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
+  /chats:
     get:
       tags:
         - chats
@@ -128,6 +151,14 @@ paths:
                 maxItems: 999
         "204":
           description: "No Chats"
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
     post:
       tags:
         - chats
@@ -140,7 +171,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Chat"
+              $ref: "#/components/schemas/FirstMessageRequest"
         required: true
       responses:
         '201':
@@ -149,9 +180,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Chat'
-  /users/{userId}/chats/{chatId}:
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
+  /chats/{chatId}:
     parameters:
-      - $ref: "#/components/parameters/UserID"
       - $ref: "#/components/parameters/ChatID"
       - name: chatName
         in: query
@@ -163,6 +202,33 @@ paths:
           pattern: "^[a-zA-Z0-9_ -]+$"
           minLength: 3
           maxLength: 24
+    get:
+      tags:
+        - chats
+      summary: Get messages in a chat
+      description: Returns an array of messages sent in a chat
+      operationId: getConversation
+      responses:
+        "200":
+          description: Messages found
+          content:
+            application/json:
+              schema:
+                description: chat messages
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+                minItems: 1
+                maxItems: 99999
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
     put:
       tags:
         - chats
@@ -251,24 +317,6 @@ paths:
     parameters:
       - $ref: "#/components/parameters/UserID"
       - $ref: "#/components/parameters/ChatID"
-    get:
-      tags:
-        - messages
-      summary: Get chat messages
-      description: "Get all messages of a chat"
-      operationId: getMessages
-      responses:
-        "200":
-          description: Messages found
-          content:
-            application/json:
-              schema:
-                description: chat messages
-                type: array
-                items:
-                  $ref: "#/components/schemas/Message"
-                minItems: 1
-                maxItems: 99999
     post:
       tags:
         - messages
@@ -403,6 +451,7 @@ components:
           pattern: "^[a-zA-Z0-9_-]+$"
           minLength: 3
           maxLength: 16
+
     Chat:
       title: Chat
       description: Generic chat
@@ -438,6 +487,7 @@ components:
           pattern: "^[a-zA-Z0-9_ -]+$"
           minLength: 3
           maxLength: 24
+
     Message:
       title: Message
       description: Single message
@@ -471,6 +521,7 @@ components:
             $ref: "#/components/schemas/Comment"
           minItems: 0
           maxItems: 999
+
     Comment:
       title: Comment
       description: Single comment
@@ -490,6 +541,7 @@ components:
           readOnly: true
           minLength: 20
           maxLength: 20
+
     LoginRequest:
       title: Login Request
       description: Request consists in a string
@@ -502,6 +554,68 @@ components:
           pattern: "^[a-zA-Z0-9_-]+$"
           minLength: 3
           maxLength: 16
+
+    UsernameRequest:
+      title: Username Request
+      description: Request consists in a string to change the username
+      type: object
+      properties:
+        username:
+          description: username
+          type: string
+          example: 'mario'
+          pattern: "^[a-zA-Z0-9_-]+$"
+          minLength: 3
+          maxLength: 16
+
+    FirstMessageRequest:
+      type: object
+      properties:
+        text:
+          type: string
+          description: The text content of the message.
+          example: "Hello, team!"
+        type:
+          type: string
+          description: The type of message (e.g., text, image, video).
+          example: "text"
+        media_url:
+          type: string
+          format: uri
+          description: URL to any attached media.
+          example: "https://cdn.example.com/media/abc123.jpg"
+        chat_name:
+          type: string
+          description: Name of the chat to create if new.
+          example: "Project X"
+        receivers:
+          type: array
+          description: List of user IDs to receive the message.
+          items:
+            type: integer
+          example: [ 123, 456, 789 ]
+        is_forward:
+          type: boolean
+          description: Whether this message is forwarded from another chat.
+          example: false
+      required:
+        - text
+        - type
+        - receivers
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Invalid request"
+        message:
+          type: string
+          example: "The request could not be processed"
+        code:
+          type: integer
+          example: 400
+
   parameters:
     UserID:
       schema:
@@ -512,6 +626,7 @@ components:
       in: path
       required: true
       description: User identifier
+
     ChatID:
       schema:
         type: number
@@ -521,6 +636,7 @@ components:
       in: path
       required: true
       description: Chat identifier
+
     MessageID:
       schema:
         type: number
@@ -530,6 +646,7 @@ components:
       in: path
       required: true
       description: Message identifier
+
     CommentID:
       schema:
         type: number
@@ -539,6 +656,7 @@ components:
       in: path
       required: true
       description: Comment identifier
+
   responses:
     Response:
       description: Operation response
@@ -561,6 +679,35 @@ components:
                 minLength: 2
                 maxLength: 99
                 example: "Successful operation"
+
+    UnauthorizedError:
+      description: Invalid or missing bearer token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    BadRequestError:
+      description: Invalid request data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
   securitySchemes:
     bearerAuth:
       type: http

@@ -1,19 +1,11 @@
 <template>
 	<div>
-		<LoginView v-if="!isAuthenticated" @login-success="handleLogin" />
-		<ConversationView v-else @logout="handleLogout" />
+		<router-view @login-success="handleLogin" @logout="handleLogout" />
 	</div>
 </template>
 
 <script>
-import LoginView from "@/views/LoginView.vue";
-import ConversationView from "@/views/ConversationsView.vue";
-
 export default {
-	components: {
-		LoginView,
-		ConversationView,
-	},
 	data() {
 		return {
 			isAuthenticated: false,
@@ -26,14 +18,37 @@ export default {
 		checkAuth() {
 			const token = localStorage.getItem("token");
 			this.isAuthenticated = !!token;
+
+			// Navigate based on auth state
+			if (this.isAuthenticated && this.$route.path === '/session') {
+				this.$router.push('/chats');
+			} else if (!this.isAuthenticated && this.$route.path !== '/session') {
+				this.$router.push('/session');
+			}
 		},
 		handleLogin(token) {
+			console.log('App.vue received login event with token:', token);
+
+			// Store the token FIRST before updating state
 			localStorage.setItem("token", token);
+
+			// Then update the authenticated state
 			this.isAuthenticated = true;
+			console.log('isAuthenticated set to:', this.isAuthenticated);
+
+			// Navigate to chats after successful login
+			// Use nextTick to ensure the localStorage is set before navigation
+			this.$nextTick(() => {
+				this.$router.push('/chats');
+			});
 		},
 		handleLogout() {
 			localStorage.removeItem("token");
+			localStorage.removeItem("user");
 			this.isAuthenticated = false;
+
+			// Navigate to login after logout
+			this.$router.push('/session');
 		},
 	},
 };

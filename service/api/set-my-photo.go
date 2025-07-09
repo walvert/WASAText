@@ -1,7 +1,9 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 	"github.com/julienschmidt/httprouter"
@@ -10,21 +12,33 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 )
 
-func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.Header().Set("Content-Type", "image/png")
 
-	idParam := ps.ByName("chatId")
-	id, err := strconv.Atoi(idParam)
-	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Authorization header required", http.StatusUnauthorized)
 	}
+
+	userId, err := rt.db.GetIdWithToken(token)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			rt.baseLogger.WithError(err).Error("User not found")
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		} else {
+			rt.baseLogger.WithError(err).Error("Internal Server Error")
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	// Parse the form data
 	err = r.ParseMultipartForm(10 << 20)
 	if err != nil {
+		rt.baseLogger.WithError(err).Error("Error parsing multipart form")
 		http.Error(w, "Error parsing the image", http.StatusInternalServerError)
 		return
 	} // Max file size: 10MB
@@ -43,7 +57,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 	}(file)
 
 	// Ensure upload directory exists
-	uploadDir := "uploads/group/"
+	uploadDir := "uploads/user/"
 	err = os.MkdirAll(uploadDir, os.ModePerm)
 	if err != nil {
 		return
@@ -51,7 +65,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 
 	// Generate unique filename
 	ext := filepath.Ext(header.Filename)
-	imagePath := fmt.Sprintf("%s%d%s", uploadDir, id, ext)
+	imagePath := fmt.Sprintf("%s%d%s", uploadDir, userId, ext)
 
 	// Create the new file
 	outFile, err := os.Create(imagePath)
@@ -73,31 +87,16 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-}
-
-func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	w.Header().Set("Content-Type", "application/json")
-	var request types.ChatNameRequest
-
-	idParam := ps.ByName("chatId")
-	chatId, err := strconv.Atoi(idParam)
-	if err != nil {
-		http.Error(w, "Invalid chat id", http.StatusBadRequest)
-		return
+	response := types.SetImageResponse{
+		Success:  true,
+		Message:  "Successfully updated your image",
+		ImageURL: outFile.Name(),
 	}
 
-	err = json.NewDecoder(r.Body).Decode(&request)
+	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		http.Error(w, "Invalid request", http.StatusBadRequest)
+		rt.baseLogger.WithError(err).Error("Failed to encode response")
+		http.Error(w, "Failed to return user", http.StatusInternalServerError)
 		return
 	}
-
-	err = rt.db.SetGroupName(chatId, request.ChatName)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
 }
