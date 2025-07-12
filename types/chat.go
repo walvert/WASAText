@@ -3,14 +3,16 @@ package types
 import "time"
 
 type Chat struct {
-	ID          int       `db:"id"`
-	Name        string    `db:"name"`
-	IsGroup     bool      `db:"is_group"`
-	LastMsgText string    `db:"last_msg_text"`
-	LastMsgTime time.Time `db:"last_msg_time"`
-	LastMsgType string    `db:"last_msg_type"`
+	ID          int       `db:"id" json:"id"`
+	Name        string    `db:"name" json:"name"`
+	Image       string    `db:"image" json:"image"`
+	IsGroup     bool      `db:"is_group" json:"isGroup"`
+	LastMsgID   int       `db:"last_msg_id" json:"lastMsgId"`
+	LastMsgText string    `db:"last_msg_text" json:"lastMsgText"`
+	LastMsgTime time.Time `db:"last_msg_time" json:"lastMsgTime"`
+	LastMsgType string    `db:"last_msg_type" json:"lastMsgType"`
 }
 
 type ChatNameRequest struct {
-	ChatName string `json:"chat_name"`
+	ChatName string `json:"chatName"`
 }

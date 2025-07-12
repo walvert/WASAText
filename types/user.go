@@ -25,5 +25,5 @@ type UsernameRequest struct {
 type SetImageResponse struct {
 	Success  bool   `json:"success"`
 	Message  string `json:"message"`
-	ImageURL string `json:"image_url"`
+	ImageURL string `json:"imageUrl"`
 }

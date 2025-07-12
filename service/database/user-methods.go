@@ -1,7 +1,6 @@
 package database
 
 import (
-	"fmt"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 )
 
@@ -12,6 +11,15 @@ func (db *appdbimpl) GetUserById(id int) (types.User, error) {
 		Scan(&user)
 
 	return user, err
+}
+
+func (db *appdbimpl) GetUsernameById(id int) (string, error) {
+	var username string
+
+	err := db.c.QueryRow("SELECT username FROM users WHERE id = ?", id).
+		Scan(&username)
+
+	return username, err
 }
 
 func (db *appdbimpl) GetUserByUsername(username string) (int, error) {
@@ -33,28 +41,28 @@ func (db *appdbimpl) CreateUser(username string) (int, error) {
 	return userId, nil
 }
 
-func (db *appdbimpl) SetGroupName(chatId int, chatName string) error {
-	_, err := db.c.Exec("UPDATE chats SET chat_name = ? WHERE id = ?", chatName, chatId)
+func (db *appdbimpl) GetUsernameByToken(token string) (string, error) {
+	var username string
+	err := db.c.QueryRow(`
+        SELECT username
+        FROM users u
+        INNER JOIN tokens t ON u.id = t.user_id
+        WHERE token = ?`, token).Scan(&username)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+
+	return username, nil
 }
 
-func (db *appdbimpl) LeaveGroup(chatId int, userId int) error {
-	result, err := db.c.Exec(`DELETE FROM user_chats
-                            WHERE user_id = ? AND chat_id = ?`,
-		userId, chatId)
+func (db *appdbimpl) GetIdWithToken(token string) (int, error) {
+	var userId int
+
+	err := db.c.QueryRow("SELECT user_id from tokens WHERE token = ?", token).Scan(&userId)
 	if err != nil {
-		return err
+		return 0, err
 	}
-
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
-		return fmt.Errorf("user not found")
-	}
-
-	return nil
+	return userId, nil
 }
 
 /*func (db *appdbimpl) SetMyPhoto(id int, path string) error {

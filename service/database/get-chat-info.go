@@ -8,7 +8,7 @@ func (db *appdbimpl) GetChatInfo(chatId int) (types.Chat, error) {
 	err := db.c.QueryRow(`
         SELECT *
         FROM chats
-        WHERE id = ?`, chatId).Scan(&chat.ID, &chat.Name, &chat.IsGroup, &chat.LastMsgText, &chat.LastMsgTime, &chat.LastMsgType)
+        WHERE id = ?`, chatId).Scan(&chat.ID, &chat.Name, &chat.Image, &chat.IsGroup, &chat.LastMsgID, &chat.LastMsgText, &chat.LastMsgTime, &chat.LastMsgType)
 
 	return chat, err
 }

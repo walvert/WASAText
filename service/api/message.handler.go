@@ -17,55 +17,6 @@ import (
 	"time"
 )
 
-func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	w.Header().Set("Content-Type", "application/json")
-	var messageRequest types.MessageRequest
-
-	err := json.NewDecoder(r.Body).Decode(&messageRequest)
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	idParam := ps.ByName("userId")
-	userId, err := strconv.Atoi(idParam)
-	if err != nil {
-		http.Error(w, "Invalid user ID", http.StatusBadRequest)
-		return
-	}
-
-	idParam = ps.ByName("chatId")
-	chatId, err := strconv.Atoi(idParam)
-	if err != nil {
-		http.Error(w, "Invalid chat ID", http.StatusBadRequest)
-		return
-	}
-
-	if messageRequest.Type == "text" {
-		_, err = rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward, messageRequest.ReplyTo)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	} else {
-		messageId, err := rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward, messageRequest.ReplyTo)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		// Step 2: Rename the file using message_id
-		ext := filepath.Ext(messageRequest.MediaURL) // Get file extension
-		newFilePath := fmt.Sprintf("uploads/media/msg_%d%s", messageId, ext)
-
-		err = os.Rename(messageRequest.MediaURL, newFilePath) // Rename file
-		if err != nil {
-			http.Error(w, "Failed to rename file", http.StatusInternalServerError)
-			return
-		}
-	}
-}
-
 func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -172,6 +123,19 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		return
 	}
 
+	username, err := rt.db.GetUsernameById(userId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			rt.baseLogger.WithError(err).Error("User not found")
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		} else {
+			rt.baseLogger.WithError(err).Error("Internal Server Error: GetUsernameById")
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	text, err := rt.db.GetMessageText(messageId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -236,13 +200,13 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 		}
 
 		if messageType == "text" {
-			_, err = rt.db.SendMessage(chatId, userId, text, messageType, true, 0)
+			_, err = rt.db.SendMessage(chatId, userId, username, text, messageType, "", true, 0)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
 		} else {
-			newMessageId, err := rt.db.SendMessage(chatId, userId, text, messageType, true, 0)
+			newMessageId, err := rt.db.SendMessage(chatId, userId, username, text, messageType, "", true, 0)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return

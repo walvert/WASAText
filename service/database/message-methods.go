@@ -70,7 +70,7 @@ func (db *appdbimpl) GetMessageText(messageID int) (string, error) {
 func (db *appdbimpl) GetMessageType(messageID int) (string, error) {
 	var msgType string
 
-	err := db.c.QueryRow(`SELECT msg_type FROM messages WHERE id = ?`,
+	err := db.c.QueryRow(`SELECT type FROM messages WHERE id = ?`,
 		messageID).Scan(&msgType)
 	if err != nil {
 		return "", err

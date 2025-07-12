@@ -45,11 +45,12 @@ type AppDatabase interface {
 	CreateUser(username string) (int, error)
 	SetMyUsername(user types.User) error
 	CreateChat(chatName string, isGroup bool) (int, error)
-	SendMessage(chatID int, userID int, text string, msgType string, isForward bool, replyTo int) (int, error)
+	SendMessage(chatID int, userID int, username string, msgType string, text string, mediaUrl string, isForward bool, replyTo int) (int, error)
 	ValidateToken(token types.BearerToken) (bool, error)
 	UpsertToken(token types.BearerToken) error
 	GetPrivateChatID(user1ID int, user2ID int) (int, error)
 	AddChatToUser(userID int, chatID int) error
+	GetMessage(messageId int) (types.Message, error)
 	AddPrivateChat(user1Id int, user2Id int, chatId int) error
 	GetMyConversations(userID int) ([]types.Chat, error)
 	GetConversation(userId int, chatID int) ([]types.Message, error)
@@ -62,8 +63,12 @@ type AppDatabase interface {
 	SetGroupName(chatId int, chatName string) error
 	GetMessageText(messageID int) (string, error)
 	GetMessageType(messageID int) (string, error)
+	GetLastRead(chatID int) (int, error)
+	SetLastRead(userId int, chatId int) error
 	GetIdWithToken(token string) (int, error)
 	GetChatInfo(chatId int) (types.Chat, error)
+	GetUsernameByToken(token string) (string, error)
+	GetUsernameById(id int) (string, error)
 }
 
 type appdbimpl struct {
@@ -84,7 +89,9 @@ func New(db *sql.DB) (AppDatabase, error) {
 				CREATE TABLE IF NOT EXISTS chats (
 					id INTEGER PRIMARY KEY AUTOINCREMENT,
 					chat_name TEXT DEFAULT '',
+					chat_image TEXT DEFAULT '',
 					is_group BOOLEAN DEFAULT FALSE,
+					last_msg_id INTEGER DEFAULT 0,
 					last_msg_text TEXT DEFAULT '',
 					last_msg_time DATETIME DEFAULT NULL,
 					last_msg_type TEXT DEFAULT ''
@@ -108,9 +115,11 @@ func New(db *sql.DB) (AppDatabase, error) {
 				CREATE TABLE IF NOT EXISTS messages (
 					id INTEGER PRIMARY KEY AUTOINCREMENT,
 					chat_id INTEGER NOT NULL,
-					msg_type TEXT NOT NULL,
 					sender_id INTEGER,
-					text TEXT NOT NULL,
+					username TEXT NOT NULL,
+					type TEXT NOT NULL,
+					text TEXT DEFAULT '',
+					media_url TEXT DEFAULT '',
 					is_forward BOOLEAN DEFAULT FALSE,
 					reply_to INTEGER,
 					created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -130,7 +139,15 @@ func New(db *sql.DB) (AppDatabase, error) {
 					chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
 					message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
 					PRIMARY KEY (user_id, chat_id)
-				)`
+				);
+				CREATE TRIGGER IF NOT EXISTS update_messages_username_on_user_delete
+				BEFORE DELETE ON users
+				FOR EACH ROW
+				BEGIN
+					UPDATE messages
+					SET username = 'deleted account'
+					WHERE sender_id = OLD.id;
+				END`
 
 	_, err := db.Exec(sqlStmt)
 	if err != nil {

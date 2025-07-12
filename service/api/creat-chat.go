@@ -41,6 +41,19 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 		}
 	}
 
+	username, err := rt.db.GetUsernameById(userId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			rt.baseLogger.WithError(err).Error("User not found")
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		} else {
+			rt.baseLogger.WithError(err).Error("Internal Server Error: GetUsernameById")
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+	}
+
 	if len(messageRequest.Receivers) == 1 {
 		user1Id := userId
 		user2Id := messageRequest.Receivers[0]
@@ -78,6 +91,20 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 					rt.baseLogger.WithError(err).Error("Internal Server Error: AddPrivateChat")
 					http.Error(w, "Error adding private chat", http.StatusInternalServerError)
 				}
+
+				err = rt.db.SetLastRead(user1Id, chatId)
+				if err != nil {
+					rt.baseLogger.WithError(err).Error("Internal Server Error: SetLastRead 1")
+					http.Error(w, "Error setting last read", http.StatusInternalServerError)
+					return
+				}
+
+				err = rt.db.SetLastRead(user2Id, chatId)
+				if err != nil {
+					rt.baseLogger.WithError(err).Error("Internal Server Error: SetLastRead 2")
+					http.Error(w, "Error setting last read", http.StatusInternalServerError)
+					return
+				}
 			} else {
 				http.Error(w, "Error getting chat", http.StatusInternalServerError)
 				return
@@ -111,6 +138,13 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 				http.Error(w, "Error adding chat", http.StatusInternalServerError)
 				return
 			}
+
+			err = rt.db.SetLastRead(receiverID, chatId)
+			if err != nil {
+				rt.baseLogger.WithError(err).Error("Internal Server Error: SetLastRead receivers")
+				http.Error(w, "Error setting last read", http.StatusInternalServerError)
+				return
+			}
 		}
 	}
 
@@ -118,14 +152,14 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 	rt.baseLogger.Info("Sending first message to chat ", chatId)
 
 	if messageRequest.Type == "text" {
-		_, err = rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward, 0)
+		_, err = rt.db.SendMessage(chatId, userId, username, messageRequest.Type, messageRequest.Text, messageRequest.MediaURL, messageRequest.IsForward, 0)
 		if err != nil {
 			rt.baseLogger.WithError(err).Error("Internal Server Error: SendTextMessage")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	} else {
-		messageId, err := rt.db.SendMessage(chatId, userId, messageRequest.Text, messageRequest.Type, messageRequest.IsForward, 0)
+		messageId, err := rt.db.SendMessage(chatId, userId, username, messageRequest.Type, messageRequest.Text, messageRequest.MediaURL, messageRequest.IsForward, 0)
 		if err != nil {
 			rt.baseLogger.WithError(err).Error("Error sending media message")
 			http.Error(w, err.Error(), http.StatusInternalServerError)

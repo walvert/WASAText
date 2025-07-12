@@ -2,19 +2,19 @@
 	<div class="container-fluid">
 		<div class="row">
 			<!-- Sidebar with conversation list -->
-			<div class="col-md-4 col-lg-3 sidebar">
+			<div class="col-md-4 col-lg-3 chat-sidebar">
 				<div class="sidebar-sticky pt-3">
 					<!-- Welcome message -->
-					<div class="welcome-section px-3 mb-3">
+					<div class="chat-welcome-section px-3 mb-3">
 						<h6 class="text-muted mb-0">Welcome @{{ currentUsername || 'User' }}</h6>
 					</div>
 
 					<!-- Header with title and action icons -->
 					<div class="d-flex justify-content-between align-items-center px-3 mb-3">
 						<h5 class="mb-0">Chats</h5>
-						<div class="d-flex gap-2">
+						<div class="d-flex chat-gap-2">
 							<button
-								class="btn btn-sm btn-outline-secondary p-1"
+								class="btn btn-sm btn-outline-secondary p-1 chat-btn-icon"
 								@click="showNewChatModal = true"
 								title="New Chat"
 							>
@@ -23,7 +23,7 @@
 								</svg>
 							</button>
 							<button
-								class="btn btn-sm btn-outline-secondary p-1"
+								class="btn btn-sm btn-outline-secondary p-1 chat-btn-icon"
 								@click="showProfileModal = true"
 								title="Edit Profile"
 							>
@@ -32,7 +32,7 @@
 								</svg>
 							</button>
 							<button
-								class="btn btn-sm btn-outline-danger p-1"
+								class="btn btn-sm btn-outline-danger p-1 chat-btn-icon"
 								@click="logout"
 								title="Logout"
 							>
@@ -51,10 +51,10 @@
 					<div v-if="!loading && !error" class="chat-list">
 						<div
 							v-for="chat in chats"
-							:key="chat.ID"
+							:key="chat.id"
 							class="chat-item"
-							:class="{ active: selectedChatId === chat.ID }"
-							@click="selectChat(chat.ID)"
+							:class="{ active: selectedChatId === chat.id }"
+							@click="selectChat(chat.id)"
 						>
 							<div class="chat-avatar">
 								<div class="avatar-circle">
@@ -64,21 +64,21 @@
 							<div class="chat-info">
 								<div class="chat-header">
 									<h6 class="chat-name">{{ getChatName(chat) }}</h6>
-									<span class="chat-time">{{ formatTime(chat.LastMsgTime) }}</span>
+									<span class="chat-time">{{ formatTime(chat.lastMsgTime) }}</span>
 								</div>
 								<div class="chat-preview">
 									<p class="last-message">{{ getLastMessagePreview(chat) }}</p>
 									<div class="message-type-indicator">
-										<span v-if="chat.LastMsgType === 'text'" class="message-type-icon">💬</span>
-										<span v-else-if="chat.LastMsgType === 'image'" class="message-type-icon">📷</span>
+										<span v-if="chat.lastMsgType === 'text'" class="message-type-icon">💬</span>
+										<span v-else-if="chat.lastMsgType === 'image'" class="message-type-icon">📷</span>
 										<span v-else class="message-type-icon">📎</span>
 									</div>
 								</div>
 							</div>
 						</div>
 
-						<div v-if="chats.length === 0" class="empty-state">
-							<div class="empty-icon">
+						<div v-if="chats.length === 0" class="chat-empty-state">
+							<div class="chat-empty-icon">
 								<svg width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
 									<path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
 								</svg>
@@ -95,8 +95,8 @@
 				<div v-if="!selectedChatId" class="d-flex justify-content-center align-items-center h-100">
 					<div class="text-center text-muted">
 						<div class="mb-3">
-							<svg width="64" height="64" stroke="currentColor" stroke-width="2" fill="none" class="feather feather-message-square">
-								<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+							<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+								<path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
 							</svg>
 						</div>
 						<h5>Select a conversation to start chatting</h5>
@@ -110,7 +110,7 @@
 					<div class="chat-header p-3 border-bottom">
 						<div class="d-flex justify-content-between align-items-center">
 							<h5 class="mb-0">{{ selectedChat ? getChatName(selectedChat) : '' }}</h5>
-							<div v-if="selectedChat && selectedChat.IsGroup" class="dropdown">
+							<div v-if="selectedChat && selectedChat.isGroup" class="dropdown">
 								<button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
 									<span class="feather">⋮</span>
 								</button>
@@ -133,17 +133,17 @@
 							<div
 								v-for="message in messages"
 								:key="message.id"
-								class="message mb-3"
-								:class="{ 'message-sent': message.sender_id === currentUserId }"
+								class="chat-message mb-3"
+								:class="{ 'chat-message-sent': message.sender_id === currentUserId }"
 							>
-								<div class="message-content">
+								<div class="chat-message-content">
 									<div v-if="message.sender_id !== currentUserId" class="message-sender">
 										{{ message.sender_username || 'Unknown' }}
 									</div>
-									<div class="message-bubble p-2">
+									<div class="chat-message-bubble p-2">
 										{{ message.text }}
 									</div>
-									<div class="message-time small text-muted">
+									<div class="chat-message-time small text-muted">
 										{{ formatTime(message.created_at) }}
 									</div>
 								</div>
@@ -182,7 +182,7 @@
 		</div>
 
 		<!-- New Chat Modal -->
-		<div class="modal fade" tabindex="-1" id="newChatModal" v-if="showNewChatModal">
+		<div class="modal fade chat-modal" tabindex="-1" id="newChatModal" v-if="showNewChatModal">
 			<div class="modal-dialog">
 				<div class="modal-content">
 					<div class="modal-header">
@@ -232,7 +232,7 @@
 		</div>
 
 		<!-- Profile Modal -->
-		<div class="modal fade" tabindex="-1" id="profileModal" v-if="showProfileModal">
+		<div class="modal fade chat-modal" tabindex="-1" id="profileModal" v-if="showProfileModal">
 			<div class="modal-dialog">
 				<div class="modal-content">
 					<div class="modal-header">
@@ -306,7 +306,7 @@ export default {
 	},
 	computed: {
 		selectedChat() {
-			return this.chats.find(chat => chat.ID === this.selectedChatId);
+			return this.chats.find(chat => chat.id === this.selectedChatId);
 		}
 	},
 	async created() {
@@ -450,7 +450,7 @@ export default {
 
 					// Refresh chats and select the new one
 					await this.fetchChats();
-					this.selectChat(response.data.ID);
+					this.selectChat(response.data.id);
 
 				} else {
 					// Create group chat
@@ -464,7 +464,7 @@ export default {
 
 					// Refresh chats and select the new one
 					await this.fetchChats();
-					this.selectChat(response.data.ID);
+					this.selectChat(response.data.id);
 				}
 
 			} catch (err) {
@@ -555,17 +555,17 @@ export default {
 		},
 
 		getChatName(chat) {
-			if (chat.IsGroup) {
-				return chat.Name || 'Unnamed Group';
+			if (chat.isGroup) {
+				return chat.name || 'Unnamed Group';
 			} else {
-				// For private chats, use the Name field (which should contain the other user's name)
-				return chat.Name || 'Private Chat';
+				// For private chats, use the name field (which should contain the other user's name)
+				return chat.name || 'Private Chat';
 			}
 		},
 
 		getChatInitials(chat) {
 			const name = this.getChatName(chat);
-			if (chat.IsGroup) {
+			if (chat.isGroup) {
 				// For groups, use first letter of group name
 				return name.charAt(0).toUpperCase();
 			} else {
@@ -579,17 +579,17 @@ export default {
 		},
 
 		getLastMessagePreview(chat) {
-			if (!chat.LastMsgText) {
+			if (!chat.lastMsgText) {
 				return 'No messages yet';
 			}
 
 			// Truncate long messages
 			const maxLength = 40;
-			if (chat.LastMsgText.length > maxLength) {
-				return chat.LastMsgText.substring(0, maxLength) + '...';
+			if (chat.lastMsgText.length > maxLength) {
+				return chat.lastMsgText.substring(0, maxLength) + '...';
 			}
 
-			return chat.LastMsgText;
+			return chat.lastMsgText;
 		},
 
 		formatTime(timestamp) {
@@ -657,18 +657,9 @@ export default {
 </script>
 
 <style scoped>
-.sidebar {
-	height: 100vh;
-	border-right: 1px solid rgba(0, 0, 0, 0.1);
-	overflow-y: auto;
-	background-color: #f8f9fa;
-}
+@import url('../assets/main.css');
 
-.welcome-section {
-	border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-	padding-bottom: 12px;
-}
-
+/* Component-specific overrides if needed */
 .chat-container {
 	height: 100vh;
 }
@@ -676,199 +667,5 @@ export default {
 .chat-messages {
 	height: calc(100vh - 140px);
 	overflow-y: auto;
-}
-
-/* Modern chat list styles */
-.chat-list {
-	padding: 0;
-}
-
-.chat-item {
-	display: flex;
-	align-items: center;
-	padding: 12px 16px;
-	cursor: pointer;
-	border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-	transition: all 0.2s ease;
-	background-color: white;
-	margin-bottom: 1px;
-}
-
-.chat-item:hover {
-	background-color: #f0f2f5;
-}
-
-.chat-item.active {
-	background-color: #e3f2fd;
-	border-left: 4px solid #2196f3;
-}
-
-.chat-avatar {
-	margin-right: 12px;
-	flex-shrink: 0;
-}
-
-.avatar-circle {
-	width: 48px;
-	height: 48px;
-	border-radius: 50%;
-	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	position: relative;
-}
-
-.avatar-text {
-	color: white;
-	font-weight: 600;
-	font-size: 16px;
-	line-height: 1;
-}
-
-.chat-info {
-	flex: 1;
-	min-width: 0;
-	overflow: hidden;
-}
-
-.chat-header {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: 4px;
-}
-
-.chat-name {
-	font-size: 14px;
-	font-weight: 600;
-	color: #1a1a1a;
-	margin: 0;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	flex: 1;
-}
-
-.chat-time {
-	font-size: 12px;
-	color: #65676b;
-	margin-left: 8px;
-	white-space: nowrap;
-}
-
-.chat-preview {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-}
-
-.last-message {
-	font-size: 13px;
-	color: #65676b;
-	margin: 0;
-	flex: 1;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	line-height: 1.3;
-}
-
-.message-type-indicator {
-	flex-shrink: 0;
-}
-
-.message-type-icon {
-	font-size: 12px;
-	opacity: 0.7;
-}
-
-.empty-state {
-	text-align: center;
-	padding: 40px 20px;
-	color: #65676b;
-}
-
-.empty-icon {
-	margin-bottom: 16px;
-	opacity: 0.5;
-}
-
-.empty-state h6 {
-	margin-bottom: 8px;
-	font-weight: 600;
-}
-
-.empty-state p {
-	margin: 0;
-	font-size: 13px;
-}
-
-/* Message styles */
-.message {
-	display: flex;
-	margin-bottom: 12px;
-}
-
-.message-sent {
-	justify-content: flex-end;
-}
-
-.message-content {
-	max-width: 75%;
-}
-
-.message-bubble {
-	background-color: #f0f2f5;
-	border-radius: 18px;
-	padding: 8px 12px;
-	margin-bottom: 2px;
-}
-
-.message-sent .message-bubble {
-	background-color: #dcf8c6;
-}
-
-.message-time {
-	font-size: 0.7rem;
-	text-align: right;
-}
-
-.list-group-item.active {
-	background-color: rgba(13, 110, 253, 0.1);
-	color: inherit;
-	border-color: rgba(0, 0, 0, 0.125);
-}
-
-.list-group-item.active:hover {
-	background-color: rgba(13, 110, 253, 0.15);
-}
-
-.list-group-item {
-	cursor: pointer;
-}
-
-/* Icon buttons styling */
-.btn-sm.p-1 {
-	width: 32px;
-	height: 32px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.btn-sm.p-1:hover {
-	transform: scale(1.1);
-	transition: transform 0.2s ease;
-}
-
-/* Make modal visible */
-.modal {
-	display: block !important;
-	background-color: rgba(0, 0, 0, 0.5);
-}
-
-.gap-2 {
-	gap: 0.5rem;
 }
 </style>
