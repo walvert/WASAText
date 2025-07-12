@@ -1,6 +1,8 @@
 package database
 
-import "math"
+import (
+	"math"
+)
 
 func (db *appdbimpl) GetLastRead(chatID int) (int, error) {
 	var lastRead = math.MaxInt
@@ -30,8 +32,8 @@ func (db *appdbimpl) GetLastRead(chatID int) (int, error) {
 		var userLastRead int
 
 		err = db.c.QueryRow(`
-			SELECT message_id from last_read WHERE chat_id = ? AND user_id = ?`,
-			chatID, userId).Scan(&userLastRead)
+			SELECT message_id FROM last_read WHERE (user_id, chat_id) = (?, ?)`,
+			userId, chatID).Scan(&userLastRead)
 		if err != nil {
 			return 0, err
 		}

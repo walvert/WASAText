@@ -87,6 +87,13 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
+	err = rt.db.SetMyPhoto(userId, imagePath)
+	if err != nil {
+		rt.baseLogger.WithError(err).Error("Failed to save image")
+		http.Error(w, "Failed to save image", http.StatusInternalServerError)
+		return
+	}
+
 	response := types.SetImageResponse{
 		Success:  true,
 		Message:  "Successfully updated your image",

@@ -1,7 +1,9 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 	"github.com/julienschmidt/httprouter"
 	"io"
 	"mime/multipart"
@@ -71,5 +73,22 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	err = rt.db.SetGroupPhoto(id, imagePath)
+	if err != nil {
+		http.Error(w, "Failed to save image", http.StatusInternalServerError)
+		return
+	}
+
+	response := types.SetImageResponse{
+		Success:  true,
+		Message:  "Successfully updated group image",
+		ImageURL: outFile.Name(),
+	}
+
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		rt.baseLogger.WithError(err).Error("Failed to encode response")
+		http.Error(w, "Failed to return user", http.StatusInternalServerError)
+		return
+	}
 }

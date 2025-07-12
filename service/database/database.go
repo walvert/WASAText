@@ -55,10 +55,12 @@ type AppDatabase interface {
 	GetMyConversations(userID int) ([]types.Chat, error)
 	GetConversation(userId int, chatID int) ([]types.Message, error)
 	DeleteMessage(messageID int) error
+	SetMyPhoto(userId int, path string) error
 	CommentMessage(messageID int, userID int) error
 	DeleteComment(messageID int, userID int) error
 	GetSenderId(messageId int) (int, error)
 	AddToGroup(chatID int, userID int) error
+	SetGroupPhoto(chatId int, imagePath string) error
 	LeaveGroup(userId int, chatId int) error
 	SetGroupName(chatId int, chatName string) error
 	GetMessageText(messageID int) (string, error)
@@ -84,7 +86,8 @@ func New(db *sql.DB) (AppDatabase, error) {
 
 	sqlStmt := `CREATE TABLE IF NOT EXISTS users (
 					id INTEGER PRIMARY KEY AUTOINCREMENT,
-					username TEXT NOT NULL UNIQUE
+					username TEXT NOT NULL UNIQUE,
+					image_url TEXT DEFAULT ''
                 );
 				CREATE TABLE IF NOT EXISTS chats (
 					id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -92,6 +95,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 					chat_image TEXT DEFAULT '',
 					is_group BOOLEAN DEFAULT FALSE,
 					last_msg_id INTEGER DEFAULT 0,
+					last_msg_username TEXT DEFAULT '',
 					last_msg_text TEXT DEFAULT '',
 					last_msg_time DATETIME DEFAULT NULL,
 					last_msg_type TEXT DEFAULT ''

@@ -65,25 +65,11 @@ func (db *appdbimpl) GetIdWithToken(token string) (int, error) {
 	return userId, nil
 }
 
-/*func (db *appdbimpl) SetMyPhoto(id int, path string) error {
-	var existingPath string
-	err := db.c.QueryRow("SELECT path FROM image_paths WHERE id = ?", id).Scan(&existingPath)
-
-	if errors.Is(err, sql.ErrNoRows) {
-		// No existing entry → Insert new record
-		_, err = db.c.Exec("INSERT INTO image_paths (id, path) VALUES (?, ?)", id, path)
-		if err != nil {
-			return err
-		}
-	} else if err == nil {
-		// Existing entry found → Update the record
-		_, err = db.c.Exec("UPDATE image_paths SET path = ? WHERE id = ?", path, id)
-		if err != nil {
-			return err
-		}
-	} else {
-		return err // Other SQL error
+func (db *appdbimpl) GetImagePath(userId int) (string, error) {
+	var path string
+	err := db.c.QueryRow("SELECT image_url FROM users WHERE id = ?", userId).Scan(&path)
+	if err != nil {
+		return "", err
 	}
-
-	return nil
-}*/
+	return path, nil
+}
