@@ -8,7 +8,7 @@ func (db *appdbimpl) GetMyConversations(userID int) ([]types.Chat, error) {
 	var chats []types.Chat
 
 	rows, err := db.c.Query(`
-        SELECT *
+        SELECT id, chat_name, chat_image, is_group, last_msg_id, last_msg_username, last_msg_text, last_msg_time, last_msg_type
         FROM chats
         INNER JOIN user_chats ON id = chat_id
         WHERE user_id = ?`, userID)

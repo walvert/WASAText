@@ -1,268 +1,4 @@
-<template>
-	<div class="container-fluid">
-		<div class="row">
-			<!-- Sidebar with conversation list -->
-			<div class="col-md-4 col-lg-3 chat-sidebar">
-				<div class="sidebar-sticky pt-3">
-					<!-- Welcome message -->
-					<div class="chat-welcome-section px-3 mb-3">
-						<h6 class="text-muted mb-0">Welcome @{{ currentUsername || 'User' }}</h6>
-					</div>
-
-					<!-- Header with title and action icons -->
-					<div class="d-flex justify-content-between align-items-center px-3 mb-3">
-						<h5 class="mb-0">Chats</h5>
-						<div class="d-flex chat-gap-2">
-							<button
-								class="btn btn-sm btn-outline-secondary p-1 chat-btn-icon"
-								@click="showNewChatModal = true"
-								title="New Chat"
-							>
-								<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-									<path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-								</svg>
-							</button>
-							<button
-								class="btn btn-sm btn-outline-secondary p-1 chat-btn-icon"
-								@click="showProfileModal = true"
-								title="Edit Profile"
-							>
-								<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-									<path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
-								</svg>
-							</button>
-							<button
-								class="btn btn-sm btn-outline-danger p-1 chat-btn-icon"
-								@click="logout"
-								title="Logout"
-							>
-								<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-									<path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
-									<path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
-								</svg>
-							</button>
-						</div>
-					</div>
-
-					<LoadingSpinner v-if="loading" class="d-flex justify-content-center my-5" />
-					<ErrorMsg v-if="error" :message="error" class="mx-3" />
-
-					<!-- Modern chat list -->
-					<div v-if="!loading && !error" class="chat-list">
-						<div
-							v-for="chat in chats"
-							:key="chat.id"
-							class="chat-item"
-							:class="{ active: selectedChatId === chat.id }"
-							@click="selectChat(chat.id)"
-						>
-							<div class="chat-avatar">
-								<div class="avatar-circle">
-									<span class="avatar-text">{{ getChatInitials(chat) }}</span>
-								</div>
-							</div>
-							<div class="chat-info">
-								<div class="chat-header">
-									<h6 class="chat-name">{{ getChatName(chat) }}</h6>
-									<span class="chat-time">{{ formatTime(chat.lastMsgTime) }}</span>
-								</div>
-								<div class="chat-preview">
-									<p class="last-message">{{ getLastMessagePreview(chat) }}</p>
-									<div class="message-type-indicator">
-										<span v-if="chat.lastMsgType === 'text'" class="message-type-icon">💬</span>
-										<span v-else-if="chat.lastMsgType === 'image'" class="message-type-icon">📷</span>
-										<span v-else class="message-type-icon">📎</span>
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<div v-if="chats.length === 0" class="chat-empty-state">
-							<div class="chat-empty-icon">
-								<svg width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
-									<path d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
-								</svg>
-							</div>
-							<h6 class="text-muted">No conversations yet</h6>
-							<p class="text-muted small">Start chatting by creating a new conversation</p>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<!-- Main conversation area -->
-			<main class="col-md-8 col-lg-9 ms-sm-auto px-md-4">
-				<div v-if="!selectedChatId" class="d-flex justify-content-center align-items-center h-100">
-					<div class="text-center text-muted">
-						<div class="mb-3">
-							<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-								<path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-							</svg>
-						</div>
-						<h5>Select a conversation to start chatting</h5>
-						<p class="mb-4">Or create a new chat to get started</p>
-						<button class="btn btn-primary" @click="showNewChatModal = true">New Chat</button>
-					</div>
-				</div>
-
-				<div v-else class="chat-container h-100 d-flex flex-column">
-					<!-- Chat header -->
-					<div class="chat-header p-3 border-bottom">
-						<div class="d-flex justify-content-between align-items-center">
-							<h5 class="mb-0">{{ selectedChat ? getChatName(selectedChat) : '' }}</h5>
-							<div v-if="selectedChat && selectedChat.isGroup" class="dropdown">
-								<button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
-									<span class="feather">⋮</span>
-								</button>
-								<ul class="dropdown-menu dropdown-menu-end">
-									<li><button class="dropdown-item" @click="showRenameGroupModal = true">Rename Group</button></li>
-									<li><button class="dropdown-item" @click="showAddMemberModal = true">Add Member</button></li>
-									<li><hr class="dropdown-divider"></li>
-									<li><button class="dropdown-item text-danger" @click="leaveGroup">Leave Group</button></li>
-								</ul>
-							</div>
-						</div>
-					</div>
-
-					<!-- Messages list -->
-					<div class="chat-messages p-3 flex-grow-1 overflow-auto">
-						<LoadingSpinner v-if="loadingMessages" class="d-flex justify-content-center my-5" />
-						<ErrorMsg v-if="messagesError" :message="messagesError" />
-
-						<div v-if="!loadingMessages && !messagesError" class="messages-list">
-							<div
-								v-for="message in messages"
-								:key="message.id"
-								class="chat-message mb-3"
-								:class="{ 'chat-message-sent': message.sender_id === currentUserId }"
-							>
-								<div class="chat-message-content">
-									<div v-if="message.sender_id !== currentUserId" class="message-sender">
-										{{ message.sender_username || 'Unknown' }}
-									</div>
-									<div class="chat-message-bubble p-2">
-										{{ message.text }}
-									</div>
-									<div class="chat-message-time small text-muted">
-										{{ formatTime(message.created_at) }}
-									</div>
-								</div>
-							</div>
-
-							<div v-if="messages.length === 0" class="text-center p-4 text-muted">
-								No messages yet. Start the conversation!
-							</div>
-						</div>
-					</div>
-
-					<!-- Message input -->
-					<div class="chat-input p-3 border-top">
-						<form @submit.prevent="sendMessage">
-							<div class="input-group">
-								<input
-									type="text"
-									class="form-control"
-									placeholder="Type a message..."
-									v-model="newMessage"
-									:disabled="sendingMessage"
-								>
-								<button
-									class="btn btn-primary"
-									type="submit"
-									:disabled="sendingMessage || !newMessage.trim()"
-								>
-									<LoadingSpinner v-if="sendingMessage" class="me-1" style="width: 16px; height: 16px;" />
-									<span v-else>Send</span>
-								</button>
-							</div>
-						</form>
-					</div>
-				</div>
-			</main>
-		</div>
-
-		<!-- New Chat Modal -->
-		<div class="modal fade chat-modal" tabindex="-1" id="newChatModal" v-if="showNewChatModal">
-			<div class="modal-dialog">
-				<div class="modal-content">
-					<div class="modal-header">
-						<h5 class="modal-title">New Conversation</h5>
-						<button type="button" class="btn-close" @click="showNewChatModal = false"></button>
-					</div>
-					<div class="modal-body">
-						<div class="form-check mb-3">
-							<input class="form-check-input" type="radio" name="chatType" id="privateChat" value="private" v-model="newChatType">
-							<label class="form-check-label" for="privateChat">
-								Private Chat
-							</label>
-						</div>
-						<div class="form-check mb-3">
-							<input class="form-check-input" type="radio" name="chatType" id="groupChat" value="group" v-model="newChatType">
-							<label class="form-check-label" for="groupChat">
-								Group Chat
-							</label>
-						</div>
-
-						<div v-if="newChatType === 'private'" class="mb-3">
-							<label class="form-label">Username</label>
-							<input type="text" class="form-control" v-model="newChatUsername" placeholder="Enter username">
-						</div>
-
-						<div v-if="newChatType === 'group'" class="mb-3">
-							<label class="form-label">Group Name</label>
-							<input type="text" class="form-control" v-model="newChatName" placeholder="Enter group name">
-						</div>
-
-						<ErrorMsg v-if="newChatError" :message="newChatError" />
-					</div>
-					<div class="modal-footer">
-						<button type="button" class="btn btn-secondary" @click="showNewChatModal = false">Cancel</button>
-						<button
-							type="button"
-							class="btn btn-primary"
-							@click="createNewChat"
-							:disabled="newChatLoading"
-						>
-							<LoadingSpinner v-if="newChatLoading" class="me-2" />
-							Create
-						</button>
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<!-- Profile Modal -->
-		<div class="modal fade chat-modal" tabindex="-1" id="profileModal" v-if="showProfileModal">
-			<div class="modal-dialog">
-				<div class="modal-content">
-					<div class="modal-header">
-						<h5 class="modal-title">Edit Profile</h5>
-						<button type="button" class="btn-close" @click="showProfileModal = false"></button>
-					</div>
-					<div class="modal-body">
-						<div class="mb-3">
-							<label class="form-label">Username</label>
-							<input type="text" class="form-control" v-model="editUsername" placeholder="Enter new username">
-						</div>
-						<ErrorMsg v-if="profileError" :message="profileError" />
-					</div>
-					<div class="modal-footer">
-						<button type="button" class="btn btn-secondary" @click="showProfileModal = false">Cancel</button>
-						<button
-							type="button"
-							class="btn btn-primary"
-							@click="updateProfile"
-							:disabled="profileLoading"
-						>
-							<LoadingSpinner v-if="profileLoading" class="me-2" />
-							Update
-						</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-</template>
+<template src="./ChatsView.html"></template>
 
 <script>
 export default {
@@ -281,6 +17,10 @@ export default {
 			messagesError: null,
 			newMessage: '',
 			sendingMessage: false,
+			pendingMessage: '', // Store the message being sent
+
+			// Read status tracking
+			lastReadMessageId: null, // Track the last read message ID for current chat
 
 			// User info
 			currentUserId: null,
@@ -294,22 +34,49 @@ export default {
 			newChatLoading: false,
 			newChatError: null,
 
-			showRenameGroupModal: false,
-			showAddMemberModal: false,
+			// Rename Group Modal
+			showSetGroupNameModal: false,
+			editGroupName: '',
+			setGroupNameLoading: false,
+			setGroupNameError: null,
+
+			// Add member modal
+			showAddToGroupModal: false,
+			newMemberUsername: '',
+			addToGroupLoading: false,
+			addToGroupError: null,
 
 			// Profile modal
 			showProfileModal: false,
 			editUsername: '',
 			profileLoading: false,
-			profileError: null
+			profileError: null,
+
+			chatImageUrls: {}, // Store blob URLs for each chat
+			imageCache: {}, // Cache blob URLs by image path
+
+			// Polling improvements
+			pollingInterval: null,
+			isPolling: false,
+			pollingRetryCount: 0,
+			maxRetries: 3,
+			basePollingInterval: 5000, // 5 seconds
+			currentPollingInterval: 5000,
+
+			// Request tracking
+			activeRequests: new Set(),
+			requestController: null,
+
 		}
 	},
+
 	computed: {
 		selectedChat() {
 			return this.chats.find(chat => chat.id === this.selectedChatId);
 		}
 	},
 	async created() {
+		document.addEventListener('visibilitychange', this.handleVisibilityChange);
 		// Check if user is authenticated
 		const token = localStorage.getItem('token');
 		if (!token) {
@@ -326,7 +93,7 @@ export default {
 			try {
 				const user = JSON.parse(userData);
 				this.currentUsername = user.username;
-				console.log('Loaded username from localStorage:', this.currentUsername);
+				console.log('Loaded user from localStorage:', this.currentUsername);
 			} catch (e) {
 				console.error('Error parsing user data from localStorage', e);
 			}
@@ -337,67 +104,180 @@ export default {
 		console.log('Set Authorization header');
 
 		// Fetch user chats
-		await this.fetchChats();
+		await this.getMyConversations();
 
 		// Start polling for new messages
 		this.startPolling();
 	},
 	beforeUnmount() {
-		// Stop polling when component is destroyed
-		this.stopPolling();
+		// Enhanced cleanup
+		this.cleanup();
+
+		// Remove visibility change listener
+		document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+
+		// Clean up blob URLs to prevent memory leaks
+		Object.values(this.imageCache).forEach(blobUrl => {
+			URL.revokeObjectURL(blobUrl);
+		});
 	},
+
 	methods: {
-		async fetchChats() {
+		async getMyConversations() {
+			// Create abort controller for this request
+			const controller = new AbortController();
+			const requestId = 'getMyConversations-' + Date.now();
+
 			try {
 				this.loading = true;
 				this.error = null;
 
+				// Track active request
+				this.activeRequests.add(requestId);
+
 				console.log('Fetching chats with token:', localStorage.getItem('token') ? 'present' : 'missing');
 
-				// Get user chats - the backend should identify the user from the token
-				const response = await this.$axios.get('/chats');
+				// Add timeout and abort signal
+				const response = await this.$axios.get('/chats', {
+					signal: controller.signal,
+					timeout: 10000 // 10 second timeout
+				});
+
 				console.log('Chats fetched successfully:', response.data);
 				this.chats = response.data;
 
-			} catch (err) {
-				console.error('Failed to fetch chats', err);
-				console.error('Error details:', {
-					status: err.response?.status,
-					data: err.response?.data,
-					headers: err.response?.headers
-				});
+				await this.loadChatImages();
 
+				// Reset retry count on success
+				this.pollingRetryCount = 0;
+				this.currentPollingInterval = this.basePollingInterval;
+
+			} catch (err) {
+				// Don't handle aborted requests
+				if (err.name === 'AbortError' || err.code === 'ECONNABORTED') {
+					console.log('Request aborted or timed out');
+					return;
+				}
+
+				console.error('Failed to fetch chats', err);
 				this.error = 'Failed to load conversations. Please try again.';
+
+				// Increment retry count and adjust polling interval
+				this.pollingRetryCount++;
+				this.currentPollingInterval = Math.min(
+					this.basePollingInterval * Math.pow(2, this.pollingRetryCount),
+					30000 // Max 30 seconds
+				);
 
 				// If it's an auth error, logout
 				if (err.response?.status === 401) {
-					console.log('401 error in fetchChats, logging out');
+					console.log('401 error in getMyConversations, logging out');
 					this.$emit('logout');
 				}
 			} finally {
 				this.loading = false;
+				this.activeRequests.delete(requestId);
 			}
 		},
 
-		async fetchMessages(chatId) {
+		async getConversation(chatId) {
+			const controller = new AbortController();
+			const requestId = 'getConversation-' + chatId + '-' + Date.now();
+
 			try {
 				this.loadingMessages = true;
 				this.messagesError = null;
 
-				const response = await this.$axios.get(`/chats/${chatId}`);
-				this.messages = response.data;
+				this.activeRequests.add(requestId);
 
-				// Scroll to bottom of messages
-				await this.$nextTick(() => {
-					this.scrollToBottom();
+				const response = await this.$axios.get(`/chats/${chatId}`, {
+					signal: controller.signal,
+					timeout: 10000
 				});
 
+				// Sort messages by timestamp (oldest first, newest at bottom)
+				this.messages = response.data.sort((a, b) => {
+					return new Date(a.createdAt) - new Date(b.createdAt);
+				});
+
+				// Fetch last read message ID for this chat
+				await this.getLastReadMessageId(chatId);
+
+				// Scroll to bottom after messages are rendered - use setTimeout for better reliability
+				setTimeout(() => {
+					this.scrollToBottom();
+				}, 100);
+
 			} catch (err) {
+				if (err.name === 'AbortError' || err.code === 'ECONNABORTED') {
+					console.log('Messages request aborted or timed out');
+					return;
+				}
+
 				console.error('Failed to fetch messages', err);
 				this.messagesError = 'Failed to load messages. Please try again.';
 			} finally {
 				this.loadingMessages = false;
+				this.activeRequests.delete(requestId);
 			}
+		},
+
+		async getLastReadMessageId(chatId) {
+			const controller = new AbortController();
+			const requestId = 'getLastRead-' + chatId + '-' + Date.now();
+
+			try {
+				this.activeRequests.add(requestId);
+
+				const response = await this.$axios.get(`/chats/${chatId}/last-read`, {
+					signal: controller.signal,
+					timeout: 5000
+				});
+
+				// Store the previous value to detect changes
+				const previousLastRead = this.lastReadMessageId;
+				this.lastReadMessageId = response.data.lastReadId;
+
+				// Debug logging
+				console.log('Last read message ID updated:', {
+					chatId,
+					previousLastRead,
+					newLastRead: this.lastReadMessageId
+				});
+
+				// Force reactivity update if needed (Vue 2)
+				this.$forceUpdate();
+
+			} catch (err) {
+				if (err.name === 'AbortError' || err.code === 'ECONNABORTED') {
+					console.log('Last read request aborted or timed out');
+					return;
+				}
+
+				console.error('Failed to fetch last read message ID', err);
+				// Don't show error to user for this non-critical feature
+			} finally {
+				this.activeRequests.delete(requestId);
+			}
+		},
+
+		isMessageRead(message) {
+			// Only show read status for messages sent by current user
+			if (!this.isCurrentUserMessage(message)) {
+				return false;
+			}
+
+			// If we don't have lastReadMessageId yet, assume not read
+			if (this.lastReadMessageId === null || this.lastReadMessageId === undefined) {
+				return false;
+			}
+
+			// Ensure both values are numbers for proper comparison
+			const messageId = parseInt(message.id);
+			const lastReadId = parseInt(this.lastReadMessageId);
+
+			// Message is read if its ID is less than or equal to lastReadMessageId
+			return messageId <= lastReadId;
 		},
 
 		async sendMessage() {
@@ -405,21 +285,50 @@ export default {
 
 			try {
 				this.sendingMessage = true;
+				this.pendingMessage = this.newMessage.trim();
 
+				// Send message with correct format
 				await this.$axios.post(`/chats/${this.selectedChatId}/messages`, {
-					text: this.newMessage.trim(),
-					msgType: 'text'
+					type: 'text',
+					text: this.newMessage.trim()
 				});
 
-				// Clear input and refresh messages
+				// Clear input
 				this.newMessage = '';
-				await this.fetchMessages(this.selectedChatId);
+				this.pendingMessage = '';
+
+				// Refresh messages and scroll to bottom
+				await this.getConversation(this.selectedChatId);
 
 			} catch (err) {
 				console.error('Failed to send message', err);
 				alert('Failed to send message. Please try again.');
 			} finally {
 				this.sendingMessage = false;
+			}
+		},
+
+		scrollToBottom() {
+			// Use nextTick to ensure DOM is updated
+			this.$nextTick(() => {
+				const messagesContainer = this.$refs.messagesContainer;
+				if (messagesContainer) {
+					// Force scroll to the very bottom
+					messagesContainer.scrollTop = messagesContainer.scrollHeight;
+				}
+			});
+		},
+
+		handleNewMessage() {
+			// Check if user is at or near the bottom of messages
+			const messagesContainer = this.$refs.messagesContainer;
+			if (messagesContainer) {
+				const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+				const isAtBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px threshold
+
+				if (isAtBottom) {
+					this.scrollToBottom();
+				}
 			}
 		},
 
@@ -440,7 +349,7 @@ export default {
 
 				if (this.newChatType === 'private') {
 					// Create private chat
-					const response = await this.$axios.post('/chats/private', {
+					const response = await this.$axios.post('/chats', {
 						username: this.newChatUsername.trim()
 					});
 
@@ -449,12 +358,12 @@ export default {
 					this.showNewChatModal = false;
 
 					// Refresh chats and select the new one
-					await this.fetchChats();
+					await this.getMyConversations();
 					this.selectChat(response.data.id);
 
 				} else {
 					// Create group chat
-					const response = await this.$axios.post('/chats/group', {
+					const response = await this.$axios.post('/chats', {
 						name: this.newChatName.trim()
 					});
 
@@ -463,7 +372,7 @@ export default {
 					this.showNewChatModal = false;
 
 					// Refresh chats and select the new one
-					await this.fetchChats();
+					await this.getMyConversations();
 					this.selectChat(response.data.id);
 				}
 
@@ -473,6 +382,130 @@ export default {
 			} finally {
 				this.newChatLoading = false;
 			}
+		},
+
+		async setGroupName() {
+			if (!this.editGroupName.trim()) {
+				this.setGroupNameError = 'Group name is required';
+				return;
+			}
+
+			if (!this.selectedChatId) {
+				this.setGroupNameError = 'No group selected';
+				return;
+			}
+
+			try {
+				this.setGroupNameLoading = true;
+				this.setGroupNameError = null;
+
+				const response = await this.$axios.put(`/chats/${this.selectedChatId}`, {
+					chatName: this.editGroupName.trim()
+				});
+
+				console.log('Group renamed successfully:', response.data);
+
+				// Update the local chat name immediately for better UX
+				const chatIndex = this.chats.findIndex(chat => chat.id === this.selectedChatId);
+				if (chatIndex !== -1) {
+					this.chats[chatIndex].name = this.editGroupName.trim();
+				}
+
+				// Close modal and reset form
+				this.showSetGroupNameModal = false;
+				this.editGroupName = '';
+
+				// Refresh chats to get latest data from server
+				await this.getMyConversations();
+
+				// Show success message
+				alert('Group renamed successfully!');
+
+			} catch (err) {
+				console.error('Failed to rename group', err);
+				this.setGroupNameError = err.response?.data?.message || 'Failed to rename group. Please try again.';
+			} finally {
+				this.setGroupNameLoading = false;
+			}
+		},
+
+		async addToGroup() {
+			if (!this.newMemberUsername.trim()) {
+				this.addToGroupError = 'Username is required';
+				return;
+			}
+
+			if (!this.selectedChatId) {
+				this.addToGroupError = 'No group selected';
+				return;
+			}
+
+			try {
+				this.addToGroupLoading = true;
+				this.addToGroupError = null;
+
+				const response = await this.$axios.post(`/chats/${this.selectedChatId}/members`, {
+					username: this.newMemberUsername.trim()
+				});
+
+
+				console.log('Member added successfully:', response.data);
+
+				// Close modal and reset form
+				this.showAddToGroupModal = false;
+				this.newMemberUsername = '';
+
+				// Refresh chats to get latest data
+				await this.getMyConversations();
+
+				// Show success message
+				alert(`${this.newMemberUsername.trim()} has been added to the group!`);
+
+			} catch (err) {
+				console.error('Failed to add member', err);
+
+				// Handle specific error cases
+				if (err.response?.status === 404) {
+					this.addToGroupError = 'User not found. Please check the username.';
+				} else if (err.response?.status === 409) {
+					this.addToGroupError = 'User is already a member of this group.';
+				} else {
+					this.addToGroupError = err.response?.data?.message || 'Failed to add member. Please try again.';
+				}
+			} finally {
+				this.addToGroupLoading = false;
+			}
+		},
+
+		// Enhanced method to open rename modal with current group name pre-filled
+		openSetGroupNameModal() {
+			if (this.selectedChat) {
+				this.editGroupName = this.selectedChat.name || '';
+				this.setGroupNameError = null;
+				this.showSetGroupNameModal = true;
+
+				// Focus the input after modal is shown
+				this.$nextTick(() => {
+					if (this.$refs.groupNameInput) {
+						this.$refs.groupNameInput.focus();
+						this.$refs.groupNameInput.select();
+					}
+				});
+			}
+		},
+
+		// Enhanced method to open add member modal
+		openAddToGroupModal() {
+			this.newMemberUsername = '';
+			this.addToGroupError = null;
+			this.showAddToGroupModal = true;
+
+			// Focus the input after modal is shown
+			this.$nextTick(() => {
+				if (this.$refs.memberUsernameInput) {
+					this.$refs.memberUsernameInput.focus();
+				}
+			});
 		},
 
 		async updateProfile() {
@@ -518,6 +551,9 @@ export default {
 
 		async logout() {
 			if (confirm('Are you sure you want to logout?')) {
+				// Stop polling and clean up first
+				this.cleanup();
+
 				// Clear all localStorage data
 				localStorage.removeItem('token');
 				localStorage.removeItem('user');
@@ -525,11 +561,17 @@ export default {
 				// Clear axios auth header
 				delete this.$axios.defaults.headers.common['Authorization'];
 
-				// Stop polling
-				this.stopPolling();
-
 				// Emit logout event to App.vue
 				this.$emit('logout');
+			}
+		},
+
+		// Add method to handle visibility changes (pause polling when tab is hidden)
+		handleVisibilityChange() {
+			if (document.hidden) {
+				this.stopPolling();
+			} else {
+				this.startPolling();
 			}
 		},
 
@@ -540,7 +582,7 @@ export default {
 				await this.$axios.delete(`/chats/${this.selectedChatId}/members`);
 
 				// Refresh chats and clear selection
-				await this.fetchChats();
+				await this.getMyConversations();
 				this.selectedChatId = null;
 
 			} catch (err) {
@@ -551,7 +593,12 @@ export default {
 
 		selectChat(chatId) {
 			this.selectedChatId = chatId;
-			this.fetchMessages(chatId);
+			this.lastReadMessageId = null; // Reset read status when switching chats
+			this.getConversation(chatId);
+		},
+
+		isCurrentUser(senderId) {
+			return senderId === this.currentUserId;
 		},
 
 		getChatName(chat) {
@@ -578,18 +625,101 @@ export default {
 			}
 		},
 
+		async getChatImageUrl(imagePath) {
+			if (!imagePath) return null;
+
+			// Check if we already have a blob URL cached for this image
+			if (this.imageCache[imagePath]) {
+				return this.imageCache[imagePath];
+			}
+
+			try {
+				// Get the base URL from your axios configuration
+				const baseURL = this.$axios.defaults.baseURL || 'http://localhost:3000';
+
+				// The imagePath should be something like "uploads/chats/image.jpg"
+				// We need to construct the URL as: /uploads/chats/image.jpg
+				let imageUrl;
+
+				// Remove leading slash if present and ensure it starts with uploads/
+				const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
+
+				if (cleanPath.startsWith('uploads/')) {
+					// Path already includes uploads/, use as is
+					imageUrl = `${baseURL}/${cleanPath}`;
+				} else {
+					// Path doesn't include uploads/, add it
+					imageUrl = `${baseURL}/uploads/${cleanPath}`;
+				}
+
+				console.log('Fetching image from:', imageUrl); // Debug log
+
+				// Get the token from localStorage
+				const token = localStorage.getItem('token');
+
+				// Fetch the image with authorization header
+				const response = await this.$axios.get(imageUrl, {
+					responseType: 'blob',
+					headers: {
+						'Authorization': token
+					}
+				});
+
+				// Convert blob to object URL
+				const blobUrl = URL.createObjectURL(response.data);
+
+				// Cache the blob URL
+				this.imageCache[imagePath] = blobUrl;
+
+				return blobUrl;
+
+			} catch (error) {
+				console.error('Failed to fetch chat image:', error);
+				console.error('Image path was:', imagePath);
+				return null;
+			}
+		},
+
+		async loadChatImages() {
+			for (const chat of this.chats) {
+				if (chat.image && !this.chatImageUrls[chat.id]) {
+					try {
+						const imageUrl = await this.getChatImageUrl(chat.image);
+						if (imageUrl) {
+							// In Vue 3, you
+							this.chatImageUrls[chat.id] = imageUrl;
+						}
+					} catch (error) {
+						console.error(`Failed to load image for chat ${chat.id}:`, error);
+					}
+				}
+			}
+		},
+
 		getLastMessagePreview(chat) {
 			if (!chat.lastMsgText) {
 				return 'No messages yet';
 			}
 
-			// Truncate long messages
-			const maxLength = 40;
-			if (chat.lastMsgText.length > maxLength) {
-				return chat.lastMsgText.substring(0, maxLength) + '...';
+			let preview = chat.lastMsgText;
+
+			// For group chats, prepend the username
+			if (chat.isGroup && chat.lastMsgUsername) {
+				preview = `${chat.lastMsgUsername}: ${chat.lastMsgText}`;
 			}
 
-			return chat.lastMsgText;
+			// Truncate long messages
+			const maxLength = 40;
+			if (preview.length > maxLength) {
+				return preview.substring(0, maxLength) + '...';
+			}
+
+			return preview;
+		},
+
+		isCurrentUserMessage(message) {
+			// Compare using username since that's what you have in the message object
+			return message.username === this.currentUsername;
 		},
 
 		formatTime(timestamp) {
@@ -626,31 +756,145 @@ export default {
 			return date.toLocaleDateString();
 		},
 
-		scrollToBottom() {
-			const messagesContainer = document.querySelector('.chat-messages');
-			if (messagesContainer) {
-				messagesContainer.scrollTop = messagesContainer.scrollHeight;
+		formatMessageTime(timestamp) {
+			if (!timestamp) return '';
+
+			const date = new Date(timestamp);
+			const now = new Date();
+
+			// If today, show time only (HH:MM format)
+			if (date.toDateString() === now.toDateString()) {
+				return date.toLocaleTimeString([], {
+					hour: '2-digit',
+					minute: '2-digit',
+					hour12: false // Use 24-hour format, change to true for 12-hour
+				});
+			}
+
+			// If yesterday
+			const yesterday = new Date(now);
+			yesterday.setDate(now.getDate() - 1);
+			if (date.toDateString() === yesterday.toDateString()) {
+				return 'Yesterday ' + date.toLocaleTimeString([], {
+					hour: '2-digit',
+					minute: '2-digit',
+					hour12: false
+				});
+			}
+
+			// If this week (within 7 days)
+			const weekAgo = new Date(now);
+			weekAgo.setDate(now.getDate() - 7);
+			if (date > weekAgo) {
+				return date.toLocaleDateString([], { weekday: 'short' }) + ' ' +
+					date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+			}
+
+			// If this year, show month and day with time
+			if (date.getFullYear() === now.getFullYear()) {
+				return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
+					date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+			}
+
+			// Otherwise show full date with time
+			return date.toLocaleDateString() + ' ' +
+				date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+		},
+
+		handleImageError(event) {
+			// Get the chat ID from the image element or find it another way
+			const imgElement = event.target;
+			const chatId = imgElement.getAttribute('data-chat-id');
+
+			if (chatId) {
+				// Remove the failed image URL from cache
+				delete this.chatImageUrls[chatId];
+
+				// Also remove from image cache
+				const chat = this.chats.find(c => c.id == chatId);
+				if (chat && chat.image && this.imageCache[chat.image]) {
+					URL.revokeObjectURL(this.imageCache[chat.image]);
+					delete this.imageCache[chat.image];
+				}
 			}
 		},
 
 		startPolling() {
-			// Poll for new messages every 5 seconds
-			this.pollingInterval = setInterval(() => {
-				if (this.selectedChatId) {
-					this.fetchMessages(this.selectedChatId);
-				}
+			this.stopPolling();
 
-				// Also refresh chat list occasionally
-				if (Math.random() < 0.2) { // 20% chance to refresh chats on each poll
-					this.fetchChats();
+			if (this.isPolling) {
+				return;
+			}
+
+			this.isPolling = true;
+			this.pollingRetryCount = 0;
+			this.currentPollingInterval = this.basePollingInterval;
+
+			this.schedulePoll();
+		},
+
+		schedulePoll() {
+			if (!this.isPolling) return;
+
+			this.pollingInterval = setTimeout(async () => {
+				if (!this.isPolling) return;
+
+				try {
+					// Only poll if we don't have too many active requests
+					if (this.activeRequests.size < 2) {
+						if (this.selectedChatId) {
+							// Fetch messages and read status in parallel for better performance
+							await Promise.all([
+								this.getConversation(this.selectedChatId),
+								this.getLastReadMessageId(this.selectedChatId)
+							]);
+						}
+
+						// Also refresh chat list occasionally, but less frequently
+						if (Math.random() < 0.1) { // 10% chance to refresh chats
+							await this.getMyConversations();
+						}
+					}
+				} catch (error) {
+					console.error('Polling error:', error);
+				} finally {
+					// Schedule next poll
+					this.schedulePoll();
 				}
-			}, 5000);
+			}, this.currentPollingInterval);
 		},
 
 		stopPolling() {
+			this.isPolling = false;
+
 			if (this.pollingInterval) {
-				clearInterval(this.pollingInterval);
+				clearTimeout(this.pollingInterval);
+				this.pollingInterval = null;
 			}
+
+			// Cancel all active requests
+			this.cancelAllRequests();
+		},
+
+		cancelAllRequests() {
+			// If you're using a global axios instance, you might need to implement
+			// request cancellation differently. This is a placeholder for that logic.
+			console.log('Cancelling active requests:', this.activeRequests.size);
+			this.activeRequests.clear();
+		},
+
+		// Add this method to handle component cleanup
+		cleanup() {
+			this.stopPolling();
+			this.cancelAllRequests();
+
+			// Clean up blob URLs to prevent memory leaks
+			Object.values(this.imageCache).forEach(blobUrl => {
+				URL.revokeObjectURL(blobUrl);
+			});
+
+			this.imageCache = {};
+			this.chatImageUrls = {};
 		}
 	}
 }
@@ -658,14 +902,5 @@ export default {
 
 <style scoped>
 @import url('../assets/main.css');
-
-/* Component-specific overrides if needed */
-.chat-container {
-	height: 100vh;
-}
-
-.chat-messages {
-	height: calc(100vh - 140px);
-	overflow-y: auto;
-}
+@import "ChatsView.css";
 </style>

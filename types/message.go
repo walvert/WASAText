@@ -12,7 +12,6 @@ type FirstMessageRequest struct {
 }
 
 type MessageRequest struct {
-	ChatID    int    `json:"chatId"`
 	Type      string `json:"type"`
 	MediaURL  string `json:"mediaUrl"`
 	Text      string `json:"text"`

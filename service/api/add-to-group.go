@@ -61,10 +61,25 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		}
 	}
 
+	lastRead, err := rt.db.GetLastRead(chatId)
+	if err != nil {
+		rt.baseLogger.WithError(err).Warn("get last read failed")
+		http.Error(w, "get last read failed", http.StatusInternalServerError)
+		return
+	}
+
+	err = rt.db.SetLastRead(userId, chatId, lastRead)
+	if err != nil {
+		rt.baseLogger.WithError(err).Warn("set last read failed")
+		http.Error(w, "set last read failed", http.StatusInternalServerError)
+		return
+	}
+
 	response := types.User{
 		ID:       userId,
 		Username: username.Username,
 	}
+
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
 		rt.baseLogger.WithError(err).Error("error encoding response")

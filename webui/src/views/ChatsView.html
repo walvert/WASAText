@@ -1,0 +1,436 @@
+<div class="container-fluid">
+	<div class="row">
+		<!-- Sidebar with conversation list -->
+		<div class="col-md-4 col-lg-3 chat-sidebar">
+			<div class="sidebar-sticky pt-3">
+				<!-- Welcome message -->
+				<div class="chat-welcome-section px-3 mb-3">
+					<h6 class="text-muted mb-0">Welcome @{{ currentUsername || 'User' }}</h6>
+				</div>
+
+				<!-- Header with title and action icons -->
+				<div class="d-flex justify-content-between align-items-center px-3 mb-3">
+					<h5 class="mb-0">Chats</h5>
+					<div class="d-flex chat-gap-2">
+						<button
+							class="btn btn-sm btn-outline-secondary p-1 chat-btn-icon"
+							@click="showNewChatModal = true"
+							title="New Chat"
+						>
+							<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+								<path
+									d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+							</svg>
+						</button>
+						<button
+							class="btn btn-sm btn-outline-secondary p-1 chat-btn-icon"
+							@click="showProfileModal = true"
+							title="Edit Profile"
+						>
+							<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+								<path
+									d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
+							</svg>
+						</button>
+						<button
+							class="btn btn-sm btn-outline-danger p-1 chat-btn-icon"
+							@click="logout"
+							title="Logout"
+						>
+							<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+								<path fill-rule="evenodd"
+									  d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
+								<path fill-rule="evenodd"
+									  d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
+							</svg>
+						</button>
+					</div>
+				</div>
+
+				<LoadingSpinner v-if="loading" class="d-flex justify-content-center my-5"/>
+				<ErrorMsg v-if="error" :message="error" class="mx-3"/>
+
+				<!-- Modern chat list -->
+				<div v-if="!loading && !error" class="chat-list">
+					<div
+						v-for="chat in chats"
+						:key="chat.id"
+						class="chat-item"
+						:class="{ active: selectedChatId === chat.id }"
+						@click="selectChat(chat.id)"
+					>
+						<div class="chat-avatar">
+							<div class="avatar-circle" v-if="!chat.image">
+								<span class="avatar-text">{{ getChatInitials(chat) }}</span>
+							</div>
+							<img
+								v-else
+								:src="chatImageUrls[chat.id]"
+								:alt="getChatName(chat)"
+								class="avatar-image"
+								:data-chat-id="chat.id"
+								@error="handleImageError"
+							>
+						</div>
+						<div class="chat-info">
+							<div class="chat-header">
+								<h6 class="chat-name">{{ getChatName(chat) }}</h6>
+								<span class="chat-time">{{ formatTime(chat.lastMsgTime) }}</span>
+							</div>
+							<div class="chat-preview">
+								<p class="last-message">{{ getLastMessagePreview(chat) }}</p>
+								<div class="message-type-indicator">
+									<span v-if="chat.lastMsgType === 'text'" class="message-type-icon">💬</span>
+									<span v-else-if="chat.lastMsgType === 'image'" class="message-type-icon">📷</span>
+									<span v-else class="message-type-icon">📎</span>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<div v-if="chats.length === 0" class="chat-empty-state">
+						<div class="chat-empty-icon">
+							<svg width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
+								<path
+									d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"/>
+							</svg>
+						</div>
+						<h6 class="text-muted">No conversations yet</h6>
+						<p class="text-muted small">Start chatting by creating a new conversation</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Main conversation area -->
+		<main class="col-md-8 col-lg-9 ms-sm-auto px-md-4">
+			<div v-if="!selectedChatId" class="d-flex justify-content-center align-items-center h-100">
+				<div class="text-center text-muted">
+					<div class="mb-3">
+						<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+							 stroke-width="1.5">
+							<path
+								d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+						</svg>
+					</div>
+					<h5>Select a conversation to start chatting</h5>
+					<p class="mb-4">Or create a new chat to get started</p>
+					<button class="btn btn-primary" @click="showNewChatModal = true">New Chat</button>
+				</div>
+			</div>
+
+			<div v-else class="chat-container h-100 d-flex flex-column">
+				<!-- Chat header -->
+				<div class="chat-header-bar p-3 border-bottom bg-light">
+					<div class="d-flex justify-content-between align-items-center">
+						<h5 class="mb-0">{{ selectedChat ? getChatName(selectedChat) : '' }}</h5>
+						<div v-if="selectedChat && selectedChat.isGroup" class="dropdown">
+							<button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+								<span class="feather">⋮</span>
+							</button>
+							<ul class="dropdown-menu dropdown-menu-end">
+								<li>
+									<button class="dropdown-item" @click="openSetGroupNameModal">Rename Group</button>
+								</li>
+								<li>
+									<button class="dropdown-item" @click="openAddToGroupModal">Add Member</button>
+								</li>
+								<li>
+									<hr class="dropdown-divider">
+								</li>
+								<li>
+									<button class="dropdown-item text-danger" @click="leaveGroup">Leave Group</button>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+
+				<!-- Messages list -->
+				<div class="messages-container flex-grow-1 overflow-auto p-3" ref="messagesContainer">
+					<LoadingSpinner v-if="loadingMessages" class="d-flex justify-content-center my-5"/>
+					<ErrorMsg v-if="messagesError" :message="messagesError"/>
+
+					<div v-if="!loadingMessages && !messagesError" class="messages-list">
+						<div
+							v-for="message in messages"
+							:key="message.id"
+							class="message-wrapper mb-3"
+							:class="{ 'message-sent': isCurrentUserMessage(message) }"
+						>
+							<div class="message-content">
+								<!-- Show sender name for group chats and incoming messages -->
+								<div
+									v-if="selectedChat?.isGroup && !isCurrentUserMessage(message)"
+									class="message-sender"
+								>
+									{{ message.username }}
+								</div>
+
+								<div class="message-bubble">
+									<div class="message-text">{{ message.text }}</div>
+									<div class="message-meta">
+										<span class="message-time">{{ formatMessageTime(message.createdAt) }}</span>
+										<span v-if="isCurrentUserMessage(message)" class="message-status">
+											<!-- Double checkmark for read messages -->
+											<svg
+												v-if="isMessageRead(message)"
+												class="message-status-read"
+												viewBox="0 0 18 12"
+												fill="none"
+												xmlns="http://www.w3.org/2000/svg"
+											>
+												<path
+													d="M1 6L4 9L10 3"
+													stroke="currentColor"
+													stroke-width="1.5"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												/>
+												<path
+													d="M7 6L10 9L16 3"
+													stroke="currentColor"
+													stroke-width="1.5"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												/>
+											</svg>
+
+											<!-- Single checkmark for sent but not read messages -->
+											<svg
+												v-else
+												class="message-status-sent"
+												viewBox="0 0 12 12"
+												fill="none"
+												xmlns="http://www.w3.org/2000/svg"
+											>
+												<path
+													d="M1 6L4 9L10 3"
+													stroke="currentColor"
+													stroke-width="1.5"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												/>
+											</svg>
+										</span>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<!-- Show loading indicator for pending message -->
+						<div v-if="sendingMessage" class="message-wrapper mb-3 message-sent">
+							<div class="message-content">
+								<div class="message-bubble message-pending">
+									<div class="message-text">{{ pendingMessage }}</div>
+									<div class="message-meta">
+										<span class="message-time">{{ formatMessageTime(new Date()) }}</span>
+										<span class="message-status">
+											<div class="spinner-border spinner-border-sm message-status-pending" role="status">
+												<span class="visually-hidden">Sending...</span>
+											</div>
+										</span>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div v-if="messages.length === 0" class="text-center p-4 text-muted">
+							<div class="mb-3">
+								<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+									 stroke-width="1.5">
+									<path
+										d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+								</svg>
+							</div>
+							<h6>No messages yet</h6>
+							<p class="text-muted small">Start the conversation by sending a message</p>
+						</div>
+					</div>
+				</div>
+
+				<!-- Message input -->
+				<div class="message-input-container p-3 border-top bg-light">
+					<form @submit.prevent="sendMessage">
+						<div class="input-group">
+							<input
+								type="text"
+								class="form-control message-input"
+								placeholder="Type a message..."
+								v-model="newMessage"
+								:disabled="sendingMessage"
+								@keypress.enter="sendMessage"
+							>
+							<button
+								class="btn btn-primary"
+								type="submit"
+								:disabled="sendingMessage || !newMessage.trim()"
+							>
+								<svg v-if="!sendingMessage" width="16" height="16" fill="currentColor"
+									 viewBox="0 0 16 16">
+									<path
+										d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576 6.636 10.07Zm6.787-8.201L1.591 6.602l4.339 2.76 7.494-7.493Z"/>
+								</svg>
+								<LoadingSpinner v-else style="width: 16px; height: 16px;"/>
+							</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</main>
+	</div>
+
+	<!-- New Chat Modal -->
+	<div class="modal fade chat-modal" tabindex="-1" id="newChatModal" v-if="showNewChatModal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">New Conversation</h5>
+					<button type="button" class="btn-close" @click="showNewChatModal = false"></button>
+				</div>
+				<div class="modal-body">
+					<div class="form-check mb-3">
+						<input class="form-check-input" type="radio" name="chatType" id="privateChat" value="private"
+							   v-model="newChatType">
+						<label class="form-check-label" for="privateChat">
+							Private Chat
+						</label>
+					</div>
+					<div class="form-check mb-3">
+						<input class="form-check-input" type="radio" name="chatType" id="groupChat" value="group"
+							   v-model="newChatType">
+						<label class="form-check-label" for="groupChat">
+							Group Chat
+						</label>
+					</div>
+
+					<div v-if="newChatType === 'private'" class="mb-3">
+						<label class="form-label">Username</label>
+						<input type="text" class="form-control" v-model="newChatUsername" placeholder="Enter username">
+					</div>
+
+					<div v-if="newChatType === 'group'" class="mb-3">
+						<label class="form-label">Group Name</label>
+						<input type="text" class="form-control" v-model="newChatName" placeholder="Enter group name">
+					</div>
+
+					<ErrorMsg v-if="newChatError" :message="newChatError"/>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" @click="showNewChatModal = false">Cancel</button>
+					<button
+						type="button"
+						class="btn btn-primary"
+						@click="createNewChat"
+						:disabled="newChatLoading"
+					>
+						<LoadingSpinner v-if="newChatLoading" class="me-2"/>
+						Create
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Profile Modal -->
+	<div class="modal fade chat-modal" tabindex="-1" id="profileModal" v-if="showProfileModal">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Edit Profile</h5>
+					<button type="button" class="btn-close" @click="showProfileModal = false"></button>
+				</div>
+				<div class="modal-body">
+					<div class="mb-3">
+						<label class="form-label">Username</label>
+						<input type="text" class="form-control" v-model="editUsername" placeholder="Enter new username">
+					</div>
+					<ErrorMsg v-if="profileError" :message="profileError"/>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" @click="showProfileModal = false">Cancel</button>
+					<button
+						type="button"
+						class="btn btn-primary"
+						@click="updateProfile"
+						:disabled="profileLoading"
+					>
+						<LoadingSpinner v-if="profileLoading" class="me-2"/>
+						Update
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Rename Group Modal -->
+	<div v-if="showSetGroupNameModal" class="vue-modal" @click.self="showSetGroupNameModal = false">
+		<div class="vue-modal-dialog">
+			<div class="vue-modal-header">
+				<h5 class="vue-modal-title">Rename Group</h5>
+				<button class="vue-modal-close" @click="showSetGroupNameModal = false">×</button>
+			</div>
+			<div class="vue-modal-body">
+				<div class="mb-3">
+					<label class="form-label">Group Name</label>
+					<input
+						type="text"
+						class="form-control"
+						v-model="editGroupName"
+						placeholder="Enter new group name"
+						@keyup.enter="setGroupName"
+						ref="groupNameInput"
+					>
+				</div>
+				<div v-if="setGroupNameError" class="error-msg">{{ setGroupNameError }}</div>
+			</div>
+			<div class="vue-modal-footer">
+				<button class="btn btn-secondary" @click="showSetGroupNameModal = false">Cancel</button>
+				<button
+					class="btn btn-primary"
+					@click="setGroupName"
+					:disabled="setGroupNameLoading || !editGroupName.trim()"
+				>
+					<div v-if="setGroupNameLoading" class="spinner-border"></div>
+					Rename
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Add Member Modal -->
+	<div v-if="showAddToGroupModal" class="vue-modal" @click.self="showAddToGroupModal = false">
+		<div class="vue-modal-dialog">
+			<div class="vue-modal-header">
+				<h5 class="vue-modal-title">Add Member to Group</h5>
+				<button class="vue-modal-close" @click="showAddToGroupModal = false">×</button>
+			</div>
+			<div class="vue-modal-body">
+				<div class="mb-3">
+					<label class="form-label">Username</label>
+					<input
+						type="text"
+						class="form-control"
+						v-model="newMemberUsername"
+						placeholder="Enter username to add"
+						@keyup.enter="addToGroup"
+						ref="memberUsernameInput"
+					>
+					<div class="form-text">Enter the username of the person you want to add to this group.</div>
+				</div>
+				<div v-if="addToGroupError" class="error-msg">{{ addToGroupError }}</div>
+			</div>
+			<div class="vue-modal-footer">
+				<button class="btn btn-secondary" @click="showAddToGroupModal = false">Cancel</button>
+				<button
+					class="btn btn-primary"
+					@click="addToGroup"
+					:disabled="addToGroupLoading || !newMemberUsername.trim()"
+				>
+					<div v-if="addToGroupLoading" class="spinner-border"></div>
+					Add Member
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+

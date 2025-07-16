@@ -66,7 +66,7 @@ type AppDatabase interface {
 	GetMessageText(messageID int) (string, error)
 	GetMessageType(messageID int) (string, error)
 	GetLastRead(chatID int) (int, error)
-	SetLastRead(userId int, chatId int) error
+	SetLastRead(userId int, chatId int, lastRead int) error
 	GetIdWithToken(token string) (int, error)
 	GetChatInfo(chatId int) (types.Chat, error)
 	GetUsernameByToken(token string) (string, error)

@@ -373,6 +373,50 @@ paths:
         "500":
           $ref: '#/components/responses/InternalServerError'
 
+  /uploads/{folder}/{filename}:
+    get:
+      summary: Get an uploaded image file
+      description: Serves a static image file from the uploads directory.
+        The file can be located in the `users`, `chats`, or `messages` folder.
+        The request requires an Authorization header.
+      tags:
+        - media
+      parameters:
+        - name: folder
+          in: path
+          required: true
+          description: The folder where the image is stored (users, chats, messages)
+          schema:
+            type: string
+            enum: [ user, chats, messages ]
+        - name: filename
+          in: path
+          required: true
+          description: The filename of the image to fetch (e.g. abc123.jpg)
+          schema:
+            type: string
+            example: "image.png"
+      responses:
+        '200':
+          description: The requested image file.
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
   /users/{userId}/chats/{chatId}/messages:
     parameters:
       - $ref: "#/components/parameters/UserID"

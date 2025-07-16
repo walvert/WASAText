@@ -92,14 +92,14 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 					http.Error(w, "Error adding private chat", http.StatusInternalServerError)
 				}
 
-				err = rt.db.SetLastRead(user1Id, chatId)
+				err = rt.db.SetLastRead(user1Id, chatId, 0)
 				if err != nil {
 					rt.baseLogger.WithError(err).Error("Internal Server Error: SetLastRead 1")
 					http.Error(w, "Error setting last read", http.StatusInternalServerError)
 					return
 				}
 
-				err = rt.db.SetLastRead(user2Id, chatId)
+				err = rt.db.SetLastRead(user2Id, chatId, 0)
 				if err != nil {
 					rt.baseLogger.WithError(err).Error("Internal Server Error: SetLastRead 2")
 					http.Error(w, "Error setting last read", http.StatusInternalServerError)
@@ -139,7 +139,7 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 				return
 			}
 
-			err = rt.db.SetLastRead(receiverID, chatId)
+			err = rt.db.SetLastRead(receiverID, chatId, 0)
 			if err != nil {
 				rt.baseLogger.WithError(err).Error("Internal Server Error: SetLastRead receivers")
 				http.Error(w, "Error setting last read", http.StatusInternalServerError)

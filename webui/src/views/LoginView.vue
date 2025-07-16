@@ -7,7 +7,7 @@
 				<h4>Login</h4>
 			</div>
 			<div class="card-body p-4">
-				<form @submit.prevent="handleLogin">
+				<form @submit.prevent="doLogin">
 					<div class="mb-3">
 						<label for="username" class="form-label">Username</label>
 						<input
@@ -53,7 +53,7 @@ export default {
 		}
 	},
 	methods: {
-		async handleLogin() {
+		async doLogin() {
 			// Reset error state
 			this.error = '';
 

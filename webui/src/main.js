@@ -14,3 +14,4 @@ app.component("ErrorMsg", ErrorMsg);
 app.component("LoadingSpinner", LoadingSpinner);
 app.use(router)
 app.mount('#app')
+
