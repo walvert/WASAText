@@ -3,12 +3,12 @@ package types
 import "time"
 
 type FirstMessageRequest struct {
-	Text      string `json:"text"`
-	Type      string `json:"type"`
-	MediaURL  string `json:"mediaUrl"`
-	ChatName  string `json:"chatName"`
-	Receivers []int  `json:"receivers"`
-	IsForward bool   `json:"isForward"`
+	Text      string   `json:"text"`
+	Type      string   `json:"type"`
+	MediaURL  string   `json:"mediaUrl"`
+	ChatName  string   `json:"chatName"`
+	Receivers []string `json:"receivers"`
+	IsForward bool     `json:"isForward"`
 }
 
 type MessageRequest struct {

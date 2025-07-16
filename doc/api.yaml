@@ -56,6 +56,23 @@ paths:
                     type: string
                     example: "12et43-35432-g53kg5"
   /users:
+    get:
+      tags:
+        - user
+      summary: Get the registered users
+      description: 'Returns a json array of the users in the app'
+      operationId: getUsers
+      responses:
+        "200":
+          description: Username updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
     put:
       tags:
         - user
@@ -78,6 +95,8 @@ paths:
                 $ref: "#/components/schemas/User"
         "400":
           $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFoundError'
         "500":
@@ -719,10 +738,12 @@ components:
           example: "Project X"
         receivers:
           type: array
-          description: List of user IDs to receive the message.
+          description: List of usernames to receive the message.
           items:
-            type: integer
-          example: [ 123, 456, 789 ]
+            type: string
+            minItems: 1
+            maxItems: 99
+          example: [ alice, bob, mark ]
         isForward:
           type: boolean
           description: Whether this message is forwarded from another chat.

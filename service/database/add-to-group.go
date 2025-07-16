@@ -17,7 +17,7 @@ func (db *appdbimpl) AddToGroup(chatID int, userID int) error {
 	}
 
 	if exists {
-		return AlreadyExists
+		return ErrAlreadyExists
 	}
 
 	err = db.c.QueryRow("SELECT is_group FROM chats WHERE id = ?", chatID).Scan(&isGroup)

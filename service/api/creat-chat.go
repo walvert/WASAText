@@ -56,7 +56,14 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 
 	if len(messageRequest.Receivers) == 1 {
 		user1Id := userId
-		user2Id := messageRequest.Receivers[0]
+		user2Id, err := rt.db.GetUserByUsername(messageRequest.Receivers[0])
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				rt.baseLogger.WithError(err).Error("User not found")
+				http.Error(w, "User not found", http.StatusNotFound)
+				return
+			}
+		}
 
 		if user2Id < user1Id {
 			user1Id, user2Id = user2Id, user1Id
@@ -90,6 +97,7 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 				if err != nil {
 					rt.baseLogger.WithError(err).Error("Internal Server Error: AddPrivateChat")
 					http.Error(w, "Error adding private chat", http.StatusInternalServerError)
+					return
 				}
 
 				err = rt.db.SetLastRead(user1Id, chatId, 0)
@@ -131,7 +139,20 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 			return
 		}
 
-		for _, receiverID := range messageRequest.Receivers {
+		for _, receiverUsername := range messageRequest.Receivers {
+			receiverID, err := rt.db.GetUserByUsername(receiverUsername)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					rt.baseLogger.WithError(err).Errorf("User not found: %s", receiverUsername)
+					http.Error(w, "User not found", http.StatusNotFound)
+					return
+				} else {
+					rt.baseLogger.WithError(err).Error("Internal Server Error: GetUsernameById")
+					http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+					return
+				}
+			}
+
 			err = rt.db.AddChatToUser(receiverID, chatId)
 			if err != nil {
 				rt.baseLogger.WithError(err).Error("Internal Server Error: AddGroupChatToUsers")
@@ -147,9 +168,6 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 			}
 		}
 	}
-
-	rt.baseLogger.Info("Sending first message from user ", userId)
-	rt.baseLogger.Info("Sending first message to chat ", chatId)
 
 	if messageRequest.Type == "text" {
 		_, err = rt.db.SendMessage(chatId, userId, username, messageRequest.Type, messageRequest.Text, messageRequest.MediaURL, messageRequest.IsForward, 0)
@@ -191,6 +209,7 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 		}
 	}
 
+	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(chatInfo)
 	if err != nil {
 		rt.baseLogger.WithError(err).Error("Error encoding chatInfo")

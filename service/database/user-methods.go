@@ -73,3 +73,27 @@ func (db *appdbimpl) GetImagePath(userId int) (string, error) {
 	}
 	return path, nil
 }
+
+func (db *appdbimpl) GetUsers(userId int) ([]types.User, error) {
+	var users []types.User
+	rows, err := db.c.Query("SELECT id, username FROM users WHERE id != ?", userId)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var user types.User
+		err := rows.Scan(&user.ID, &user.Username)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}

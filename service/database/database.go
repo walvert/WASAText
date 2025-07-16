@@ -71,6 +71,7 @@ type AppDatabase interface {
 	GetChatInfo(chatId int) (types.Chat, error)
 	GetUsernameByToken(token string) (string, error)
 	GetUsernameById(id int) (string, error)
+	GetUsers(userId int) ([]types.User, error)
 }
 
 type appdbimpl struct {

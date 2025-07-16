@@ -27,12 +27,8 @@ export default {
 			currentUsername: null,
 
 			// Modals
-			showNewChatModal: false,
 			newChatType: 'private',
 			newChatUsername: '',
-			newChatName: '',
-			newChatLoading: false,
-			newChatError: null,
 
 			// Rename Group Modal
 			showSetGroupNameModal: false,
@@ -66,6 +62,20 @@ export default {
 			// Request tracking
 			activeRequests: new Set(),
 			requestController: null,
+
+			// New Chat Modal - Enhanced
+			showNewChatModal: false, // Make sure this is initialized
+			newChatLoading: false,
+			newChatError: null,
+			newChatName: '', // For group chats
+			initialMessage: '', // Optional initial message
+
+			// User Selection
+			users: [],
+			filteredUsers: [],
+			selectedUsers: [],
+			loadingUsers: false,
+			userSearchQuery: '',
 
 		}
 	},
@@ -332,14 +342,85 @@ export default {
 			}
 		},
 
-		async createNewChat() {
-			if (this.newChatType === 'private' && !this.newChatUsername.trim()) {
-				this.newChatError = 'Please enter a username';
+		async getUsers() {
+			try {
+				this.loadingUsers = true;
+				this.newChatError = null;
+
+				const response = await this.$axios.get('/users');
+				this.users = response.data;
+				this.filteredUsers = response.data;
+
+				console.log('Users fetched successfully:', this.users);
+
+			} catch (err) {
+				console.error('Failed to fetch users', err);
+				this.newChatError = 'Failed to load users. Please try again.';
+			} finally {
+				this.loadingUsers = false;
+			}
+		},
+
+		filterUsers() {
+			if (!this.userSearchQuery.trim()) {
+				this.filteredUsers = this.users;
 				return;
 			}
 
-			if (this.newChatType === 'group' && !this.newChatName.trim()) {
-				this.newChatError = 'Please enter a group name';
+			const query = this.userSearchQuery.toLowerCase();
+			this.filteredUsers = this.users.filter(user =>
+				user.username.toLowerCase().includes(query)
+			);
+		},
+
+		toggleUserSelection(user) {
+			const index = this.selectedUsers.findIndex(u => u.id === user.id);
+
+			if (index > -1) {
+				// User is already selected, remove them
+				this.selectedUsers.splice(index, 1);
+			} else {
+				// User is not selected, add them
+				this.selectedUsers.push(user);
+			}
+
+			// Clear group name if only one user is selected
+			if (this.selectedUsers.length <= 1) {
+				this.newChatName = '';
+			}
+		},
+
+		removeUserSelection(user) {
+			const index = this.selectedUsers.findIndex(u => u.id === user.id);
+			if (index > -1) {
+				this.selectedUsers.splice(index, 1);
+			}
+
+			// Clear group name if only one user is selected
+			if (this.selectedUsers.length <= 1) {
+				this.newChatName = '';
+			}
+		},
+
+		getUserInitials(username) {
+			if (!username) return '?';
+
+			const words = username.split(' ');
+			if (words.length >= 2) {
+				return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+			}
+			return username.charAt(0).toUpperCase();
+		},
+
+		async createNewChat() {
+			// Validation
+			if (this.selectedUsers.length === 0) {
+				this.newChatError = 'Please select at least one recipient';
+				return;
+			}
+
+			if (this.selectedUsers.length > 1 && !this.newChatName.trim()) {
+				this.newChatError = 'Group name is required for group chats';
 				return;
 			}
 
@@ -347,32 +428,37 @@ export default {
 				this.newChatLoading = true;
 				this.newChatError = null;
 
-				if (this.newChatType === 'private') {
-					// Create private chat
-					const response = await this.$axios.post('/chats', {
-						username: this.newChatUsername.trim()
-					});
+				// Prepare the request body
+				const requestBody = {
+					type: 'text',
+					receivers: this.selectedUsers.map(user => user.username)
+				};
 
-					// Reset form and close modal
-					this.newChatUsername = '';
-					this.showNewChatModal = false;
+				// Add initial message if provided
+				if (this.initialMessage.trim()) {
+					requestBody.text = this.initialMessage.trim();
+				}
 
-					// Refresh chats and select the new one
-					await this.getMyConversations();
-					this.selectChat(response.data.id);
+				// Add group name if multiple users selected
+				if (this.selectedUsers.length > 1) {
+					requestBody.chatName = this.newChatName.trim();
+				}
 
-				} else {
-					// Create group chat
-					const response = await this.$axios.post('/chats', {
-						name: this.newChatName.trim()
-					});
+				console.log('Creating chat with payload:', requestBody);
 
-					// Reset form and close modal
-					this.newChatName = '';
-					this.showNewChatModal = false;
+				// Create the chat
+				const response = await this.$axios.post('/chats', requestBody);
 
-					// Refresh chats and select the new one
-					await this.getMyConversations();
+				console.log('Chat created successfully:', response.data);
+
+				// Close modal and reset form
+				this.closeNewChatModal();
+
+				// Refresh chats and select the new one
+				await this.getMyConversations();
+
+				// Select the new chat if we have an ID from the response
+				if (response.data && response.data.id) {
 					this.selectChat(response.data.id);
 				}
 
@@ -382,6 +468,36 @@ export default {
 			} finally {
 				this.newChatLoading = false;
 			}
+		},
+
+		closeNewChatModal() {
+			this.showNewChatModal = false;
+
+			// Reset all form data
+			this.newChatName = '';
+			this.initialMessage = '';
+			this.selectedUsers = [];
+			this.users = [];
+			this.filteredUsers = [];
+			this.userSearchQuery = '';
+			this.newChatError = null;
+			this.newChatLoading = false;
+			this.loadingUsers = false;
+		},
+
+		// Update the existing method that opens the modal
+		openNewChatModal() {
+			console.log('Opening new chat modal...'); // Debug log
+			this.showNewChatModal = true;
+
+			// Automatically fetch users when modal opens
+			this.getUsers();
+		},
+
+		// For debugging - you can call this from browser console
+		testModal() {
+			console.log('Test modal called, showNewChatModal:', this.showNewChatModal);
+			this.showNewChatModal = !this.showNewChatModal;
 		},
 
 		async setGroupName() {

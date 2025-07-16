@@ -41,12 +41,21 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		}
 	}
 
+	lastRead, err := rt.db.GetLastRead(chatId)
+	if err != nil {
+		rt.baseLogger.WithError(err).Warn("get last read failed")
+		http.Error(w, "get last read failed", http.StatusInternalServerError)
+		return
+	}
+	rt.baseLogger.Infof("last read: %d", lastRead)
+
 	err = rt.db.AddToGroup(chatId, userId)
 	if err != nil {
-		if errors.Is(err, database.AlreadyExists) {
-			w.WriteHeader(http.StatusOK)
+		if errors.Is(err, database.ErrAlreadyExists) {
+			w.WriteHeader(http.StatusConflict)
 			err = json.NewEncoder(w).Encode(map[string]interface{}{
-				"message": "User is already a member.",
+				"error":   "Conflict",
+				"message": "User is already a member of this group.",
 			})
 			if err != nil {
 				rt.baseLogger.WithError(err).Warn("error encoding response")
@@ -58,14 +67,11 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 			rt.baseLogger.WithError(err).Warn("user not found")
 			http.Error(w, "Chat not found", http.StatusNotFound)
 			return
+		} else {
+			rt.baseLogger.WithError(err).Warn("error adding to group")
+			http.Error(w, "Error adding to group", http.StatusInternalServerError)
+			return
 		}
-	}
-
-	lastRead, err := rt.db.GetLastRead(chatId)
-	if err != nil {
-		rt.baseLogger.WithError(err).Warn("get last read failed")
-		http.Error(w, "get last read failed", http.StatusInternalServerError)
-		return
 	}
 
 	err = rt.db.SetLastRead(userId, chatId, lastRead)
@@ -74,13 +80,13 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		http.Error(w, "set last read failed", http.StatusInternalServerError)
 		return
 	}
+	rt.baseLogger.Infof("userId: %d chatId: %d lastRead: %d", userId, chatId, lastRead)
 
-	response := types.User{
+	w.WriteHeader(http.StatusCreated)
+	err = json.NewEncoder(w).Encode(types.User{
 		ID:       userId,
 		Username: username.Username,
-	}
-
-	err = json.NewEncoder(w).Encode(response)
+	})
 	if err != nil {
 		rt.baseLogger.WithError(err).Error("error encoding response")
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
