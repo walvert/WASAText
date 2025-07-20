@@ -77,6 +77,18 @@ export default {
 			loadingUsers: false,
 			userSearchQuery: '',
 
+			// Set Group Photo Modal
+			showSetGroupPhotoModal: false,
+			selectedPhotoFile: null,
+			photoPreviewUrl: null,
+			setGroupPhotoLoading: false,
+			setGroupPhotoError: null,
+
+			// User profile image
+			currentUserImageUrl: null,
+			selectedProfileImage: null,
+			profileImagePreviewUrl: null,
+
 		}
 	},
 
@@ -112,6 +124,8 @@ export default {
 		// Set default auth header
 		this.$axios.defaults.headers.common['Authorization'] = `${token}`;
 		console.log('Set Authorization header');
+
+		await this.loadCurrentUserImage();
 
 		// Fetch user chats
 		await this.getMyConversations();
@@ -485,7 +499,6 @@ export default {
 			this.loadingUsers = false;
 		},
 
-		// Update the existing method that opens the modal
 		openNewChatModal() {
 			console.log('Opening new chat modal...'); // Debug log
 			this.showNewChatModal = true;
@@ -494,11 +507,6 @@ export default {
 			this.getUsers();
 		},
 
-		// For debugging - you can call this from browser console
-		testModal() {
-			console.log('Test modal called, showNewChatModal:', this.showNewChatModal);
-			this.showNewChatModal = !this.showNewChatModal;
-		},
 
 		async setGroupName() {
 			if (!this.editGroupName.trim()) {
@@ -593,7 +601,6 @@ export default {
 			}
 		},
 
-		// Enhanced method to open rename modal with current group name pre-filled
 		openSetGroupNameModal() {
 			if (this.selectedChat) {
 				this.editGroupName = this.selectedChat.name || '';
@@ -610,7 +617,6 @@ export default {
 			}
 		},
 
-		// Enhanced method to open add member modal
 		openAddToGroupModal() {
 			this.newMemberUsername = '';
 			this.addToGroupError = null;
@@ -625,8 +631,8 @@ export default {
 		},
 
 		async updateProfile() {
-			if (!this.editUsername.trim()) {
-				this.profileError = 'Username is required';
+			if (!this.editUsername.trim() && !this.selectedProfileImage) {
+				this.profileError = 'Please enter a username or select a profile image to update';
 				return;
 			}
 
@@ -634,53 +640,97 @@ export default {
 				this.profileLoading = true;
 				this.profileError = null;
 
-				await this.$axios.put('/user', {
-					username: this.editUsername.trim(),
-				});
+				// Update username if provided
+				if (this.editUsername.trim()) {
+					console.log('Updating username to:', this.editUsername.trim());
 
-				// Update current user info
-				this.currentUsername = this.editUsername.trim();
+					const response = await this.$axios.put('/users', {
+						username: this.editUsername.trim(),
+					}, {
+						headers: {
+							'Content-Type': 'application/json'
+						}
+					});
 
-				// Update localStorage with new user data
-				localStorage.setItem('username', this.currentUsername);
+					console.log('Username update response:', response.data);
 
-				// If you store user data as JSON object, update it
-				const userData = {
-					id: this.currentUserId,
-					username: this.currentUsername,
-				};
-				localStorage.setItem('user', JSON.stringify(userData));
+					// Update current user info from server response
+					if (response.data && response.data.username) {
+						this.currentUsername = response.data.username;
 
-				// Close modal
+						// Update localStorage with new user data
+						localStorage.setItem('username', this.currentUsername);
+
+						const userData = {
+							id: response.data.id || this.currentUserId,
+							username: this.currentUsername,
+						};
+						localStorage.setItem('user', JSON.stringify(userData));
+					}
+				}
+
+				// Update profile image if provided
+				if (this.selectedProfileImage) {
+					console.log('Updating profile image...');
+
+					const formData = new FormData();
+					formData.append('image', this.selectedProfileImage);
+
+					const response = await this.$axios.put('/users/image', formData, {
+						headers: {
+							'Content-Type': 'multipart/form-data'
+						}
+					});
+
+					console.log('Image update response:', response.data);
+
+					// Clear old cached image URL
+					if (this.currentUserImageUrl) {
+						URL.revokeObjectURL(this.currentUserImageUrl);
+						this.currentUserImageUrl = null;
+					}
+
+					// If server returns the new image URL, use it to load the image
+					if (response.data && response.data.imageUrl) {
+						console.log('Loading new image from:', response.data.imageUrl);
+						this.currentUserImageUrl = await this.getChatImageUrl(response.data.imageUrl);
+					} else {
+						// Fallback: reload user image from server
+						await this.loadCurrentUserImage();
+					}
+				}
+
+				// Close modal and reset
 				this.showProfileModal = false;
+				this.clearProfileImageSelection();
+				this.editUsername = '';
 
 				// Show success message
 				alert('Profile updated successfully!');
 
 			} catch (err) {
 				console.error('Failed to update profile', err);
-				this.profileError = err.response?.data?.message || 'Failed to update profile. Please try again.';
+				console.error('Error response:', err.response);
+
+				// Check for authentication errors
+				if (err.response?.status === 401) {
+					console.log('Authentication error during profile update, logging out');
+					this.$emit('logout');
+					return;
+				}
+
+				if (err.response?.status === 413) {
+					this.profileError = 'File is too large. Please choose a smaller image.';
+				} else if (err.response?.status === 400) {
+					this.profileError = 'Invalid file format. Please choose a valid image.';
+				} else {
+					this.profileError = err.response?.data?.message || 'Failed to update profile. Please try again.';
+				}
 			} finally {
 				this.profileLoading = false;
 			}
 		},
 
-		async logout() {
-			if (confirm('Are you sure you want to logout?')) {
-				// Stop polling and clean up first
-				this.cleanup();
-
-				// Clear all localStorage data
-				localStorage.removeItem('token');
-				localStorage.removeItem('user');
-
-				// Clear axios auth header
-				delete this.$axios.defaults.headers.common['Authorization'];
-
-				// Emit logout event to App.vue
-				this.$emit('logout');
-			}
-		},
 
 		// Add method to handle visibility changes (pause polling when tab is hidden)
 		handleVisibilityChange() {
@@ -802,13 +852,216 @@ export default {
 					try {
 						const imageUrl = await this.getChatImageUrl(chat.image);
 						if (imageUrl) {
-							// In Vue 3, you
 							this.chatImageUrls[chat.id] = imageUrl;
 						}
 					} catch (error) {
 						console.error(`Failed to load image for chat ${chat.id}:`, error);
 					}
 				}
+			}
+		},
+
+		async loadCurrentUserImage() {
+			try {
+				console.log('Loading current user image...');
+
+				const response = await this.$axios.get('/users/image');
+				console.log('User image response:', response.data);
+
+				if (response.data && response.data.imageUrl) {
+					console.log('Loading image from URL:', response.data.imageUrl);
+					this.currentUserImageUrl = await this.getChatImageUrl(response.data.imageUrl);
+					console.log('User image loaded successfully');
+				} else {
+					console.log('No image URL in response, using initials');
+				}
+			} catch (error) {
+				console.error('Failed to load user image:', error);
+
+				// Check if it's a 404 (no image set) vs other errors
+				if (error.response?.status === 404) {
+					console.log('User has no profile image set');
+				} else if (error.response?.status === 401) {
+					console.log('Authentication error loading user image');
+					// Don't emit logout here as this is called during initialization
+				}
+
+				// Don't show error to user, just use initials
+				this.currentUserImageUrl = null;
+			}
+		},
+
+		// Handle user image load error
+		handleUserImageError() {
+			this.currentUserImageUrl = null;
+		},
+
+		// Handle profile image selection
+		handleProfileImageSelect(event) {
+			const file = event.target.files[0];
+
+			if (!file) {
+				this.clearProfileImageSelection();
+				return;
+			}
+
+			// Validate file type
+			if (!file.type.startsWith('image/')) {
+				this.profileError = 'Please select a valid image file';
+				this.clearProfileImageSelection();
+				return;
+			}
+
+			// Validate file size (5MB limit)
+			const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+			if (file.size > maxSize) {
+				this.profileError = 'File size must be less than 5MB';
+				this.clearProfileImageSelection();
+				return;
+			}
+
+			this.selectedProfileImage = file;
+			this.profileError = null;
+
+			// Create preview URL
+			if (this.profileImagePreviewUrl) {
+				URL.revokeObjectURL(this.profileImagePreviewUrl);
+			}
+			this.profileImagePreviewUrl = URL.createObjectURL(file);
+		},
+
+		clearProfileImageSelection() {
+			this.selectedProfileImage = null;
+
+			if (this.profileImagePreviewUrl) {
+				URL.revokeObjectURL(this.profileImagePreviewUrl);
+				this.profileImagePreviewUrl = null;
+			}
+
+			// Clear the file input
+			if (this.$refs.profileImageInput) {
+				this.$refs.profileImageInput.value = '';
+			}
+		},
+
+		openSetGroupPhotoModal() {
+			this.selectedPhotoFile = null;
+			this.photoPreviewUrl = null;
+			this.setGroupPhotoError = null;
+			this.showSetGroupPhotoModal = true;
+		},
+
+		handlePhotoFileSelect(event) {
+			const file = event.target.files[0];
+
+			if (!file) {
+				this.clearPhotoSelection();
+				return;
+			}
+
+			// Validate file type
+			if (!file.type.startsWith('image/')) {
+				this.setGroupPhotoError = 'Please select a valid image file';
+				this.clearPhotoSelection();
+				return;
+			}
+
+			// Validate file size (5MB limit)
+			const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+			if (file.size > maxSize) {
+				this.setGroupPhotoError = 'File size must be less than 5MB';
+				this.clearPhotoSelection();
+				return;
+			}
+
+			this.selectedPhotoFile = file;
+			this.setGroupPhotoError = null;
+
+			// Create preview URL
+			if (this.photoPreviewUrl) {
+				URL.revokeObjectURL(this.photoPreviewUrl);
+			}
+			this.photoPreviewUrl = URL.createObjectURL(file);
+		},
+
+		clearPhotoSelection() {
+			this.selectedPhotoFile = null;
+
+			if (this.photoPreviewUrl) {
+				URL.revokeObjectURL(this.photoPreviewUrl);
+				this.photoPreviewUrl = null;
+			}
+
+			// Clear the file input
+			if (this.$refs.photoFileInput) {
+				this.$refs.photoFileInput.value = '';
+			}
+		},
+
+		async setGroupPhoto() {
+			if (!this.selectedPhotoFile) {
+				this.setGroupPhotoError = 'Please select a photo';
+				return;
+			}
+
+			if (!this.selectedChatId) {
+				this.setGroupPhotoError = 'No group selected';
+				return;
+			}
+
+			try {
+				this.setGroupPhotoLoading = true;
+				this.setGroupPhotoError = null;
+
+				// Create FormData for multipart/form-data request
+				const formData = new FormData();
+				formData.append('image', this.selectedPhotoFile);
+
+				// Make the API request
+				const response = await this.$axios.put(`/chats/${this.selectedChatId}/image`, formData, {
+					headers: {
+						'Content-Type': 'multipart/form-data'
+					}
+				});
+
+				console.log('Group photo updated successfully:', response.data);
+
+				// Clear the old cached image URL for this chat
+				if (this.chatImageUrls[this.selectedChatId]) {
+					URL.revokeObjectURL(this.chatImageUrls[this.selectedChatId]);
+					delete this.chatImageUrls[this.selectedChatId];
+				}
+
+				// Clear image cache entries
+				const chat = this.chats.find(c => c.id === this.selectedChatId);
+				if (chat && chat.image && this.imageCache[chat.image]) {
+					URL.revokeObjectURL(this.imageCache[chat.image]);
+					delete this.imageCache[chat.image];
+				}
+
+				// Close modal and reset form
+				this.showSetGroupPhotoModal = false;
+				this.clearPhotoSelection();
+
+				// Refresh chats to get the updated image path from server
+				await this.getMyConversations();
+
+				// Show success message
+				alert('Group photo updated successfully!');
+
+			} catch (err) {
+				console.error('Failed to update group photo', err);
+
+				// Handle specific error cases
+				if (err.response?.status === 413) {
+					this.setGroupPhotoError = 'File is too large. Please choose a smaller image.';
+				} else if (err.response?.status === 400) {
+					this.setGroupPhotoError = 'Invalid file format. Please choose a valid image.';
+				} else {
+					this.setGroupPhotoError = err.response?.data?.message || 'Failed to update group photo. Please try again.';
+				}
+			} finally {
+				this.setGroupPhotoLoading = false;
 			}
 		},
 
@@ -836,40 +1089,6 @@ export default {
 		isCurrentUserMessage(message) {
 			// Compare using username since that's what you have in the message object
 			return message.username === this.currentUsername;
-		},
-
-		formatTime(timestamp) {
-			if (!timestamp) return '';
-
-			const date = new Date(timestamp);
-			const now = new Date();
-
-			// If today, show time only
-			if (date.toDateString() === now.toDateString()) {
-				return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-			}
-
-			// If yesterday
-			const yesterday = new Date(now);
-			yesterday.setDate(now.getDate() - 1);
-			if (date.toDateString() === yesterday.toDateString()) {
-				return 'Yesterday';
-			}
-
-			// If this week (within 7 days)
-			const weekAgo = new Date(now);
-			weekAgo.setDate(now.getDate() - 7);
-			if (date > weekAgo) {
-				return date.toLocaleDateString([], { weekday: 'short' });
-			}
-
-			// If this year, show month and day
-			if (date.getFullYear() === now.getFullYear()) {
-				return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-			}
-
-			// Otherwise show full date
-			return date.toLocaleDateString();
 		},
 
 		formatMessageTime(timestamp) {
@@ -999,7 +1218,23 @@ export default {
 			this.activeRequests.clear();
 		},
 
-		// Add this method to handle component cleanup
+		async logout() {
+			if (confirm('Are you sure you want to logout?')) {
+				// Stop polling and clean up first
+				this.cleanup();
+
+				// Clear all localStorage data
+				localStorage.removeItem('token');
+				localStorage.removeItem('user');
+
+				// Clear axios auth header
+				delete this.$axios.defaults.headers.common['Authorization'];
+
+				// Emit logout event to App.vue
+				this.$emit('logout');
+			}
+		},
+
 		cleanup() {
 			this.stopPolling();
 			this.cancelAllRequests();
@@ -1009,8 +1244,24 @@ export default {
 				URL.revokeObjectURL(blobUrl);
 			});
 
+			// Clean up photo preview URLs
+			if (this.photoPreviewUrl) {
+				URL.revokeObjectURL(this.photoPreviewUrl);
+			}
+
+			if (this.profileImagePreviewUrl) {
+				URL.revokeObjectURL(this.profileImagePreviewUrl);
+			}
+
+			if (this.currentUserImageUrl) {
+				URL.revokeObjectURL(this.currentUserImageUrl);
+			}
+
 			this.imageCache = {};
 			this.chatImageUrls = {};
+			this.photoPreviewUrl = null;
+			this.profileImagePreviewUrl = null;
+			this.currentUserImageUrl = null;
 		}
 	}
 }

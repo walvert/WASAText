@@ -103,6 +103,31 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 
   /users/image:
+    get:
+      tags:
+        - user
+      summary: Get user image url
+      description: Retrieve the url where the user profile picture is stored in the server
+      operationId: getMyPhoto
+      responses:
+        "200":
+          description: Image url fetched successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imageUrl:
+                    description: image url
+                    type: string
+                    format: uri
+                    example: https://cdn.example.com/users/12345/profile.jpg
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
     put:
       tags:
         - user
@@ -436,9 +461,8 @@ paths:
         "500":
           $ref: '#/components/responses/InternalServerError'
 
-  /users/{userId}/chats/{chatId}/messages:
+  /chats/{chatId}/messages:
     parameters:
-      - $ref: "#/components/parameters/UserID"
       - $ref: "#/components/parameters/ChatID"
     post:
       tags:

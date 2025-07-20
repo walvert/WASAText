@@ -56,6 +56,7 @@ type AppDatabase interface {
 	GetConversation(userId int, chatID int) ([]types.Message, error)
 	DeleteMessage(messageID int) error
 	SetMyPhoto(userId int, path string) error
+	GetMyPhoto(token string) (string, error)
 	CommentMessage(messageID int, userID int) error
 	DeleteComment(messageID int, userID int) error
 	GetSenderId(messageId int) (int, error)

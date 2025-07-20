@@ -3,14 +3,30 @@
 		<!-- Sidebar with conversation list -->
 		<div class="col-md-4 col-lg-3 chat-sidebar">
 			<div class="sidebar-sticky pt-3">
-				<!-- Welcome message -->
-				<div class="chat-welcome-section px-3 mb-3">
-					<h6 class="text-muted mb-0">Welcome {{ currentUsername || 'User' }}</h6>
-				</div>
-
-				<!-- Header with title and action icons -->
+				<!-- Updated Header with user image and action icons -->
 				<div class="d-flex justify-content-between align-items-center px-3 mb-3">
-					<h5 class="mb-0">Chats</h5>
+					<!-- User Profile Section -->
+					<div class="d-flex align-items-center">
+						<div class="user-profile-avatar me-3" @click="showProfileModal = true" style="cursor: pointer;" title="Edit Profile">
+							<div class="avatar-circle" v-if="!currentUserImageUrl" style="width: 40px; height: 40px;">
+								<span class="avatar-text" style="font-size: 16px;">{{ getUserInitials(currentUsername || 'User') }}</span>
+							</div>
+							<img
+								v-else
+								:src="currentUserImageUrl"
+								:alt="currentUsername || 'User'"
+								class="avatar-image"
+								style="width: 40px; height: 40px;"
+								@error="handleUserImageError"
+							>
+						</div>
+						<div>
+							<h5 class="mb-0">Chats</h5>
+							<small class="text-muted">{{ currentUsername || 'User' }}</small>
+						</div>
+					</div>
+
+					<!-- Action Icons -->
 					<div class="d-flex chat-gap-2">
 						<button
 							class="btn btn-sm btn-outline-secondary p-1 chat-btn-icon"
@@ -19,16 +35,6 @@
 						>
 							<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
 								<path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-							</svg>
-						</button>
-						<button
-							class="btn btn-sm btn-outline-secondary p-1 chat-btn-icon"
-							@click="showProfileModal = true"
-							title="Edit Profile"
-						>
-							<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-								<path
-									d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4Zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10Z"/>
 							</svg>
 						</button>
 						<button
@@ -74,7 +80,7 @@
 						<div class="chat-info">
 							<div class="chat-header">
 								<h6 class="chat-name">{{ getChatName(chat) }}</h6>
-								<span class="chat-time">{{ formatTime(chat.lastMsgTime) }}</span>
+								<span class="chat-time">{{ formatMessageTime(chat.lastMsgTime) }}</span>
 							</div>
 							<div class="chat-preview">
 								<p class="last-message">{{ getLastMessagePreview(chat) }}</p>
@@ -133,6 +139,9 @@
 								</li>
 								<li>
 									<button class="dropdown-item" @click="openAddToGroupModal">Add Member</button>
+								</li>
+								<li>
+									<button class="dropdown-item" @click="openSetGroupPhotoModal">Set Group Photo</button>
 								</li>
 								<li>
 									<hr class="dropdown-divider">
@@ -426,22 +435,76 @@
 		</div>
 	</div>
 
-	<!-- Profile Modal -->
-	<div class="modal fade chat-modal" tabindex="-1" id="profileModal" v-if="showProfileModal">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title">Edit Profile</h5>
-					<button type="button" class="btn-close" @click="showProfileModal = false"></button>
+	<!-- Fixed Profile Modal -->
+	<div v-if="showProfileModal" class="vue-modal" @click.self="showProfileModal = false">
+		<div class="vue-modal-dialog">
+			<div class="vue-modal-content">
+				<div class="vue-modal-header">
+					<h5 class="vue-modal-title">Edit Profile</h5>
+					<button type="button" class="vue-modal-close" @click="showProfileModal = false">×</button>
 				</div>
-				<div class="modal-body">
+				<div class="vue-modal-body">
+					<!-- Current Profile Image -->
+					<div v-if="currentUserImageUrl" class="mb-3 text-center">
+						<label class="form-label">Current Profile Picture</label>
+						<div class="current-photo-preview">
+							<img
+								:src="currentUserImageUrl"
+								:alt="currentUsername || 'User'"
+								class="current-group-photo"
+								style="max-width: 150px; max-height: 150px;"
+							>
+						</div>
+					</div>
+
+					<!-- Username Field -->
 					<div class="mb-3">
 						<label class="form-label">Username</label>
-						<input type="text" class="form-control" v-model="editUsername" placeholder="Enter new username">
+						<input
+							type="text"
+							class="form-control"
+							v-model="editUsername"
+							placeholder="Enter new username"
+							@keyup.enter="updateProfile"
+						>
 					</div>
+
+					<!-- Profile Image Upload -->
+					<div class="mb-3">
+						<label class="form-label">Profile Picture</label>
+						<input
+							type="file"
+							class="form-control"
+							ref="profileImageInput"
+							@change="handleProfileImageSelect"
+							accept="image/*"
+						>
+						<div class="form-text">Supported formats: JPG, PNG, GIF. Max size: 5MB</div>
+					</div>
+
+					<!-- Profile Image Preview -->
+					<div v-if="selectedProfileImage" class="mb-3 text-center">
+						<label class="form-label">Preview</label>
+						<div class="photo-preview">
+							<img
+								:src="profileImagePreviewUrl"
+								alt="Preview"
+								class="preview-group-photo"
+								style="max-width: 150px; max-height: 150px;"
+							>
+						</div>
+						<button
+							type="button"
+							class="btn btn-sm btn-outline-secondary mt-2"
+							@click="clearProfileImageSelection"
+						>
+							Remove Photo
+						</button>
+					</div>
+
 					<ErrorMsg v-if="profileError" :message="profileError"/>
 				</div>
-				<div class="modal-footer">
+				<div class="vue-modal-footer">
 					<button type="button" class="btn btn-secondary" @click="showProfileModal = false">Cancel</button>
 					<button
 						type="button"
@@ -449,8 +512,10 @@
 						@click="updateProfile"
 						:disabled="profileLoading"
 					>
-						<LoadingSpinner v-if="profileLoading" class="me-2"/>
-						Update
+						<div v-if="profileLoading" class="spinner-border spinner-border-sm me-2" role="status">
+							<span class="visually-hidden">Updating...</span>
+						</div>
+						Update Profile
 					</button>
 				</div>
 			</div>
@@ -527,5 +592,80 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Set Group Photo Modal -->
+	<div v-if="showSetGroupPhotoModal" class="vue-modal" @click.self="showSetGroupPhotoModal = false">
+		<div class="vue-modal-dialog">
+			<div class="vue-modal-content">
+				<div class="vue-modal-header">
+					<h5 class="vue-modal-title">Set Group Photo</h5>
+					<button class="vue-modal-close" @click="showSetGroupPhotoModal = false">×</button>
+				</div>
+				<div class="vue-modal-body">
+					<!-- Current Photo Preview -->
+					<div v-if="selectedChat && chatImageUrls[selectedChat.id]" class="mb-3 text-center">
+						<label class="form-label">Current Photo</label>
+						<div class="current-photo-preview">
+							<img
+								:src="chatImageUrls[selectedChat.id]"
+								:alt="getChatName(selectedChat)"
+								class="current-group-photo"
+							>
+						</div>
+					</div>
+
+					<!-- File Upload Section -->
+					<div class="mb-3">
+						<label class="form-label">Choose New Photo</label>
+						<input
+							type="file"
+							class="form-control"
+							ref="photoFileInput"
+							@change="handlePhotoFileSelect"
+							accept="image/*"
+						>
+						<div class="form-text">Supported formats: JPG, PNG, GIF. Max size: 5MB</div>
+					</div>
+
+					<!-- Photo Preview -->
+					<div v-if="selectedPhotoFile" class="mb-3 text-center">
+						<label class="form-label">Preview</label>
+						<div class="photo-preview">
+							<img
+								:src="photoPreviewUrl"
+								alt="Preview"
+								class="preview-group-photo"
+							>
+						</div>
+						<button
+							type="button"
+							class="btn btn-sm btn-outline-secondary mt-2"
+							@click="clearPhotoSelection"
+						>
+							Remove Photo
+						</button>
+					</div>
+
+					<!-- Error Message -->
+					<div v-if="setGroupPhotoError" class="error-msg">{{ setGroupPhotoError }}</div>
+				</div>
+				<div class="vue-modal-footer">
+					<button class="btn btn-secondary" @click="showSetGroupPhotoModal = false">Cancel</button>
+					<button
+						class="btn btn-primary"
+						@click="setGroupPhoto"
+						:disabled="setGroupPhotoLoading || !selectedPhotoFile"
+					>
+						<div v-if="setGroupPhotoLoading" class="spinner-border spinner-border-sm me-2" role="status">
+							<span class="visually-hidden">Uploading...</span>
+						</div>
+						{{ selectedPhotoFile ? 'Update Photo' : 'Select Photo' }}
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
 </div>
+
+
 

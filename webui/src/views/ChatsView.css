@@ -879,3 +879,149 @@ main.col-md-8.col-lg-9 {
 		max-height: 150px !important;
 	}
 }
+
+
+/* Set Group Photo */
+
+/* Group Photo Upload Modal Styles */
+.current-photo-preview,
+.photo-preview {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	border: 2px dashed #dee2e6;
+	border-radius: 0.5rem;
+	padding: 1rem;
+	background-color: #f8f9fa;
+}
+
+.current-group-photo,
+.preview-group-photo {
+	max-width: 200px;
+	max-height: 200px;
+	width: auto;
+	height: auto;
+	border-radius: 0.5rem;
+	object-fit: cover;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.preview-group-photo {
+	border: 2px solid #007bff;
+}
+
+/* File input styling */
+.form-control[type="file"] {
+	padding: 0.5rem;
+}
+
+.form-control[type="file"]:focus {
+	border-color: #86b7fe;
+	outline: 0;
+	box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Photo preview container */
+.photo-preview {
+	border-color: #007bff;
+	background-color: #f0f8ff;
+}
+
+.current-photo-preview {
+	border-color: #6c757d;
+}
+
+/* Remove photo button */
+.photo-preview .btn-outline-secondary {
+	font-size: 0.875rem;
+	padding: 0.25rem 0.5rem;
+}
+
+/* Responsive adjustments for photo upload */
+@media (max-width: 576px) {
+	.current-group-photo,
+	.preview-group-photo {
+		max-width: 150px;
+		max-height: 150px;
+	}
+
+	.current-photo-preview,
+	.photo-preview {
+		padding: 0.5rem;
+	}
+}
+
+/* Loading state for photo upload button */
+.vue-modal-footer .btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+/* Enhanced error message styling for photo upload */
+.error-msg {
+	color: #dc3545;
+	font-size: 0.875rem;
+	margin-top: 0.5rem;
+	padding: 0.75rem;
+	background-color: #f8d7da;
+	border: 1px solid #f5c6cb;
+	border-radius: 0.375rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.error-msg::before {
+	content: "⚠️";
+	font-size: 1rem;
+}
+
+/* Success message animation (if you want to add success feedback) */
+.success-msg {
+	color: #155724;
+	font-size: 0.875rem;
+	margin-top: 0.5rem;
+	padding: 0.75rem;
+	background-color: #d4edda;
+	border: 1px solid #c3e6cb;
+	border-radius: 0.375rem;
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	animation: slideIn 0.3s ease-out;
+}
+
+.success-msg::before {
+	content: "✅";
+	font-size: 1rem;
+}
+
+@keyframes slideIn {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Additional styles for user profile in header */
+.user-profile-avatar {
+	transition: transform 0.2s ease;
+}
+
+.user-profile-avatar:hover {
+	transform: scale(1.05);
+}
+
+.user-profile-avatar .avatar-circle,
+.user-profile-avatar .avatar-image {
+	border: 2px solid #dee2e6;
+}
+
+.user-profile-avatar:hover .avatar-circle,
+.user-profile-avatar:hover .avatar-image {
+	border-color: #007bff;
+}
