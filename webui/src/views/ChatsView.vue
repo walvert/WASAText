@@ -89,6 +89,20 @@ export default {
 			selectedProfileImage: null,
 			profileImagePreviewUrl: null,
 
+			// Image message support
+			showImageModal: false,
+			selectedMessageImage: null,
+			messageImagePreviewUrl: null,
+			tempSelectedImage: null,
+			tempImagePreviewUrl: null,
+			imageModalError: null,
+			messageImageUrls: {}, // Store blob URLs for message images
+
+			// Image viewer
+			showImageViewer: false,
+			imageViewerUrl: null,
+			imageViewerTitle: null,
+
 		}
 	},
 
@@ -211,6 +225,7 @@ export default {
 			}
 		},
 
+		// Enhanced getConversation method with image loading
 		async getConversation(chatId) {
 			const controller = new AbortController();
 			const requestId = 'getConversation-' + chatId + '-' + Date.now();
@@ -231,10 +246,13 @@ export default {
 					return new Date(a.createdAt) - new Date(b.createdAt);
 				});
 
+				// Load images for image messages
+				await this.loadMessageImages();
+
 				// Fetch last read message ID for this chat
 				await this.getLastReadMessageId(chatId);
 
-				// Scroll to bottom after messages are rendered - use setTimeout for better reliability
+				// Scroll to bottom after messages are rendered
 				setTimeout(() => {
 					this.scrollToBottom();
 				}, 100);
@@ -311,32 +329,100 @@ export default {
 			return messageId <= lastReadId;
 		},
 
+		// Updated sendMessage method with better preview handling
 		async sendMessage() {
-			if (!this.newMessage.trim() || !this.selectedChatId) return;
+			if ((!this.newMessage.trim() && !this.selectedMessageImage) || !this.selectedChatId) return;
 
 			try {
 				this.sendingMessage = true;
 				this.pendingMessage = this.newMessage.trim();
 
-				// Store the message text before clearing it
+				let requestData;
+				let requestConfig = {};
 				const messageText = this.newMessage.trim();
 				const messageTime = new Date().toISOString();
+				let messageType = 'text';
+				let previewText = messageText;
 
-				// Send message with correct format
-				await this.$axios.post(`/chats/${this.selectedChatId}/messages`, {
-					type: 'text',
-					text: messageText
+				if (this.selectedMessageImage) {
+					// For media messages, use FormData
+					const formData = new FormData();
+
+					// Add the image file (backend expects 'image' field)
+					formData.append('image', this.selectedMessageImage);
+
+					// Add message type
+					messageType = this.getFileType(this.selectedMessageImage);
+					formData.append('type', messageType);
+
+					// Add caption/text if present
+					if (messageText) {
+						formData.append('text', messageText);
+					}
+
+					// Add optional fields (if needed in future)
+					formData.append('isForward', 'false');
+					formData.append('replyTo', '0');
+
+					requestData = formData;
+
+					// Set preview text for image messages
+					if (messageText) {
+						previewText = messageText; // Use caption as preview
+					} else {
+						// Use emoji indicators based on message type
+						previewText = messageType === 'gif' ? '🎞️ GIF' : '📷 Photo';
+					}
+
+					// DON'T set Content-Type header - let browser set it automatically with boundary
+					requestConfig = {
+						// headers: { } // No Content-Type header!
+					};
+
+				} else {
+					// For text messages, use JSON
+					requestData = {
+						type: 'text',
+						text: messageText
+					};
+
+					requestConfig = {
+						headers: {
+							'Content-Type': 'application/json'
+						}
+					};
+				}
+
+				console.log('Sending message:', {
+					hasImage: !!this.selectedMessageImage,
+					messageText,
+					messageType,
+					previewText,
+					requestDataType: requestData.constructor.name
 				});
 
-				// Clear input first
+				// Send message
+				const response = await this.$axios.post(
+					`/chats/${this.selectedChatId}/messages`,
+					requestData,
+					requestConfig
+				);
+
+				console.log('Message sent successfully:', response.data);
+
+				// Clear input and selected image
 				this.newMessage = '';
 				this.pendingMessage = '';
 
-				// Then update the chat preview using the stored messageText
+				if (this.selectedMessageImage) {
+					this.clearMessageImageSelection();
+				}
+
+				// Update chat preview with correct text
 				this.updateChatPreview(this.selectedChatId, {
-					lastMsgText: messageText,
+					lastMsgText: previewText,
 					lastMsgTime: messageTime,
-					lastMsgType: 'text',
+					lastMsgType: messageType,
 					lastMsgUsername: this.currentUsername
 				});
 
@@ -345,7 +431,22 @@ export default {
 
 			} catch (err) {
 				console.error('Failed to send message', err);
-				alert('Failed to send message. Please try again.');
+				console.error('Error details:', {
+					status: err.response?.status,
+					statusText: err.response?.statusText,
+					data: err.response?.data
+				});
+
+				// More specific error messages
+				if (err.response?.status === 400) {
+					alert('Invalid message format. Please try again.');
+				} else if (err.response?.status === 413) {
+					alert('File is too large. Please choose a smaller image.');
+				} else if (err.response?.status === 415) {
+					alert('Unsupported file type. Please choose a valid image.');
+				} else {
+					alert('Failed to send message. Please try again.');
+				}
 			} finally {
 				this.sendingMessage = false;
 			}
@@ -355,15 +456,36 @@ export default {
 			const chatIndex = this.chats.findIndex(chat => chat.id === chatId);
 			if (chatIndex !== -1) {
 				// Update the chat with new message info
-				Object.assign(this.chats[chatIndex], updates);
+				const chat = this.chats[chatIndex];
+
+				// Ensure we're updating the correct fields
+				if (updates.lastMsgText !== undefined) {
+					chat.lastMsgText = updates.lastMsgText;
+				}
+				if (updates.lastMsgTime !== undefined) {
+					chat.lastMsgTime = updates.lastMsgTime;
+				}
+				if (updates.lastMsgType !== undefined) {
+					chat.lastMsgType = updates.lastMsgType;
+				}
+				if (updates.lastMsgUsername !== undefined) {
+					chat.lastMsgUsername = updates.lastMsgUsername;
+				}
+
+				console.log('Updated chat preview:', {
+					chatId,
+					chatName: this.getChatName(chat),
+					lastMsgText: chat.lastMsgText,
+					lastMsgType: chat.lastMsgType
+				});
 
 				// Move the chat to the top of the list
 				if (chatIndex > 0) {
-					const chat = this.chats.splice(chatIndex, 1)[0];
-					this.chats.unshift(chat);
+					const updatedChat = this.chats.splice(chatIndex, 1)[0];
+					this.chats.unshift(updatedChat);
 				}
 
-				// Force reactivity update
+				// Force reactivity update for Vue 3
 				this.$forceUpdate();
 			}
 		},
@@ -1105,6 +1227,216 @@ export default {
 			}
 		},
 
+		generateMediaFilename(file) {
+			const timestamp = Date.now();
+			const randomString = Math.random().toString(36).substring(2, 8);
+			const extension = file.name.split('.').pop().toLowerCase();
+			return `${timestamp}_${randomString}.${extension}`;
+		},
+
+		getFileType(file) {
+			const extension = file.name.split('.').pop().toLowerCase();
+			if (extension === 'gif') {
+				return 'gif';
+			}
+			return 'image';
+		},
+
+		// Format file size for display
+		formatFileSize(bytes) {
+			if (bytes === 0) return '0 Bytes';
+			const k = 1024;
+			const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+			const i = Math.floor(Math.log(bytes) / Math.log(k));
+			return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+		},
+
+		// Open image selection modal
+		openImageModal() {
+			this.showImageModal = true;
+			this.tempSelectedImage = null;
+			this.tempImagePreviewUrl = null;
+			this.imageModalError = null;
+		},
+
+		// Close image selection modal
+		closeImageModal() {
+			this.showImageModal = false;
+			this.clearTempImageSelection();
+		},
+
+		// Handle image file selection in modal
+		handleMessageImageSelect(event) {
+			const file = event.target.files[0];
+
+			if (!file) {
+				this.clearTempImageSelection();
+				return;
+			}
+
+			// Validate file type
+			const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+			if (!validTypes.includes(file.type)) {
+				this.imageModalError = 'Please select a valid image file (JPG, PNG, GIF, WebP)';
+				this.clearTempImageSelection();
+				return;
+			}
+
+			// Validate file size (10MB limit)
+			const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+			if (file.size > maxSize) {
+				this.imageModalError = 'File size must be less than 10MB';
+				this.clearTempImageSelection();
+				return;
+			}
+
+			this.tempSelectedImage = file;
+			this.imageModalError = null;
+
+			// Create preview URL
+			if (this.tempImagePreviewUrl) {
+				URL.revokeObjectURL(this.tempImagePreviewUrl);
+			}
+			this.tempImagePreviewUrl = URL.createObjectURL(file);
+		},
+
+		// Clear temporary image selection in modal
+		clearTempImageSelection() {
+			this.tempSelectedImage = null;
+
+			if (this.tempImagePreviewUrl) {
+				URL.revokeObjectURL(this.tempImagePreviewUrl);
+				this.tempImagePreviewUrl = null;
+			}
+
+			// Clear the file input
+			if (this.$refs.messageImageInput) {
+				this.$refs.messageImageInput.value = '';
+			}
+		},
+
+		// Select image for message
+		selectMessageImage() {
+			if (!this.tempSelectedImage) return;
+
+			this.selectedMessageImage = this.tempSelectedImage;
+
+			// Create preview URL for message input
+			if (this.messageImagePreviewUrl) {
+				URL.revokeObjectURL(this.messageImagePreviewUrl);
+			}
+			this.messageImagePreviewUrl = URL.createObjectURL(this.selectedMessageImage);
+
+			// Close modal
+			this.closeImageModal();
+		},
+
+		// Clear selected message image
+		clearMessageImageSelection() {
+			this.selectedMessageImage = null;
+
+			if (this.messageImagePreviewUrl) {
+				URL.revokeObjectURL(this.messageImagePreviewUrl);
+				this.messageImagePreviewUrl = null;
+			}
+		},
+
+		// Updated getMessageImageUrl method
+		async getMessageImageUrl(mediaUrl) {
+			if (!mediaUrl) return null;
+
+			// Check cache first using message ID or mediaUrl as key
+			const cacheKey = mediaUrl;
+			if (this.messageImageUrls[cacheKey]) {
+				return this.messageImageUrls[cacheKey];
+			}
+
+			try {
+				const baseURL = this.$axios.defaults.baseURL;
+				const imageUrl = `${baseURL}/uploads/messages/${mediaUrl}`;
+				const token = localStorage.getItem('token');
+
+				console.log('Fetching message image from:', imageUrl);
+
+				const response = await this.$axios.get(imageUrl, {
+					responseType: 'blob',
+					headers: {
+						'Authorization': token
+					}
+				});
+
+				const blobUrl = URL.createObjectURL(response.data);
+
+				// Vue 3: Direct assignment to reactive object
+				this.messageImageUrls[cacheKey] = blobUrl;
+
+				return blobUrl;
+
+			} catch (error) {
+				console.error('Failed to fetch message image:', error);
+				return null;
+			}
+		},
+
+		// Fixed loadMessageImages method for Vue 3
+		async loadMessageImages() {
+			const imageMessages = this.messages.filter(msg =>
+				(msg.type === 'image' || msg.type === 'gif') && msg.mediaUrl
+			);
+
+			for (const message of imageMessages) {
+				if (!this.messageImageUrls[message.id] && !message.imageLoading) {
+					// Set loading state - Vue 3 way
+					message.imageLoading = true;
+
+					try {
+						const imageUrl = await this.getMessageImageUrl(message.mediaUrl);
+						if (imageUrl) {
+							// Vue 3: Direct assignment works due to Proxy reactivity
+							this.messageImageUrls[message.id] = imageUrl;
+						} else {
+							message.imageError = true;
+						}
+					} catch (error) {
+						console.error(`Failed to load image for message ${message.id}:`, error);
+						message.imageError = true;
+					} finally {
+						message.imageLoading = false;
+					}
+				}
+			}
+		},
+
+		// Fixed handleMessageImageError method for Vue 3
+		handleMessageImageError(message) {
+			console.error('Image load error for message:', message.id);
+
+			// Vue 3: Direct assignment
+			message.imageError = true;
+
+			// Remove from cache
+			if (this.messageImageUrls[message.id]) {
+				URL.revokeObjectURL(this.messageImageUrls[message.id]);
+				delete this.messageImageUrls[message.id];
+			}
+		},
+
+
+		// Open image viewer
+		openImageViewer(imageUrl, title) {
+			this.imageViewerUrl = imageUrl;
+			this.imageViewerTitle = title;
+			this.showImageViewer = true;
+		},
+
+		// Close image viewer
+		closeImageViewer() {
+			this.showImageViewer = false;
+			this.imageViewerUrl = null;
+			this.imageViewerTitle = null;
+		},
+
+		// Updated getLastMessagePreview method to handle images better
 		getLastMessagePreview(chat) {
 			if (!chat.lastMsgText) {
 				return 'No messages yet';
@@ -1112,9 +1444,30 @@ export default {
 
 			let preview = chat.lastMsgText;
 
-			// For group chats, prepend the username
+			// Handle different message types
+			if (chat.lastMsgType === 'image') {
+				// If lastMsgText is a caption, show it; otherwise show image indicator
+				if (preview && !preview.includes('📷')) {
+					// It's a caption, use as is
+				} else {
+					preview = '📷 Photo';
+				}
+			} else if (chat.lastMsgType === 'gif') {
+				// If lastMsgText is a caption, show it; otherwise show GIF indicator
+				if (preview && !preview.includes('🎞️')) {
+					// It's a caption, use as is
+				} else {
+					preview = '🎞️ GIF';
+				}
+			}
+
+			// For group chats, prepend the username (but not for media indicators)
 			if (chat.isGroup && chat.lastMsgUsername) {
-				preview = `${chat.lastMsgUsername}: ${chat.lastMsgText}`;
+				if (preview === '📷 Photo' || preview === '🎞️ GIF') {
+					preview = `${chat.lastMsgUsername}: ${preview}`;
+				} else if (preview && preview.length > 0) {
+					preview = `${chat.lastMsgUsername}: ${preview}`;
+				}
 			}
 
 			// Truncate long messages
@@ -1284,6 +1637,11 @@ export default {
 				URL.revokeObjectURL(blobUrl);
 			});
 
+			// Clean up all blob URLs
+			Object.values(this.messageImageUrls).forEach(blobUrl => {
+				URL.revokeObjectURL(blobUrl);
+			});
+
 			// Clean up photo preview URLs
 			if (this.photoPreviewUrl) {
 				URL.revokeObjectURL(this.photoPreviewUrl);
@@ -1299,6 +1657,7 @@ export default {
 
 			this.imageCache = {};
 			this.chatImageUrls = {};
+			this.messageImageUrls = {};
 			this.photoPreviewUrl = null;
 			this.profileImagePreviewUrl = null;
 			this.currentUserImageUrl = null;

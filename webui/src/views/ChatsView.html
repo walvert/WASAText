@@ -166,6 +166,7 @@
 					<ErrorMsg v-if="messagesError" :message="messagesError"/>
 
 					<div v-if="!loadingMessages && !messagesError" class="messages-list">
+						<!-- Enhanced message display with image support -->
 						<div
 							v-for="message in messages"
 							:key="message.id"
@@ -182,7 +183,52 @@
 								</div>
 
 								<div class="message-bubble">
-									<div class="message-text">{{ message.text }}</div>
+									<!-- Image Message -->
+									<div v-if="message.type === 'image' || message.type === 'gif'">
+										<!-- Loading state -->
+										<div v-if="message.imageLoading" class="image-loading">
+											<div class="spinner-border spinner-border-sm" role="status">
+												<span class="visually-hidden">Loading image...</span>
+											</div>
+											<span class="ms-2">Loading image...</span>
+										</div>
+
+										<!-- Error state -->
+										<div v-else-if="message.imageError" class="image-error">
+											<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-2">
+												<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"/>
+											</svg>
+											Failed to load image
+										</div>
+
+										<!-- Actual image -->
+										<img
+											v-else-if="messageImageUrls[message.id]"
+											:src="messageImageUrls[message.id]"
+											:alt="message.mediaUrl || 'Image'"
+											class="message-image"
+											@click="openImageViewer(messageImageUrls[message.id], message.mediaUrl)"
+											@error="handleMessageImageError(message)"
+										>
+
+										<!-- Fallback if no image URL -->
+										<div v-else class="image-error">
+											<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-2">
+												<path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+												<path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+											</svg>
+											Image unavailable
+										</div>
+
+										<!-- Caption/text if present -->
+										<div v-if="message.text && message.text.trim()" class="message-text image-caption">
+											{{ message.text }}
+										</div>
+									</div>
+
+									<!-- Text Message (original) -->
+									<div v-else class="message-text">{{ message.text }}</div>
+
 									<div class="message-meta">
 										<span class="message-time">{{ formatMessageTime(message.createdAt) }}</span>
 										<span v-if="isCurrentUserMessage(message)" class="message-status">
@@ -210,7 +256,7 @@
 												/>
 											</svg>
 
-											<!-- Single checkmark for sent but not read messages -->
+																	<!-- Single checkmark for sent but not read messages -->
 											<svg
 												v-else
 												class="message-status-sent"
@@ -265,19 +311,56 @@
 				<!-- Message input -->
 				<div class="message-input-container p-3 border-top bg-light">
 					<form @submit.prevent="sendMessage">
+						<!-- Show selected image preview if any -->
+						<div v-if="selectedMessageImage" class="selected-image-preview mb-3">
+							<div class="image-preview-container">
+								<img
+									:src="messageImagePreviewUrl"
+									:alt="selectedMessageImage.name"
+									class="preview-message-image"
+								>
+								<button
+									type="button"
+									class="btn btn-sm btn-danger remove-image-btn"
+									@click="clearMessageImageSelection"
+									title="Remove image"
+								>
+									<svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+										<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+									</svg>
+								</button>
+							</div>
+							<div class="image-info">
+								<small class="text-muted">{{ selectedMessageImage.name }} ({{ formatFileSize(selectedMessageImage.size) }})</small>
+							</div>
+						</div>
+
 						<div class="input-group">
+							<!-- Add Media Button -->
+							<button
+								type="button"
+								class="btn btn-outline-secondary add-media-btn"
+								@click="openImageModal"
+								title="Add image or GIF"
+								:disabled="sendingMessage"
+							>
+								<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+									<path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+								</svg>
+							</button>
+
 							<input
 								type="text"
 								class="form-control message-input"
-								placeholder="Type a message..."
+								:placeholder="selectedMessageImage ? 'Add a caption...' : 'Type a message...'"
 								v-model="newMessage"
 								:disabled="sendingMessage"
 								@keypress.enter="sendMessage"
 							>
 							<button
-								class="btn btn-primary"
+								class="btn btn-primary send-btn"
 								type="submit"
-								:disabled="sendingMessage || !newMessage.trim()"
+								:disabled="sendingMessage || (!newMessage.trim() && !selectedMessageImage)"
 							>
 								<svg v-if="!sendingMessage" width="16" height="16" fill="currentColor"
 									 viewBox="0 0 16 16">
@@ -599,6 +682,62 @@
 		</div>
 	</div>
 
+	<!-- Image Selection Modal -->
+	<div v-if="showImageModal" class="vue-modal" @click.self="closeImageModal">
+		<div class="vue-modal-dialog">
+			<div class="vue-modal-content">
+				<div class="vue-modal-header">
+					<h5 class="vue-modal-title">Add Image or GIF</h5>
+					<button type="button" class="vue-modal-close" @click="closeImageModal">×</button>
+				</div>
+				<div class="vue-modal-body">
+					<!-- File Upload Section -->
+					<div class="mb-3">
+						<label class="form-label">Choose Image or GIF</label>
+						<input
+							type="file"
+							class="form-control"
+							ref="messageImageInput"
+							@change="handleMessageImageSelect"
+							accept="image/*,.gif"
+						>
+						<div class="form-text">Supported formats: JPG, PNG, GIF, WebP. Max size: 10MB</div>
+					</div>
+
+					<!-- Image Preview -->
+					<div v-if="tempSelectedImage" class="mb-3 text-center">
+						<label class="form-label">Preview</label>
+						<div class="photo-preview">
+							<img
+								:src="tempImagePreviewUrl"
+								alt="Preview"
+								class="preview-message-image"
+								style="max-width: 300px; max-height: 300px;"
+							>
+						</div>
+						<div class="mt-2">
+							<small class="text-muted">{{ tempSelectedImage.name }} ({{ formatFileSize(tempSelectedImage.size) }})</small>
+						</div>
+					</div>
+
+					<!-- Error Message -->
+					<div v-if="imageModalError" class="error-msg">{{ imageModalError }}</div>
+				</div>
+				<div class="vue-modal-footer">
+					<button type="button" class="btn btn-secondary" @click="closeImageModal">Cancel</button>
+					<button
+						type="button"
+						class="btn btn-primary"
+						@click="selectMessageImage"
+						:disabled="!tempSelectedImage"
+					>
+						Add to Message
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
 	<!-- Set Group Photo Modal -->
 	<div v-if="showSetGroupPhotoModal" class="vue-modal" @click.self="showSetGroupPhotoModal = false">
 		<div class="vue-modal-dialog">
@@ -672,6 +811,8 @@
 		</div>
 	</div>
 </div>
+
+
 
 
 

@@ -13,9 +13,30 @@ func (db *appdbimpl) SendMessage(chatID int, userID int, username string, msgTyp
 		return 0, err
 	}
 
+	// Determine what to store as last_msg_text
+	var lastMsgText string
+	if msgType == "text" {
+		lastMsgText = text
+	} else {
+		// For media messages, use caption if available, otherwise use type indicator
+		if text != "" {
+			lastMsgText = text // Use caption
+		} else {
+			// Use type-specific indicators
+			switch msgType {
+			case "image":
+				lastMsgText = "📷 Photo"
+			case "gif":
+				lastMsgText = "🎞️ GIF"
+			default:
+				lastMsgText = "📎 Media"
+			}
+		}
+	}
+
 	_, err = db.c.Exec(
 		`UPDATE chats SET last_msg_id = ?, last_msg_username = ?, last_msg_text = ?, last_msg_type = ?, last_msg_time = ? WHERE id = ?`,
-		messageId, username, text, msgType, timestamp, chatID)
+		messageId, username, lastMsgText, msgType, timestamp, chatID)
 	if err != nil {
 		return 0, err
 	}
