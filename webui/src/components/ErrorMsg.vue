@@ -6,7 +6,7 @@ export default {
 
 <template>
 	<div class="alert alert-danger" role="alert">
-		{{ msg }}
+		{{ msg || "error" }}
 	</div>
 </template>
 

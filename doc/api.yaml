@@ -644,6 +644,10 @@ components:
           type: string
           enum: ["text", "image"]
           example: "text"
+        unread:
+          description: unread messages count for the chat
+          type: integer
+          example: 3
 
     Message:
       title: Message

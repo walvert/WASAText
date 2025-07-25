@@ -1,6 +1,8 @@
 package database
 
 import (
+	"database/sql"
+	"errors"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 )
 
@@ -12,6 +14,9 @@ func (db *appdbimpl) GetMyConversations(userID int) ([]types.Chat, error) {
         FROM chats
         INNER JOIN user_chats ON id = chat_id
         WHERE user_id = ?`, userID)
+	if err != nil {
+		return nil, err
+	}
 
 	defer rows.Close()
 
@@ -29,7 +34,7 @@ func (db *appdbimpl) GetMyConversations(userID int) ([]types.Chat, error) {
 			SELECT user1_id, user2_id
 			FROM private_chats
 			WHERE chat_id = ?`, chat.ID).Scan(&user1, &user2)
-			if err != nil {
+			if err != nil && !errors.Is(err, sql.ErrNoRows) {
 				return nil, err
 			}
 
@@ -53,6 +58,31 @@ func (db *appdbimpl) GetMyConversations(userID int) ([]types.Chat, error) {
 				}
 			}
 		}
+
+		var lastRead int
+		var unreadCount int
+
+		err = db.c.QueryRow(`
+			SELECT message_id
+			FROM last_read
+			WHERE (user_id, chat_id) = (?,?)`, userID, chat.ID).Scan(&lastRead)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				lastRead = 0
+			} else {
+				return nil, err
+			}
+		}
+
+		err = db.c.QueryRow(`
+			SELECT COUNT(*)
+			FROM messages
+			WHERE chat_id = ? AND id > ?`, chat.ID, lastRead).Scan(&unreadCount)
+		if err != nil {
+			return nil, err
+		}
+
+		chat.Unread = unreadCount
 
 		chats = append(chats, chat)
 	}

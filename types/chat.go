@@ -12,6 +12,7 @@ type Chat struct {
 	LastMsgText     string    `db:"last_msg_text" json:"lastMsgText"`
 	LastMsgTime     time.Time `db:"last_msg_time" json:"lastMsgTime"`
 	LastMsgType     string    `db:"last_msg_type" json:"lastMsgType"`
+	Unread          int       `json:"unread"`
 }
 
 type ChatNameRequest struct {

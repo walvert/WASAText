@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 )
@@ -31,15 +32,13 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 
 	chats, err := rt.db.GetMyConversations(userId)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			rt.baseLogger.WithError(err).Error("Chats not found")
-			http.Error(w, "Chats not found", http.StatusNotFound)
-			return
-		} else {
-			rt.baseLogger.WithError(err).Error("Internal Server Error")
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
+		rt.baseLogger.WithError(err).Error("Internal Server Error")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if chats == nil {
+		chats = make([]types.Chat, 0)
 	}
 
 	err = json.NewEncoder(w).Encode(chats)

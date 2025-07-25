@@ -1025,3 +1025,23 @@ main.col-md-8.col-lg-9 {
 .user-profile-avatar:hover .avatar-image {
 	border-color: #007bff;
 }
+
+/* unread badge */
+.chat-preview-meta {
+	margin-top: 4px;
+}
+
+.unread-badge {
+	background-color: #007bff;
+	color: white;
+	border-radius: 50%;
+	min-width: 18px;
+	height: 18px;
+	font-size: 11px;
+	font-weight: 600;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 6px;
+	margin-left: 8px;
+}

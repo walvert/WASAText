@@ -56,8 +56,8 @@ export default {
 			isPolling: false,
 			pollingRetryCount: 0,
 			maxRetries: 3,
-			basePollingInterval: 5000, // 5 seconds
-			currentPollingInterval: 5000,
+			basePollingInterval: 2000, // 5 seconds
+			currentPollingInterval: 2000,
 
 			// Request tracking
 			activeRequests: new Set(),
@@ -169,6 +169,13 @@ export default {
 
 				console.log('Chats fetched successfully:', response.data);
 				this.chats = response.data;
+
+				// Sort chats by lastMsgTime (most recent first)
+				this.chats = response.data.sort((a, b) => {
+					const timeA = new Date(a.lastMsgTime || 0);
+					const timeB = new Date(b.lastMsgTime || 0);
+					return timeB - timeA; // Descending order (newest first)
+				});
 
 				await this.loadChatImages();
 
@@ -311,15 +318,27 @@ export default {
 				this.sendingMessage = true;
 				this.pendingMessage = this.newMessage.trim();
 
+				// Store the message text before clearing it
+				const messageText = this.newMessage.trim();
+				const messageTime = new Date().toISOString();
+
 				// Send message with correct format
 				await this.$axios.post(`/chats/${this.selectedChatId}/messages`, {
 					type: 'text',
-					text: this.newMessage.trim()
+					text: messageText
 				});
 
-				// Clear input
+				// Clear input first
 				this.newMessage = '';
 				this.pendingMessage = '';
+
+				// Then update the chat preview using the stored messageText
+				this.updateChatPreview(this.selectedChatId, {
+					lastMsgText: messageText,
+					lastMsgTime: messageTime,
+					lastMsgType: 'text',
+					lastMsgUsername: this.currentUsername
+				});
 
 				// Refresh messages and scroll to bottom
 				await this.getConversation(this.selectedChatId);
@@ -329,6 +348,23 @@ export default {
 				alert('Failed to send message. Please try again.');
 			} finally {
 				this.sendingMessage = false;
+			}
+		},
+
+		updateChatPreview(chatId, updates) {
+			const chatIndex = this.chats.findIndex(chat => chat.id === chatId);
+			if (chatIndex !== -1) {
+				// Update the chat with new message info
+				Object.assign(this.chats[chatIndex], updates);
+
+				// Move the chat to the top of the list
+				if (chatIndex > 0) {
+					const chat = this.chats.splice(chatIndex, 1)[0];
+					this.chats.unshift(chat);
+				}
+
+				// Force reactivity update
+				this.$forceUpdate();
 			}
 		},
 
@@ -658,9 +694,6 @@ export default {
 					if (response.data && response.data.username) {
 						this.currentUsername = response.data.username;
 
-						// Update localStorage with new user data
-						localStorage.setItem('username', this.currentUsername);
-
 						const userData = {
 							id: response.data.id || this.currentUserId,
 							username: this.currentUsername,
@@ -758,6 +791,13 @@ export default {
 		},
 
 		selectChat(chatId) {
+			// Clear unread count immediately for better UX
+			const chatIndex = this.chats.findIndex(chat => chat.id === chatId);
+			if (chatIndex !== -1 && this.chats[chatIndex].unread > 0) {
+				this.chats[chatIndex].unread = 0;
+				this.$forceUpdate(); // Force reactivity update
+			}
+
 			this.selectedChatId = chatId;
 			this.lastReadMessageId = null; // Reset read status when switching chats
 			this.getConversation(chatId);
@@ -801,7 +841,7 @@ export default {
 
 			try {
 				// Get the base URL from your axios configuration
-				const baseURL = this.$axios.defaults.baseURL || 'http://localhost:3000';
+				const baseURL = this.$axios.defaults.baseURL;
 
 				// The imagePath should be something like "uploads/chats/image.jpg"
 				// We need to construct the URL as: /uploads/chats/image.jpg
