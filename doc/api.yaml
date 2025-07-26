@@ -211,18 +211,46 @@ paths:
         - chats
       summary: Create new Chat
       description: |
-        Send a new message in a conversation. If it's the first one,
-        a new conversation will be created
+        Create a new conversation with an optional initial message.
+        Supports both text messages (JSON) and media messages (multipart/form-data).
+        If it's the first message between users, a new conversation will be created.
       operationId: createChat
       requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/FirstMessageRequest"
-        required: true
+            examples:
+              textMessage:
+                summary: Text message example
+                value:
+                  text: "Hello, team!"
+                  type: "text"
+                  chatName: "Project X"
+                  receivers: [ "alice", "bob", "mark" ]
+                  isForward: false
+              noInitialMessage:
+                summary: Create chat without initial message
+                value:
+                  chatName: "Project X"
+                  receivers: [ "alice", "bob" ]
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/FirstMessageFormData"
+            examples:
+              imageMessage:
+                summary: Image message example
+                value:
+                  type: "image"
+                  text: "Check out this photo!"
+                  chatName: "Project X"
+                  receivers: '["alice", "bob", "mark"]'
+                  isForward: "false"
+                  image: "(binary image data)"
       responses:
         '201':
-          description: New chat created
+          description: New chat created successfully
           content:
             application/json:
               schema:
@@ -476,7 +504,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Message"
+              $ref: "#/components/schemas/MessageRequest"
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/MessageFormData"
         required: true
       responses:
         '201':
@@ -485,10 +516,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Message'
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
 
-  /users/{userId}/chats/{chatId}/messages/{messageId}:
+  /chats/{chatId}/messages/{messageId}:
     parameters:
-      - $ref: "#/components/parameters/UserID"
       - $ref: "#/components/parameters/ChatID"
       - $ref: "#/components/parameters/MessageID"
     post:
@@ -518,9 +556,8 @@ paths:
         "404":
           $ref: "#/components/responses/Response"
 
-  /users/{userId}/chats/{chatId}/messages/{messageId}/comments:
+  /messages/{messageId}/comments:
     parameters:
-      - $ref: "#/components/parameters/UserID"
       - $ref: "#/components/parameters/ChatID"
       - $ref: "#/components/parameters/MessageID"
     get:
@@ -541,8 +578,12 @@ paths:
                   $ref: "#/components/schemas/Comment"
                 minItems: 1
                 maxItems: 9999
-        "204":
-          description: "No Comments"
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
     put:
       tags:
         - comments
@@ -560,16 +601,18 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Comment'
-        "204":
-          description: Comment already present
-
-  /users/{userId}/chats/{chatId}/messages/{messageId}/comments/{commentId}:
-    parameters:
-      - $ref: "#/components/parameters/UserID"
-      - $ref: "#/components/parameters/ChatID"
-      - $ref: "#/components/parameters/MessageID"
-      - $ref: "#/components/parameters/CommentID"
+                description: message comments
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+                minItems: 1
+                maxItems: 9999
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
     delete:
       tags:
         - comments
@@ -578,9 +621,22 @@ paths:
       description: "Remove user comment from a message. If no comment is present, nothing will change"
       responses:
         "200":
-          $ref: "#/components/responses/Response"
-        "204":
-          description: Comment not present
+          description: Comment deleted
+          content:
+            application/json:
+              schema:
+                description: message comments
+                type: array
+                items:
+                  $ref: "#/components/schemas/Comment"
+                minItems: 1
+                maxItems: 9999
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
 
 components:
   schemas:
@@ -744,42 +800,129 @@ components:
           minLength: 3
           maxLength: 16
 
+    MessageRequest:
+      type: object
+      properties:
+        text:
+          type: string
+          description: The text content of the message (optional if no initial message)
+          example: "Hello team!"
+        type:
+          type: string
+          description: The type of message
+          enum: [ "text", "image", "gif" ]
+          example: "text"
+        isForward:
+          type: boolean
+          description: Whether this message is forwarded from another chat
+          default: false
+          example: false
+        replyTo:
+          type: integer
+          description: message id of the message of which this one is replying
+          default: 0
+          example: 223
+
+    MessageFormData:
+      type: object
+      properties:
+        type:
+          type: string
+          description: The type of message (required for media uploads)
+          enum: [ "image", "gif" ]
+          example: "image"
+        text:
+          type: string
+          description: Optional caption/text content for the media
+          example: "Check out this photo!"
+        isForward:
+          type: string
+          description: Whether this message is forwarded (string representation of boolean)
+          enum: [ "true", "false" ]
+          default: "false"
+          example: "false"
+        replyTo:
+          type: integer
+          description: message id of the message of which this one is replying
+          default: 0
+          example: 223
+        image:
+          type: string
+          format: binary
+          description: The image or GIF file to upload (max 10MB)
+      required:
+        - type
+        - image
+      additionalProperties: false
+
     FirstMessageRequest:
       type: object
       properties:
         text:
           type: string
-          description: The text content of the message.
-          example: "Hello, team!"
+          description: The text content of the message (optional if no initial message)
+          example: "Hello World!"
         type:
           type: string
-          description: The type of message (e.g., text, image, video).
+          description: The type of message
+          enum: [ "text", "image", "gif" ]
           example: "text"
-        mediaUrl:
-          type: string
-          format: uri
-          description: URL to any attached media.
-          example: "https://cdn.example.com/media/abc123.jpg"
         chatName:
           type: string
-          description: Name of the chat to create if new.
+          description: Name of the chat to create (required for group chats with multiple receivers)
           example: "Project X"
         receivers:
           type: array
-          description: List of usernames to receive the message.
+          description: List of usernames to receive the message
           items:
             type: string
-            minItems: 1
-            maxItems: 99
-          example: [ alice, bob, mark ]
+          minItems: 1
+          maxItems: 99
+          example: [ "alice", "bob", "mark" ]
         isForward:
           type: boolean
-          description: Whether this message is forwarded from another chat.
+          description: Whether this message is forwarded from another chat
+          default: false
           example: false
       required:
-        - text
+        - receivers
+      additionalProperties: false
+
+    FirstMessageFormData:
+      type: object
+      properties:
+        type:
+          type: string
+          description: The type of message (required for media uploads)
+          enum: [ "image", "gif" ]
+          example: "image"
+        text:
+          type: string
+          description: Optional caption/text content for the media
+          example: "Check out this photo!"
+        chatName:
+          type: string
+          description: Name of the chat to create (required for group chats with multiple receivers)
+          example: "Project X"
+        receivers:
+          type: string
+          description: JSON string array of usernames to receive the message
+          example: '["alice", "bob", "mark"]'
+        isForward:
+          type: string
+          description: Whether this message is forwarded (string representation of boolean)
+          enum: [ "true", "false" ]
+          default: "false"
+          example: "false"
+        image:
+          type: string
+          format: binary
+          description: The image or GIF file to upload (max 10MB)
+      required:
         - type
         - receivers
+        - image
+      additionalProperties: false
 
     Error:
       type: object

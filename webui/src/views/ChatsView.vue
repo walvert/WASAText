@@ -103,6 +103,31 @@ export default {
 			imageViewerUrl: null,
 			imageViewerTitle: null,
 
+			// New scroll management properties
+			lastMessageCount: 0,
+			shouldScrollToBottom: false,
+			lastScrollTop: 0,
+			isUserAtBottom: true,
+			hasNewMessages: false,
+			newMessageCount: 0,
+			scrollThreshold: 100, // pixels from bottom to consider "at bottom"
+			preserveScrollPosition: false, // Flag to preserve scroll during polling
+			savedScrollPosition: 0, // Store scroll position during updates
+
+			// Flags for different scenarios
+			isFirstChatLoad: false,
+			shouldScrollAfterSend: false,
+
+			// New Chat Image Support
+			showNewChatImageModal: false,
+			selectedNewChatImage: null,
+			newChatImagePreviewUrl: null,
+			tempNewChatImage: null,
+			tempNewChatImagePreviewUrl: null,
+			newChatImageModalError: null,
+
+			showLikesDropdown: null,
+
 		}
 	},
 
@@ -148,6 +173,11 @@ export default {
 		this.startPolling();
 	},
 	beforeUnmount() {
+		// Remove scroll listener
+		const messagesContainer = this.$refs.messagesContainer;
+		if (messagesContainer) {
+			messagesContainer.removeEventListener('scroll', this.handleScroll);
+		}
 		// Enhanced cleanup
 		this.cleanup();
 
@@ -159,6 +189,22 @@ export default {
 			URL.revokeObjectURL(blobUrl);
 		});
 	},
+
+	// Enhanced scroll monitoring method
+	mounted() {
+		this.$nextTick(() => {
+			const messagesContainer = this.$refs.messagesContainer;
+			if (messagesContainer) {
+				messagesContainer.addEventListener('scroll', this.handleScroll);
+			}
+		});
+
+		// Close likes dropdown when clicking outside
+		document.addEventListener('click', () => {
+			this.showLikesDropdown = null;
+		});
+	},
+
 
 	methods: {
 		async getMyConversations() {
@@ -225,37 +271,91 @@ export default {
 			}
 		},
 
-		// Enhanced getConversation method with image loading
-		async getConversation(chatId) {
+		// Replace your getConversation method with this fixed version:
+		async getConversation(chatId, isFirstLoad = false) {
 			const controller = new AbortController();
 			const requestId = 'getConversation-' + chatId + '-' + Date.now();
 
 			try {
 				this.loadingMessages = true;
 				this.messagesError = null;
-
 				this.activeRequests.add(requestId);
+
+				// Store scroll position ONLY for polling (not first load)
+				let savedScrollTop = 0;
+				let savedScrollHeight = 0;
+				const messagesContainer = this.$refs.messagesContainer;
+
+				if (messagesContainer && !isFirstLoad && !this.shouldScrollAfterSend) {
+					savedScrollTop = messagesContainer.scrollTop;
+					savedScrollHeight = messagesContainer.scrollHeight;
+
+					// Update user position status
+					const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+					const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+					this.isUserAtBottom = distanceFromBottom <= this.scrollThreshold;
+				}
 
 				const response = await this.$axios.get(`/chats/${chatId}`, {
 					signal: controller.signal,
 					timeout: 10000
 				});
 
+				// Store previous message count to detect new messages
+				const previousMessageCount = this.messages.length;
+				const previousMessageIds = new Set(this.messages.map(m => m.id));
+
 				// Sort messages by timestamp (oldest first, newest at bottom)
-				this.messages = response.data.sort((a, b) => {
+				const newMessages = response.data.sort((a, b) => {
 					return new Date(a.createdAt) - new Date(b.createdAt);
 				});
+
+				// Detect new messages
+				const hasNewMessages = newMessages.some(msg => !previousMessageIds.has(msg.id));
+				const newMessageCount = newMessages.filter(msg => !previousMessageIds.has(msg.id)).length;
+
+				// Update messages
+				this.messages = newMessages;
 
 				// Load images for image messages
 				await this.loadMessageImages();
 
-				// Fetch last read message ID for this chat
+				// Load likes for all messages
+				await this.getComments();
+
+				// Fetch last read message ID
 				await this.getLastReadMessageId(chatId);
 
-				// Scroll to bottom after messages are rendered
-				setTimeout(() => {
-					this.scrollToBottom();
-				}, 100);
+				// Handle scrolling after DOM update
+				this.$nextTick(() => {
+					const container = this.$refs.messagesContainer;
+					if (!container) return;
+
+					if (isFirstLoad) {
+						// Case 1: First chat opening - scroll to bottom
+						console.log('First load - scrolling to bottom');
+						this.scrollToBottom();
+
+					} else if (this.shouldScrollAfterSend) {
+						// Case 4: New message sent - scroll to bottom
+						console.log('Message sent - scrolling to bottom');
+						this.scrollToBottom();
+						this.shouldScrollAfterSend = false;
+
+					} else {
+						// Case 2: Polling refresh - restore exact position
+						console.log('Polling refresh - restoring position');
+						const heightDifference = container.scrollHeight - savedScrollHeight;
+						container.scrollTop = savedScrollTop + heightDifference;
+
+						// Case 3: New messages received while user is mid-chat
+						if (hasNewMessages && !this.isUserAtBottom) {
+							console.log('New messages detected, showing indicator');
+							this.hasNewMessages = true;
+							this.newMessageCount += newMessageCount;
+						}
+					}
+				});
 
 			} catch (err) {
 				if (err.name === 'AbortError' || err.code === 'ECONNABORTED') {
@@ -270,6 +370,77 @@ export default {
 				this.activeRequests.delete(requestId);
 			}
 		},
+
+		async getComments() {
+			for (const message of this.messages) {
+				if (!message.likes) {
+					try {
+						const response = await this.$axios.get(`/messages/${message.id}/comments`);
+						message.likes = response.data || [];
+					} catch (error) {
+						console.error(`Failed to load likes for message ${message.id}:`, error);
+						message.likes = [];
+					}
+				}
+			}
+		},
+
+		async commentMessage(message) {
+			try {
+				const response = await this.$axios.put(`/messages/${message.id}/comments`);
+				message.likes = response.data || [];
+				this.$forceUpdate();
+			} catch (error) {
+				console.error('Failed to add like:', error);
+			}
+		},
+
+		async deleteComment(message) {
+			try {
+				const response = await this.$axios.delete(`/messages/${message.id}/comments`);
+				message.likes = response.data || [];
+				this.$forceUpdate();
+			} catch (error) {
+				console.error('Failed to remove like:', error);
+			}
+		},
+
+		async toggleMessageLike(message) {
+			const isLiked = this.isMessageLikedByUser(message);
+
+			if (isLiked) {
+				await this.deleteComment(message);
+			} else {
+				await this.commentMessage(message);
+			}
+		},
+
+		isMessageLikedByUser(message) {
+			return message.likes && message.likes.includes(this.currentUsername);
+		},
+
+		toggleLikesDropdown(messageId) {
+			this.showLikesDropdown = this.showLikesDropdown === messageId ? null : messageId;
+		},
+
+		// Add this new method to track user scroll position
+		handleScroll() {
+			const messagesContainer = this.$refs.messagesContainer;
+			if (!messagesContainer) return;
+
+			const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
+
+			// Update bottom detection
+			const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+			this.isUserAtBottom = distanceFromBottom <= this.scrollThreshold;
+
+			// Hide indicator if user scrolls to bottom
+			if (this.isUserAtBottom && this.hasNewMessages) {
+				this.hasNewMessages = false;
+				this.newMessageCount = 0;
+			}
+		},
+
 
 		async getLastReadMessageId(chatId) {
 			const controller = new AbortController();
@@ -337,6 +508,9 @@ export default {
 				this.sendingMessage = true;
 				this.pendingMessage = this.newMessage.trim();
 
+				// Set flag to scroll to bottom after sending
+				this.shouldScrollAfterSend = true;
+
 				let requestData;
 				let requestConfig = {};
 				const messageText = this.newMessage.trim();
@@ -345,42 +519,28 @@ export default {
 				let previewText = messageText;
 
 				if (this.selectedMessageImage) {
-					// For media messages, use FormData
 					const formData = new FormData();
-
-					// Add the image file (backend expects 'image' field)
 					formData.append('image', this.selectedMessageImage);
-
-					// Add message type
 					messageType = this.getFileType(this.selectedMessageImage);
 					formData.append('type', messageType);
 
-					// Add caption/text if present
 					if (messageText) {
 						formData.append('text', messageText);
 					}
 
-					// Add optional fields (if needed in future)
 					formData.append('isForward', 'false');
 					formData.append('replyTo', '0');
 
 					requestData = formData;
 
-					// Set preview text for image messages
 					if (messageText) {
-						previewText = messageText; // Use caption as preview
+						previewText = messageText;
 					} else {
-						// Use emoji indicators based on message type
 						previewText = messageType === 'gif' ? '🎞️ GIF' : '📷 Photo';
 					}
 
-					// DON'T set Content-Type header - let browser set it automatically with boundary
-					requestConfig = {
-						// headers: { } // No Content-Type header!
-					};
-
+					requestConfig = {};
 				} else {
-					// For text messages, use JSON
 					requestData = {
 						type: 'text',
 						text: messageText
@@ -393,24 +553,15 @@ export default {
 					};
 				}
 
-				console.log('Sending message:', {
-					hasImage: !!this.selectedMessageImage,
-					messageText,
-					messageType,
-					previewText,
-					requestDataType: requestData.constructor.name
-				});
+				console.log('Sending message - will scroll to bottom after');
 
-				// Send message
 				const response = await this.$axios.post(
 					`/chats/${this.selectedChatId}/messages`,
 					requestData,
 					requestConfig
 				);
 
-				console.log('Message sent successfully:', response.data);
-
-				// Clear input and selected image
+				// Clear input
 				this.newMessage = '';
 				this.pendingMessage = '';
 
@@ -418,7 +569,7 @@ export default {
 					this.clearMessageImageSelection();
 				}
 
-				// Update chat preview with correct text
+				// Update chat preview
 				this.updateChatPreview(this.selectedChatId, {
 					lastMsgText: previewText,
 					lastMsgTime: messageTime,
@@ -426,18 +577,13 @@ export default {
 					lastMsgUsername: this.currentUsername
 				});
 
-				// Refresh messages and scroll to bottom
-				await this.getConversation(this.selectedChatId);
+				// Refresh messages - shouldScrollAfterSend flag will make it scroll to bottom
+				await this.getConversation(this.selectedChatId, false);
 
 			} catch (err) {
 				console.error('Failed to send message', err);
-				console.error('Error details:', {
-					status: err.response?.status,
-					statusText: err.response?.statusText,
-					data: err.response?.data
-				});
+				this.shouldScrollAfterSend = false; // Reset flag on error
 
-				// More specific error messages
 				if (err.response?.status === 400) {
 					alert('Invalid message format. Please try again.');
 				} else if (err.response?.status === 413) {
@@ -450,6 +596,99 @@ export default {
 			} finally {
 				this.sendingMessage = false;
 			}
+		},
+
+		// New Chat Image Modal Methods
+		openNewChatImageModal() {
+			this.showNewChatImageModal = true;
+			this.tempNewChatImage = null;
+			this.tempNewChatImagePreviewUrl = null;
+			this.newChatImageModalError = null;
+		},
+
+		closeNewChatImageModal() {
+			this.showNewChatImageModal = false;
+			this.clearTempNewChatImageSelection();
+		},
+
+		handleNewChatImageSelect(event) {
+			const file = event.target.files[0];
+
+			if (!file) {
+				this.clearTempNewChatImageSelection();
+				return;
+			}
+
+			// Validate file type
+			const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+			if (!validTypes.includes(file.type)) {
+				this.newChatImageModalError = 'Please select a valid image file (JPG, PNG, GIF, WebP)';
+				this.clearTempNewChatImageSelection();
+				return;
+			}
+
+			// Validate file size (10MB limit)
+			const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+			if (file.size > maxSize) {
+				this.newChatImageModalError = 'File size must be less than 10MB';
+				this.clearTempNewChatImageSelection();
+				return;
+			}
+
+			this.tempNewChatImage = file;
+			this.newChatImageModalError = null;
+
+			// Create preview URL
+			if (this.tempNewChatImagePreviewUrl) {
+				URL.revokeObjectURL(this.tempNewChatImagePreviewUrl);
+			}
+			this.tempNewChatImagePreviewUrl = URL.createObjectURL(file);
+		},
+
+		clearTempNewChatImageSelection() {
+			this.tempNewChatImage = null;
+
+			if (this.tempNewChatImagePreviewUrl) {
+				URL.revokeObjectURL(this.tempNewChatImagePreviewUrl);
+				this.tempNewChatImagePreviewUrl = null;
+			}
+
+			// Clear the file input
+			if (this.$refs.newChatImageInput) {
+				this.$refs.newChatImageInput.value = '';
+			}
+		},
+
+		selectNewChatImage() {
+			if (!this.tempNewChatImage) return;
+
+			this.selectedNewChatImage = this.tempNewChatImage;
+
+			// Create preview URL for new chat
+			if (this.newChatImagePreviewUrl) {
+				URL.revokeObjectURL(this.newChatImagePreviewUrl);
+			}
+			this.newChatImagePreviewUrl = URL.createObjectURL(this.selectedNewChatImage);
+
+			// Close modal
+			this.closeNewChatImageModal();
+		},
+
+		clearNewChatImageSelection() {
+			this.selectedNewChatImage = null;
+
+			if (this.newChatImagePreviewUrl) {
+				URL.revokeObjectURL(this.newChatImagePreviewUrl);
+				this.newChatImagePreviewUrl = null;
+			}
+		},
+
+		getFileType(file) {
+			const extension = file.name.split('.').pop().toLowerCase();
+			if (extension === 'gif') {
+				return 'gif';
+			}
+			return 'image';
 		},
 
 		updateChatPreview(chatId, updates) {
@@ -490,28 +729,24 @@ export default {
 			}
 		},
 
+		// Enhanced scrollToBottom method
 		scrollToBottom() {
-			// Use nextTick to ensure DOM is updated
 			this.$nextTick(() => {
 				const messagesContainer = this.$refs.messagesContainer;
 				if (messagesContainer) {
-					// Force scroll to the very bottom
 					messagesContainer.scrollTop = messagesContainer.scrollHeight;
+					this.isUserAtBottom = true;
+					this.hasNewMessages = false;
+					this.newMessageCount = 0;
 				}
 			});
 		},
 
-		handleNewMessage() {
-			// Check if user is at or near the bottom of messages
-			const messagesContainer = this.$refs.messagesContainer;
-			if (messagesContainer) {
-				const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
-				const isAtBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px threshold
-
-				if (isAtBottom) {
-					this.scrollToBottom();
-				}
-			}
+		// Method to handle clicking the new message indicator
+		scrollToNewMessages() {
+			this.scrollToBottom();
+			this.hasNewMessages = false;
+			this.newMessageCount = 0;
 		},
 
 		async getUsers() {
@@ -600,26 +835,54 @@ export default {
 				this.newChatLoading = true;
 				this.newChatError = null;
 
-				// Prepare the request body
-				const requestBody = {
-					type: 'text',
-					receivers: this.selectedUsers.map(user => user.username)
-				};
+				let requestData;
+				let requestConfig = {};
 
-				// Add initial message if provided
-				if (this.initialMessage.trim()) {
-					requestBody.text = this.initialMessage.trim();
+				if (this.selectedNewChatImage) {
+					// Create FormData for file upload
+					const formData = new FormData();
+					formData.append('image', this.selectedNewChatImage);
+					formData.append('type', this.getFileType(this.selectedNewChatImage));
+					formData.append('receivers', JSON.stringify(this.selectedUsers.map(user => user.username)));
+
+					if (this.initialMessage.trim()) {
+						formData.append('text', this.initialMessage.trim());
+					}
+
+					if (this.selectedUsers.length > 1 && this.newChatName.trim()) {
+						formData.append('chatName', this.newChatName.trim());
+					}
+
+					formData.append('isForward', 'false');
+
+					requestData = formData;
+					requestConfig = {};
+				} else {
+					// JSON request for text message
+					requestData = {
+						type: 'text',
+						receivers: this.selectedUsers.map(user => user.username)
+					};
+
+					if (this.initialMessage.trim()) {
+						requestData.text = this.initialMessage.trim();
+					}
+
+					if (this.selectedUsers.length > 1) {
+						requestData.chatName = this.newChatName.trim();
+					}
+
+					requestConfig = {
+						headers: {
+							'Content-Type': 'application/json'
+						}
+					};
 				}
 
-				// Add group name if multiple users selected
-				if (this.selectedUsers.length > 1) {
-					requestBody.chatName = this.newChatName.trim();
-				}
-
-				console.log('Creating chat with payload:', requestBody);
+				console.log('Creating chat with media support...');
 
 				// Create the chat
-				const response = await this.$axios.post('/chats', requestBody);
+				const response = await this.$axios.post('/chats', requestData, requestConfig);
 
 				console.log('Chat created successfully:', response.data);
 
@@ -636,12 +899,20 @@ export default {
 
 			} catch (err) {
 				console.error('Failed to create chat', err);
-				this.newChatError = err.response?.data?.message || 'Failed to create conversation. Please try again.';
+
+				if (err.response?.status === 413) {
+					this.newChatError = 'File is too large. Please choose a smaller image.';
+				} else if (err.response?.status === 415) {
+					this.newChatError = 'Unsupported file type. Please choose a valid image.';
+				} else {
+					this.newChatError = err.response?.data?.message || 'Failed to create conversation. Please try again.';
+				}
 			} finally {
 				this.newChatLoading = false;
 			}
 		},
 
+		// Updated closeNewChatModal method
 		closeNewChatModal() {
 			this.showNewChatModal = false;
 
@@ -655,6 +926,9 @@ export default {
 			this.newChatError = null;
 			this.newChatLoading = false;
 			this.loadingUsers = false;
+
+			// Clear media selection
+			this.clearNewChatImageSelection();
 		},
 
 		openNewChatModal() {
@@ -912,21 +1186,28 @@ export default {
 			}
 		},
 
+		// Enhanced selectChat method
 		selectChat(chatId) {
-			// Clear unread count immediately for better UX
+			console.log('Selecting chat:', chatId);
+
+			// Clear unread count
 			const chatIndex = this.chats.findIndex(chat => chat.id === chatId);
 			if (chatIndex !== -1 && this.chats[chatIndex].unread > 0) {
 				this.chats[chatIndex].unread = 0;
-				this.$forceUpdate(); // Force reactivity update
+				this.$forceUpdate();
 			}
 
 			this.selectedChatId = chatId;
-			this.lastReadMessageId = null; // Reset read status when switching chats
-			this.getConversation(chatId);
-		},
+			this.lastReadMessageId = null;
 
-		isCurrentUser(senderId) {
-			return senderId === this.currentUserId;
+			// Reset indicators
+			this.hasNewMessages = false;
+			this.newMessageCount = 0;
+			this.isUserAtBottom = true;
+			this.shouldScrollAfterSend = false;
+
+			// Load chat for first time - will scroll to bottom
+			this.getConversation(chatId, true);
 		},
 
 		getChatName(chat) {
@@ -1232,14 +1513,6 @@ export default {
 			const randomString = Math.random().toString(36).substring(2, 8);
 			const extension = file.name.split('.').pop().toLowerCase();
 			return `${timestamp}_${randomString}.${extension}`;
-		},
-
-		getFileType(file) {
-			const extension = file.name.split('.').pop().toLowerCase();
-			if (extension === 'gif') {
-				return 'gif';
-			}
-			return 'image';
 		},
 
 		// Format file size for display
@@ -1561,6 +1834,7 @@ export default {
 			this.schedulePoll();
 		},
 
+		// Update your polling method to not force scroll
 		schedulePoll() {
 			if (!this.isPolling) return;
 
@@ -1568,25 +1842,24 @@ export default {
 				if (!this.isPolling) return;
 
 				try {
-					// Only poll if we don't have too many active requests
 					if (this.activeRequests.size < 2) {
 						if (this.selectedChatId) {
-							// Fetch messages and read status in parallel for better performance
+							console.log('Polling - preserving scroll position');
+
+							// Polling should NEVER be treated as first load
 							await Promise.all([
-								this.getConversation(this.selectedChatId),
+								this.getConversation(this.selectedChatId, false), // false = preserve position
 								this.getLastReadMessageId(this.selectedChatId)
 							]);
 						}
 
-						// Also refresh chat list occasionally, but less frequently
-						if (Math.random() < 0.1) { // 10% chance to refresh chats
+						if (Math.random() < 0.1) {
 							await this.getMyConversations();
 						}
 					}
 				} catch (error) {
 					console.error('Polling error:', error);
 				} finally {
-					// Schedule next poll
 					this.schedulePoll();
 				}
 			}, this.currentPollingInterval);
@@ -1637,12 +1910,10 @@ export default {
 				URL.revokeObjectURL(blobUrl);
 			});
 
-			// Clean up all blob URLs
 			Object.values(this.messageImageUrls).forEach(blobUrl => {
 				URL.revokeObjectURL(blobUrl);
 			});
 
-			// Clean up photo preview URLs
 			if (this.photoPreviewUrl) {
 				URL.revokeObjectURL(this.photoPreviewUrl);
 			}
@@ -1655,12 +1926,22 @@ export default {
 				URL.revokeObjectURL(this.currentUserImageUrl);
 			}
 
+			if (this.newChatImagePreviewUrl) {
+				URL.revokeObjectURL(this.newChatImagePreviewUrl);
+			}
+
+			if (this.tempNewChatImagePreviewUrl) {
+				URL.revokeObjectURL(this.tempNewChatImagePreviewUrl);
+			}
+
 			this.imageCache = {};
 			this.chatImageUrls = {};
 			this.messageImageUrls = {};
 			this.photoPreviewUrl = null;
 			this.profileImagePreviewUrl = null;
 			this.currentUserImageUrl = null;
+			this.newChatImagePreviewUrl = null;
+			this.tempNewChatImagePreviewUrl = null;
 		}
 	}
 }

@@ -109,6 +109,10 @@ main.col-md-8.col-lg-9 {
 	max-width: 100%;
 }
 
+.message-bubble.has-likes {
+	padding-bottom: 2rem; /* Increased space for likes */
+}
+
 .message-sent .message-bubble {
 	background-color: #007bff;
 	color: white;
@@ -411,6 +415,8 @@ main.col-md-8.col-lg-9 {
 	z-index: 100;
 	transition: all 0.3s ease;
 	animation: slideUp 0.3s ease-out;
+	pointer-events: auto; /* Ensure it's clickable */
+	user-select: none; /* Prevent text selection */
 }
 
 .new-message-indicator:hover {
@@ -425,6 +431,23 @@ main.col-md-8.col-lg-9 {
 	gap: 6px;
 	font-size: 0.85rem;
 	font-weight: 500;
+	white-space: nowrap;
+}
+
+.messages-container {
+	position: relative;
+}
+
+@keyframes pulse {
+	0% {
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	}
+	50% {
+		box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+	}
+	100% {
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	}
 }
 
 @keyframes slideUp {
@@ -435,6 +458,18 @@ main.col-md-8.col-lg-9 {
 	to {
 		opacity: 1;
 		transform: translateX(-50%) translateY(0);
+	}
+}
+
+@media (max-width: 768px) {
+	.new-message-indicator {
+		bottom: 15px;
+		padding: 6px 12px;
+	}
+
+	.new-message-content {
+		font-size: 0.8rem;
+		gap: 4px;
 	}
 }
 
@@ -1242,4 +1277,202 @@ main.col-md-8.col-lg-9 {
 		max-width: 250px;
 		max-height: 300px;
 	}
+}
+
+/* New Chat Modal Input Group Styling */
+.vue-modal-body .input-group {
+	display: flex !important;
+	align-items: stretch !important;
+	width: 100% !important;
+	gap: 0.5rem !important;
+}
+
+.vue-modal-body .input-group .btn {
+	flex-shrink: 0 !important;
+	border-radius: 50% !important;
+	width: 40px !important;
+	height: 40px !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	padding: 0 !important;
+	border: 1px solid #dee2e6 !important;
+}
+
+.vue-modal-body .input-group .btn:hover {
+	background-color: #f8f9fa !important;
+	border-color: #6c757d !important;
+}
+
+.vue-modal-body .input-group .form-control {
+	flex: 1 !important;
+	border-radius: 1.5rem !important;
+	padding: 0.5rem 1rem !important;
+	border: 1px solid #dee2e6 !important;
+}
+
+.vue-modal-body .input-group .form-control:focus {
+	box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+	border-color: #007bff !important;
+}
+
+/* Ensure SVG icons are properly sized in modal buttons */
+.vue-modal-body .input-group .btn svg {
+	width: 16px !important;
+	height: 16px !important;
+}
+
+/* Additional spacing for the input group within the modal */
+.vue-modal-body .mb-3:has(.input-group) {
+	margin-bottom: 1.5rem !important;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 576px) {
+	.vue-modal-body .input-group .btn {
+		width: 36px !important;
+		height: 36px !important;
+	}
+
+	.vue-modal-body .input-group .btn svg {
+		width: 14px !important;
+		height: 14px !important;
+	}
+}
+
+/* Message Like Button */
+.message-hover-actions {
+	position: absolute;
+	right: -40px;
+	top: 50%;
+	transform: translateY(-50%);
+	opacity: 0;
+	transition: opacity 0.2s ease;
+	z-index: 10;
+}
+
+.message-wrapper:hover .message-hover-actions {
+	opacity: 1;
+}
+
+.message-wrapper.message-sent .message-hover-actions {
+	left: -40px;
+	right: auto;
+}
+
+.like-btn {
+	background: rgba(255, 255, 255, 0.9);
+	border: 1px solid #dee2e6;
+	border-radius: 50%;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	color: #6c757d; /* Muted color by default */
+}
+
+.like-btn:hover {
+	background: white;
+	border-color: #007bff;
+	transform: scale(1.1);
+	color: #007bff;
+}
+
+.like-btn.liked {
+	background: #ff69b4;
+	border-color: #ff69b4;
+	color: white; /* Not muted when liked */
+}
+
+.like-btn.liked:hover {
+	background: #ff1493;
+	border-color: #ff1493;
+	color: white;
+}
+
+/* Message Like Count */
+.message-likes {
+	position: absolute;
+	bottom: 4px;
+	left: 4px; /* Moved closer to corner */
+	background: rgba(255, 255, 255, 0.95);
+	border: 1px solid #dee2e6;
+	border-radius: 12px;
+	padding: 3px 8px; /* Increased padding */
+	font-size: 0.75rem;
+	color: #6c757d;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	z-index: 5;
+	min-width: 32px; /* Ensure minimum width */
+	text-align: center;
+}
+
+.message-sent .message-likes {
+	left: 4px; /* Keep in bottom left for sent messages too */
+	right: auto; /* Remove right positioning */
+}
+
+.message-likes:hover {
+	background: white;
+	border-color: #007bff;
+	color: #007bff;
+}
+
+/* Likes Dropdown */
+.likes-dropdown {
+	position: absolute;
+	top: 100%; /* Changed from bottom: 100% */
+	left: 0;
+	margin-top: 4px; /* Changed from margin-bottom */
+	background: white;
+	border: 1px solid #dee2e6;
+	border-radius: 8px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	padding: 8px;
+	min-width: 140px; /* Increased width */
+	max-width: 200px; /* Set max width */
+	z-index: 100;
+}
+
+.message-sent .likes-dropdown {
+	left: auto;
+	right: 0;
+}
+
+.likes-dropdown::before {
+	content: '';
+	position: absolute;
+	bottom: 100%; /* Changed from top: 100% */
+	left: 12px;
+	border: 4px solid transparent;
+	border-bottom-color: white; /* Changed from border-top-color */
+}
+
+.message-sent .likes-dropdown::before {
+	left: auto;
+	right: 12px;
+}
+
+.likes-list {
+	max-height: 150px; /* Increased height */
+	overflow-y: auto;
+}
+
+.like-user {
+	padding: 6px 8px; /* Increased padding */
+	border-radius: 4px;
+	font-size: 0.8rem;
+	color: #495057;
+	white-space: nowrap; /* Prevent text wrapping */
+	overflow: hidden;
+	text-overflow: ellipsis; /* Handle long usernames */
+}
+
+.like-user:hover {
+	background: #f8f9fa;
 }

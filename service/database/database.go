@@ -73,6 +73,7 @@ type AppDatabase interface {
 	GetUsernameByToken(token string) (string, error)
 	GetUsernameById(id int) (string, error)
 	GetUsers(userId int) ([]types.User, error)
+	GetComments(messageId int) ([]string, error)
 }
 
 type appdbimpl struct {
@@ -137,8 +138,9 @@ func New(db *sql.DB) (AppDatabase, error) {
     				token TEXT NOT NULL
   				);
 				CREATE TABLE IF NOT EXISTS comments (
-    				message_id  INTEGER PRIMARY KEY NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
-    				user_id INTEGER NOT NULL
+    				message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    				user_id INTEGER NOT NULL,
+				    PRIMARY KEY (message_id, user_id)
   				);
 				CREATE TABLE IF NOT EXISTS last_read (
 					user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

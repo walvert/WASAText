@@ -173,7 +173,7 @@
 							class="message-wrapper mb-3"
 							:class="{ 'message-sent': isCurrentUserMessage(message) }"
 						>
-							<div class="message-content">
+							<div class="message-content" style="position: relative;">
 								<!-- Show sender name for group chats and incoming messages -->
 								<div
 									v-if="selectedChat?.isGroup && !isCurrentUserMessage(message)"
@@ -182,7 +182,7 @@
 									{{ message.username }}
 								</div>
 
-								<div class="message-bubble">
+								<div class="message-bubble" :class="{ 'has-likes': message.likes && message.likes.length > 0 }" style="position: relative;">
 									<!-- Image Message -->
 									<div v-if="message.type === 'image' || message.type === 'gif'">
 										<!-- Loading state -->
@@ -256,7 +256,7 @@
 												/>
 											</svg>
 
-																	<!-- Single checkmark for sent but not read messages -->
+											<!-- Single checkmark for sent but not read messages -->
 											<svg
 												v-else
 												class="message-status-sent"
@@ -274,6 +274,49 @@
 											</svg>
 										</span>
 									</div>
+
+									<!-- Like Count Display -->
+									<div
+										v-if="message.likes && message.likes.length > 0"
+										class="message-likes"
+										@click="toggleLikesDropdown(message.id)"
+										@click.stop
+									>
+										<svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+											<path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.011L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
+										</svg>
+										{{ message.likes.length }}
+
+										<!-- Likes Dropdown -->
+										<div
+											v-if="showLikesDropdown === message.id"
+											class="likes-dropdown"
+											@click.stop
+										>
+											<div class="likes-list">
+												<div
+													v-for="username in message.likes"
+													:key="username"
+													class="like-user"
+												>
+													{{ username }}
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+
+								<!-- Hover Like Button -->
+								<div class="message-hover-actions">
+									<button
+										class="like-btn"
+										:class="{ liked: isMessageLikedByUser(message) }"
+										@click="toggleMessageLike(message)"
+									>
+										<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+											<path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.011L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
+										</svg>
+									</button>
 								</div>
 							</div>
 						</div>
@@ -304,6 +347,20 @@
 							</div>
 							<h6>No messages yet</h6>
 							<p class="text-muted small">Start the conversation by sending a message</p>
+						</div>
+					</div>
+
+					<!-- New Message Indicator - Fixed positioning and visibility -->
+					<div
+						v-if="hasNewMessages && newMessageCount > 0"
+						class="new-message-indicator"
+						@click="scrollToNewMessages"
+					>
+						<div class="new-message-content">
+							<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+								<path d="M8 4a.5.5 0 0 1 .5.5v5.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 10.293V4.5A.5.5 0 0 1 8 4z"/>
+							</svg>
+							<span>{{ newMessageCount }} new message{{ newMessageCount > 1 ? 's' : '' }}</span>
 						</div>
 					</div>
 				</div>
@@ -456,19 +513,19 @@
 					<div v-if="selectedUsers.length > 0" class="mb-3">
 						<label class="form-label">Selected Recipients ({{ selectedUsers.length }})</label>
 						<div class="selected-users d-flex flex-wrap gap-2">
-						<span
-							v-for="user in selectedUsers"
-							:key="user.id"
-							class="badge bg-primary d-flex align-items-center gap-1"
-						>
-							{{ user.username }}
-							<button
-								type="button"
-								class="btn-close btn-close-white"
-								style="font-size: 0.7em;"
-								@click="removeUserSelection(user)"
-							></button>
-						</span>
+					<span
+						v-for="user in selectedUsers"
+						:key="user.id"
+						class="badge bg-primary d-flex align-items-center gap-1"
+					>
+						{{ user.username }}
+						<button
+							type="button"
+							class="btn-close btn-close-white"
+							style="font-size: 0.7em;"
+							@click="removeUserSelection(user)"
+						></button>
+					</span>
 						</div>
 					</div>
 
@@ -485,21 +542,53 @@
 						<div class="form-text">Required when creating a group chat with multiple recipients.</div>
 					</div>
 
+					<!-- Media Upload Section -->
+					<div v-if="selectedNewChatImage" class="mb-3">
+						<label class="form-label">Selected Media</label>
+						<div class="image-preview-container">
+							<img
+								:src="newChatImagePreviewUrl"
+								:alt="selectedNewChatImage.name"
+								class="preview-message-image"
+								style="max-width: 200px; max-height: 150px;"
+							>
+							<button
+								type="button"
+								class="btn btn-sm btn-danger remove-image-btn"
+								@click="clearNewChatImageSelection"
+								title="Remove media"
+							>
+								<svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+									<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+								</svg>
+							</button>
+						</div>
+						<div class="image-info mt-2">
+							<small class="text-muted">{{ selectedNewChatImage.name }} ({{ formatFileSize(selectedNewChatImage.size) }})</small>
+						</div>
+					</div>
+
 					<!-- Initial Message Section -->
 					<div class="mb-3">
 						<label class="form-label">Initial Message</label>
 						<div class="input-group">
+							<!-- Add Media Button -->
+							<button
+								type="button"
+								class="btn btn-outline-secondary"
+								@click="openNewChatImageModal"
+								title="Add image or GIF"
+							>
+								<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+									<path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
+								</svg>
+							</button>
 							<input
 								type="text"
 								class="form-control"
-								placeholder="Type your first message..."
+								:placeholder="selectedNewChatImage ? 'Add a caption...' : 'Type your first message...'"
 								v-model="initialMessage"
 							>
-							<button class="btn btn-outline-secondary" type="button" disabled>
-								<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-									<path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576 6.636 10.07Zm6.787-8.201L1.591 6.602l4.339 2.76 7.494-7.493Z"/>
-								</svg>
-							</button>
 						</div>
 						<div class="form-text">Optional: Send an initial message to start the conversation.</div>
 					</div>
@@ -518,6 +607,61 @@
 							<span class="visually-hidden">Creating...</span>
 						</div>
 						Create {{ selectedUsers.length > 1 ? 'Group' : 'Chat' }}
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div v-if="showNewChatImageModal" class="vue-modal" @click.self="closeNewChatImageModal">
+		<div class="vue-modal-dialog">
+			<div class="vue-modal-content">
+				<div class="vue-modal-header">
+					<h5 class="vue-modal-title">Add Image or GIF</h5>
+					<button type="button" class="vue-modal-close" @click="closeNewChatImageModal">×</button>
+				</div>
+				<div class="vue-modal-body">
+					<!-- File Upload Section -->
+					<div class="mb-3">
+						<label class="form-label">Choose Image or GIF</label>
+						<input
+							type="file"
+							class="form-control"
+							ref="newChatImageInput"
+							@change="handleNewChatImageSelect"
+							accept="image/*,.gif"
+						>
+						<div class="form-text">Supported formats: JPG, PNG, GIF, WebP. Max size: 10MB</div>
+					</div>
+
+					<!-- Image Preview -->
+					<div v-if="tempNewChatImage" class="mb-3 text-center">
+						<label class="form-label">Preview</label>
+						<div class="photo-preview">
+							<img
+								:src="tempNewChatImagePreviewUrl"
+								alt="Preview"
+								class="preview-message-image"
+								style="max-width: 300px; max-height: 300px;"
+							>
+						</div>
+						<div class="mt-2">
+							<small class="text-muted">{{ tempNewChatImage.name }} ({{ formatFileSize(tempNewChatImage.size) }})</small>
+						</div>
+					</div>
+
+					<!-- Error Message -->
+					<div v-if="newChatImageModalError" class="error-msg">{{ newChatImageModalError }}</div>
+				</div>
+				<div class="vue-modal-footer">
+					<button type="button" class="btn btn-secondary" @click="closeNewChatImageModal">Cancel</button>
+					<button
+						type="button"
+						class="btn btn-primary"
+						@click="selectNewChatImage"
+						:disabled="!tempNewChatImage"
+					>
+						Add to Message
 					</button>
 				</div>
 			</div>

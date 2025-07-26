@@ -5,7 +5,6 @@ import "time"
 type FirstMessageRequest struct {
 	Text      string   `json:"text"`
 	Type      string   `json:"type"`
-	MediaURL  string   `json:"mediaUrl"`
 	ChatName  string   `json:"chatName"`
 	Receivers []string `json:"receivers"`
 	IsForward bool     `json:"isForward"`
@@ -13,7 +12,6 @@ type FirstMessageRequest struct {
 
 type MessageRequest struct {
 	Type      string `json:"type"`
-	MediaURL  string `json:"mediaUrl"`
 	Text      string `json:"text"`
 	IsForward bool   `json:"isForward"`
 	ReplyTo   int    `json:"replyTo"`
