@@ -131,6 +131,8 @@ export default {
 			showDeleteDropdown: null,
 			deletingMessage: null, // Track which message is being deleted
 
+			showReplyDropdown: null,
+			replyingToMessage: null,
 		}
 	},
 
@@ -425,6 +427,11 @@ export default {
 
 		toggleLikesDropdown(messageId) {
 			this.showLikesDropdown = this.showLikesDropdown === messageId ? null : messageId;
+			// Close other dropdowns when opening likes dropdown
+			if (this.showLikesDropdown === messageId) {
+				this.showReplyDropdown = null;
+				this.showDeleteDropdown = null;
+			}
 		},
 
 		// Add this new method to track user scroll position
@@ -504,6 +511,94 @@ export default {
 			return messageId <= lastReadId;
 		},
 
+		// Reply functionality
+		toggleReplyDropdown(messageId) {
+			this.showReplyDropdown = this.showReplyDropdown === messageId ? null : messageId;
+			// Close other dropdowns when opening reply dropdown
+			if (this.showReplyDropdown === messageId) {
+				this.showLikesDropdown = null;
+				this.showDeleteDropdown = null;
+			}
+		},
+
+		startReply(message) {
+			this.replyingToMessage = message;
+			this.showReplyDropdown = null; // Close dropdown
+
+			// Focus the message input
+			this.$nextTick(() => {
+				if (this.$refs.messageInput) {
+					this.$refs.messageInput.focus();
+				}
+			});
+		},
+
+		clearReply() {
+			this.replyingToMessage = null;
+		},
+
+		getReplyMessage(messageId) {
+			return this.messages.find(msg => msg.id === messageId);
+		},
+
+		getReplyPreviewText(message) {
+			if (!message) return '';
+
+			if (message.type === 'image') {
+				return message.text ? message.text : '📷 Photo';
+			} else if (message.type === 'gif') {
+				return message.text ? message.text : '🎞️ GIF';
+			}
+
+			return message.text || '';
+		},
+
+		jumpToMessage(messageId) {
+			console.log('Attempting to jump to message:', messageId);
+
+			// Close any open dropdowns first
+			this.showReplyDropdown = null;
+			this.showDeleteDropdown = null;
+			this.showLikesDropdown = null;
+
+			this.$nextTick(() => {
+				// Find the message element using the data attribute
+				const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+
+				if (messageElement) {
+					console.log('Found message element, scrolling to it');
+
+					// Scroll to the message with smooth animation
+					messageElement.scrollIntoView({
+						behavior: 'smooth',
+						block: 'center',
+						inline: 'nearest'
+					});
+
+					// Add highlight effect to make the message stand out
+					const messageBubble = messageElement.querySelector('.message-bubble');
+					if (messageBubble) {
+						// Add highlight class or inline style
+						messageBubble.style.transition = 'background-color 0.3s ease';
+						messageBubble.style.backgroundColor = 'rgba(0, 123, 255, 0.2)';
+						messageBubble.style.borderRadius = '1rem';
+
+						// Remove highlight after 3 seconds
+						setTimeout(() => {
+							messageBubble.style.backgroundColor = '';
+							messageBubble.style.transition = '';
+						}, 3000);
+					}
+				} else {
+					console.warn('Message element not found for ID:', messageId);
+					console.log('Available message elements:',
+						Array.from(document.querySelectorAll('[data-message-id]'))
+							.map(el => el.getAttribute('data-message-id'))
+					);
+				}
+			});
+		},
+
 		// Updated sendMessage method with better preview handling
 		async sendMessage() {
 			if ((!this.newMessage.trim() && !this.selectedMessageImage) || !this.selectedChatId) return;
@@ -533,7 +628,13 @@ export default {
 					}
 
 					formData.append('isForward', 'false');
-					formData.append('replyTo', '0');
+
+					// Add reply information
+					if (this.replyingToMessage) {
+						formData.append('replyTo', this.replyingToMessage.id.toString());
+					} else {
+						formData.append('replyTo', '0');
+					}
 
 					requestData = formData;
 
@@ -550,6 +651,11 @@ export default {
 						text: messageText
 					};
 
+					// Add reply information
+					if (this.replyingToMessage) {
+						requestData.replyTo = this.replyingToMessage.id;
+					}
+
 					requestConfig = {
 						headers: {
 							'Content-Type': 'application/json'
@@ -565,9 +671,10 @@ export default {
 					requestConfig
 				);
 
-				// Clear input
+				// Clear input and reply
 				this.newMessage = '';
 				this.pendingMessage = '';
+				this.clearReply();
 
 				if (this.selectedMessageImage) {
 					this.clearMessageImageSelection();
@@ -736,10 +843,28 @@ export default {
 		// Toggle delete dropdown
 		toggleDeleteDropdown(messageId) {
 			this.showDeleteDropdown = this.showDeleteDropdown === messageId ? null : messageId;
-			// Close likes dropdown when opening delete dropdown
+			// Close other dropdowns when opening delete dropdown
 			if (this.showDeleteDropdown === messageId) {
 				this.showLikesDropdown = null;
+				this.showReplyDropdown = null;
 			}
+		},
+
+		handleDropdownMouseLeave(dropdownType) {
+			// Close the dropdown when mouse leaves
+			if (dropdownType === 'likes') {
+				this.showLikesDropdown = null;
+			} else if (dropdownType === 'reply') {
+				this.showReplyDropdown = null;
+			} else if (dropdownType === 'delete') {
+				this.showDeleteDropdown = null;
+			}
+		},
+
+		// Keep dropdown open when mouse is over it
+		handleDropdownMouseEnter(dropdownType) {
+			// This prevents the dropdown from closing when hovering over it
+			// The dropdown stays open as long as mouse is over it
 		},
 
 		// Confirm message deletion

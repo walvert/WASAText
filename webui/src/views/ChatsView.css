@@ -305,7 +305,7 @@ main.col-md-8.col-lg-9 {
 .delete-dropdown {
 	position: absolute;
 	top: 100%;
-	right: 0;
+	left: 0; /* Changed from right: 0 to left: 0 for received messages */
 	margin-top: 4px;
 	background: white;
 	border: 1px solid #dee2e6;
@@ -316,23 +316,25 @@ main.col-md-8.col-lg-9 {
 	z-index: 100;
 }
 
+/* For sent messages, position dropdown towards the left (inside) */
 .message-sent .delete-dropdown {
-	left: 0;
-	right: auto;
+	right: 0; /* Changed from left: 0 to right: 0 for sent messages */
+	left: auto;
 }
 
+/* Update arrow positioning */
 .delete-dropdown::before {
 	content: '';
 	position: absolute;
 	bottom: 100%;
-	right: 8px;
+	left: 8px; /* Arrow position for received messages */
 	border: 4px solid transparent;
 	border-bottom-color: white;
 }
 
 .message-sent .delete-dropdown::before {
-	left: 8px;
-	right: auto;
+	right: 8px; /* Arrow position for sent messages */
+	left: auto;
 }
 
 .delete-option {
@@ -370,14 +372,237 @@ main.col-md-8.col-lg-9 {
 	color: #6c757d;
 }
 
+/* Reply Feature Styles */
+.message-reply-btn {
+	background: rgba(255, 255, 255, 0.9);
+	border: 1px solid #dee2e6;
+	border-radius: 50%;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	color: #6c757d;
+	position: relative;
+}
+
+.message-reply-btn:hover {
+	background: white;
+	border-color: #007bff;
+	transform: scale(1.1);
+	color: #007bff;
+}
+
+/* Reply Dropdown Menu */
+.reply-dropdown {
+	position: absolute;
+	top: 100%;
+	left: 0; /* Changed from right: 0 to left: 0 for received messages */
+	margin-top: 4px;
+	background: white;
+	border: 1px solid #dee2e6;
+	border-radius: 8px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	padding: 4px;
+	min-width: 120px;
+	z-index: 100;
+}
+
+/* For sent messages, position dropdown towards the left (inside) */
+.message-sent .reply-dropdown {
+	right: 0; /* Changed from left: 0 to right: 0 for sent messages */
+	left: auto;
+}
+
+/* Update arrow positioning */
+.reply-dropdown::before {
+	content: '';
+	position: absolute;
+	bottom: 100%;
+	left: 8px; /* Arrow position for received messages */
+	border: 4px solid transparent;
+	border-bottom-color: white;
+}
+
+.message-sent .reply-dropdown::before {
+	right: 8px; /* Arrow position for sent messages */
+	left: auto;
+}
+
+
+.reply-option {
+	padding: 8px 12px;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	color: #007bff;
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	white-space: nowrap;
+}
+
+.reply-option:hover {
+	background-color: #f8f9fa;
+}
+
+.reply-option svg {
+	width: 14px;
+	height: 14px;
+	flex-shrink: 0;
+}
+
+/* Reply Preview in Input */
+.reply-preview {
+	background: #f8f9fa;
+	border: 1px solid #dee2e6;
+	border-radius: 0.5rem;
+	padding: 0.75rem;
+	margin-bottom: 0.5rem;
+	position: relative;
+}
+
+.reply-preview-header {
+	display: flex;
+	justify-content: between;
+	align-items: center;
+	margin-bottom: 0.5rem;
+}
+
+.reply-preview-title {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #007bff;
+	margin: 0;
+}
+
+.reply-preview-close {
+	background: none;
+	border: none;
+	color: #6c757d;
+	cursor: pointer;
+	padding: 0;
+	width: 1.5rem;
+	height: 1.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	margin-left: auto;
+}
+
+.reply-preview-close:hover {
+	background: #e9ecef;
+	color: #000;
+}
+
+.reply-preview-text {
+	font-size: 0.875rem;
+	color: #6c757d;
+	margin: 0;
+	font-style: italic;
+	border-left: 3px solid #007bff;
+	padding-left: 0.75rem;
+	max-height: 3em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+/* Reply Section in Message Bubble */
+.message-reply-section {
+	background: rgba(0, 123, 255, 0.1);
+	border-left: 3px solid #007bff;
+	border-radius: 0.375rem;
+	padding: 0.5rem 0.75rem;
+	margin-bottom: 0.5rem;
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+}
+
+.message-reply-section:hover {
+	background: rgba(0, 123, 255, 0.15);
+}
+
+.message-sent .message-reply-section {
+	background: rgba(255, 255, 255, 0.2);
+	border-left-color: rgba(255, 255, 255, 0.8);
+}
+
+.message-sent .message-reply-section:hover {
+	background: rgba(255, 255, 255, 0.3);
+}
+
+.reply-section-header {
+	font-size: 0.75rem;
+	font-weight: 600;
+	color: #007bff;
+	margin-bottom: 0.25rem;
+}
+
+.message-sent .reply-section-header {
+	color: rgba(255, 255, 255, 0.9);
+}
+
+.reply-section-text {
+	font-size: 0.8rem;
+	color: #6c757d;
+	margin: 0;
+	font-style: italic;
+	max-height: 2.4em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+.message-sent .reply-section-text {
+	color: rgba(255, 255, 255, 0.8);
+}
+
+.reply-section-deleted {
+	color: #dc3545;
+	font-style: italic;
+}
+
+.message-sent .reply-section-deleted {
+	color: rgba(255, 255, 255, 0.7);
+}
+
+/* Update hover actions to include reply button */
+.message-hover-actions {
+	position: absolute;
+	right: -80px; /* Increased width to accommodate three buttons */
+	top: 50%;
+	transform: translateY(-50%);
+	opacity: 0;
+	transition: opacity 0.2s ease;
+	z-index: 10;
+	display: flex;
+	gap: 4px;
+}
+
+.message-wrapper.message-sent .message-hover-actions {
+	left: -120px; /* Increased for sent messages */
+	right: auto;
+}
+
+
 /* Mobile adjustments */
 @media (max-width: 768px) {
 	.message-hover-actions {
-		right: -40px; /* Keep original spacing for received messages */
+		right: -80px; /* Keep original spacing for received messages */
 	}
 
 	.message-wrapper.message-sent .message-hover-actions {
-		left: -70px; /* Slightly less space on mobile for sent messages */
+		left: -110px; /* Slightly less space on mobile for sent messages */
 	}
 
 	.delete-btn,
@@ -387,6 +612,17 @@ main.col-md-8.col-lg-9 {
 	}
 
 	.delete-dropdown {
+		min-width: 100px;
+	}
+
+	.message-reply-btn,
+	.delete-btn,
+	.like-btn {
+		width: 28px;
+		height: 28px;
+	}
+
+	.reply-dropdown {
 		min-width: 100px;
 	}
 }
@@ -454,19 +690,19 @@ main.col-md-8.col-lg-9 {
 	color: #007bff;
 }
 
-/* Likes Dropdown */
+/* Likes dropdown */
 .likes-dropdown {
 	position: absolute;
-	top: 100%; /* Changed from bottom: 100% */
+	top: 100%;
 	left: 0;
-	margin-top: 4px; /* Changed from margin-bottom */
+	margin-top: 4px;
 	background: white;
 	border: 1px solid #dee2e6;
 	border-radius: 8px;
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 	padding: 8px;
-	min-width: 140px; /* Increased width */
-	max-width: 200px; /* Set max width */
+	min-width: 140px;
+	max-width: 200px;
 	z-index: 100;
 }
 
@@ -478,10 +714,10 @@ main.col-md-8.col-lg-9 {
 .likes-dropdown::before {
 	content: '';
 	position: absolute;
-	bottom: 100%; /* Changed from top: 100% */
+	bottom: 100%;
 	left: 12px;
 	border: 4px solid transparent;
-	border-bottom-color: white; /* Changed from border-top-color */
+	border-bottom-color: white;
 }
 
 .message-sent .likes-dropdown::before {

@@ -22,9 +22,10 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.DELETE("/chats/:chatId/members", rt.wrap(rt.leaveGroup))
 	rt.router.GET("/chats/:chatId/last-read", rt.getLastRead)
 	rt.router.POST("/chats/:chatId/messages", rt.wrap(rt.sendMessage))
-	rt.router.POST("/chats/:chatId/messages/:messageId", rt.authMiddleware(rt.forwardMessage))
 
 	rt.router.DELETE("/messages/:messageId", rt.wrap(rt.deleteMessage))
+
+	rt.router.POST("/messages/:messageId/forwards", rt.wrap(rt.forwardMessage))
 
 	rt.router.GET("/messages/:messageId/comments", rt.wrap(rt.getComments))
 	rt.router.PUT("/messages/:messageId/comments", rt.wrap(rt.commentMessage))

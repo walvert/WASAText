@@ -183,6 +183,33 @@
 								</div>
 
 								<div class="message-bubble" :class="{ 'has-likes': message.likes && message.likes.length > 0 }" style="position: relative;">
+									<!-- Reply Section (if this message is a reply) -->
+									<div
+										v-if="message.replyTo && getReplyMessage(message.replyTo)"
+										class="message-reply-section"
+										@click="jumpToMessage(message.replyTo)"
+										style="cursor: pointer;"
+									>
+										<div class="reply-section-header">
+											Reply to {{ getReplyMessage(message.replyTo).username }}
+										</div>
+										<div class="reply-section-text">
+											{{ getReplyPreviewText(getReplyMessage(message.replyTo)) }}
+										</div>
+									</div>
+
+									<!-- Deleted reply message fallback -->
+									<div
+										v-else-if="message.replyTo"
+										class="message-reply-section"
+										style="cursor: not-allowed; opacity: 0.6;"
+									>
+										<div class="reply-section-header">Reply to message</div>
+										<div class="reply-section-text reply-section-deleted">
+											This message has been deleted
+										</div>
+									</div>
+
 									<!-- Image Message -->
 									<div v-if="message.type === 'image' || message.type === 'gif'">
 										<!-- Loading state -->
@@ -215,7 +242,7 @@
 										<div v-else class="image-error">
 											<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-2">
 												<path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
-												<path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+												<path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
 											</svg>
 											Image unavailable
 										</div>
@@ -256,7 +283,7 @@
 												/>
 											</svg>
 
-											<!-- Single checkmark for sent but not read messages -->
+																			<!-- Single checkmark for sent but not read messages -->
 											<svg
 												v-else
 												class="message-status-sent"
@@ -287,11 +314,13 @@
 										</svg>
 										{{ message.likes.length }}
 
-										<!-- Likes Dropdown -->
+										<!-- Likes Dropdown with mouse leave behavior -->
 										<div
 											v-if="showLikesDropdown === message.id"
 											class="likes-dropdown"
 											@click.stop
+											@mouseleave="handleDropdownMouseLeave('likes')"
+											@mouseenter="handleDropdownMouseEnter('likes')"
 										>
 											<div class="likes-list">
 												<div
@@ -306,9 +335,9 @@
 									</div>
 								</div>
 
-								<!-- Hover Like and Delete Buttons -->
+								<!-- Hover Like, Reply and Delete Buttons -->
 								<div class="message-hover-actions">
-									<!-- Like Button (existing) -->
+									<!-- Like Button -->
 									<button
 										class="like-btn"
 										:class="{ liked: isMessageLikedByUser(message) }"
@@ -319,7 +348,39 @@
 										</svg>
 									</button>
 
-									<!-- Delete Button (new) -->
+									<!-- Reply Button -->
+									<button
+										class="message-reply-btn"
+										@click="toggleReplyDropdown(message.id)"
+										@click.stop
+									>
+										<!-- Correct backward arrow icon for reply -->
+										<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+											<path d="M9.5 13a.5.5 0 0 1-.5-.5V10H2.5a.5.5 0 0 1 0-1H9V6.5a.5.5 0 0 1 .854-.354l3 3a.5.5 0 0 1 0 .708l-3 3A.5.5 0 0 1 9.5 13z" transform="scale(-1,1) translate(-16,0)"/>
+										</svg>
+
+										<!-- Reply Dropdown with mouse leave behavior -->
+										<div
+											v-if="showReplyDropdown === message.id"
+											class="reply-dropdown"
+											@click.stop
+											@mouseleave="handleDropdownMouseLeave('reply')"
+											@mouseenter="handleDropdownMouseEnter('reply')"
+										>
+											<div
+												class="reply-option"
+												@click="startReply(message)"
+											>
+												<!-- Same icon in dropdown -->
+												<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+													<path d="M9.5 13a.5.5 0 0 1-.5-.5V10H2.5a.5.5 0 0 1 0-1H9V6.5a.5.5 0 0 1 .854-.354l3 3a.5.5 0 0 1 0 .708l-3 3A.5.5 0 0 1 9.5 13z" transform="scale(-1,1) translate(-16,0)"/>
+												</svg>
+												Reply
+											</div>
+										</div>
+									</button>
+
+									<!-- Delete Button -->
 									<button
 										class="delete-btn"
 										:class="{ loading: deletingMessage === message.id }"
@@ -335,11 +396,13 @@
 											<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
 										</svg>
 
-										<!-- Delete Dropdown -->
+										<!-- Delete Dropdown with mouse leave behavior -->
 										<div
 											v-if="showDeleteDropdown === message.id"
 											class="delete-dropdown"
 											@click.stop
+											@mouseleave="handleDropdownMouseLeave('delete')"
+											@mouseenter="handleDropdownMouseEnter('delete')"
 										>
 											<div
 												class="delete-option"
@@ -401,8 +464,29 @@
 				</div>
 
 				<!-- Message input -->
+				<!-- Message input -->
 				<div class="message-input-container p-3 border-top bg-light">
 					<form @submit.prevent="sendMessage">
+						<!-- Reply Preview -->
+						<div v-if="replyingToMessage" class="reply-preview">
+							<div class="reply-preview-header">
+								<h6 class="reply-preview-title">
+									Replying to {{ replyingToMessage.username }}
+								</h6>
+								<button
+									type="button"
+									class="reply-preview-close"
+									@click="clearReply"
+									title="Cancel reply"
+								>
+									<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+										<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+									</svg>
+								</button>
+							</div>
+							<p class="reply-preview-text">{{ getReplyPreviewText(replyingToMessage) }}</p>
+						</div>
+
 						<!-- Show selected image preview if any -->
 						<div v-if="selectedMessageImage" class="selected-image-preview mb-3">
 							<div class="image-preview-container">
@@ -444,10 +528,11 @@
 							<input
 								type="text"
 								class="form-control message-input"
-								:placeholder="selectedMessageImage ? 'Add a caption...' : 'Type a message...'"
+								:placeholder="replyingToMessage ? 'Reply to this message...' : (selectedMessageImage ? 'Add a caption...' : 'Type a message...')"
 								v-model="newMessage"
 								:disabled="sendingMessage"
 								@keypress.enter="sendMessage"
+								ref="messageInput"
 							>
 							<button
 								class="btn btn-primary send-btn"
