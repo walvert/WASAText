@@ -391,10 +391,26 @@ paths:
       description: "Remove an user from a group. Users can only remove themselves."
       operationId: leaveGroup
       responses:
-        "204":
-          description: Left Group
+        "200":
+          description: Group has been left
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chatDeleted:
+                    type: boolean
+                    description: flag to communicate if the chat is being deleted
+                      by cascade if the user leaving was the last one left
+                    example: false
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
-          $ref: "#/components/responses/NotFoundError"
+          $ref: '#/components/responses/NotFoundError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
 
   /chats/{chatId}/image:
     parameters:
@@ -552,9 +568,24 @@ paths:
       operationId: deleteMessage
       responses:
         "200":
-          $ref: "#/components/responses/Response"
+          description: Message deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chatDeleted:
+                    type: boolean
+                    description: flag to communicate if the chat is being deleted by cascade after the message deletion
+                    example: false
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
         "404":
-          $ref: "#/components/responses/Response"
+          $ref: '#/components/responses/NotFoundError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
 
   /messages/{messageId}/comments:
     parameters:

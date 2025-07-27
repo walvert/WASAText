@@ -128,6 +128,9 @@ export default {
 
 			showLikesDropdown: null,
 
+			showDeleteDropdown: null,
+			deletingMessage: null, // Track which message is being deleted
+
 		}
 	},
 
@@ -199,9 +202,10 @@ export default {
 			}
 		});
 
-		// Close likes dropdown when clicking outside
+		// Close dropdowns when clicking outside
 		document.addEventListener('click', () => {
 			this.showLikesDropdown = null;
+			this.showDeleteDropdown = null; // Add this line
 		});
 	},
 
@@ -729,6 +733,160 @@ export default {
 			}
 		},
 
+		// Toggle delete dropdown
+		toggleDeleteDropdown(messageId) {
+			this.showDeleteDropdown = this.showDeleteDropdown === messageId ? null : messageId;
+			// Close likes dropdown when opening delete dropdown
+			if (this.showDeleteDropdown === messageId) {
+				this.showLikesDropdown = null;
+			}
+		},
+
+		// Confirm message deletion
+		confirmDeleteMessage(message) {
+			// Close dropdown first
+			this.showDeleteDropdown = null;
+
+			// Show confirmation dialog
+			if (confirm('Are you sure you want to delete this message? This action cannot be undone.')) {
+				this.deleteMessage(message);
+			}
+		},
+
+		async leaveGroup() {
+			if (!confirm('Are you sure you want to leave this group?')) return;
+
+			try {
+				console.log('Leaving group:', this.selectedChatId);
+
+				const response = await this.$axios.delete(`/chats/${this.selectedChatId}/members`);
+
+				console.log('Leave group response:', response.data);
+
+				// Check if chat was deleted (user was the last member)
+				if (response.data && response.data.chatDeleted) {
+					console.log('Chat was deleted, removing from chat list');
+
+					// Remove chat from the chats list
+					this.chats = this.chats.filter(chat => chat.id !== this.selectedChatId);
+
+					// Clear selected chat and reset state
+					this.selectedChatId = null;
+					this.messages = [];
+					this.lastReadMessageId = null;
+
+					// Reset indicators
+					this.hasNewMessages = false;
+					this.newMessageCount = 0;
+
+					// Show success message
+					alert('You have left the group. The group has been deleted since you were the last member.');
+				} else {
+					// Group still exists, just refresh chats and clear selection
+					await this.getMyConversations();
+					this.selectedChatId = null;
+
+					// Show success message
+					alert('You have successfully left the group.');
+				}
+
+			} catch (err) {
+				console.error('Failed to leave group', err);
+
+				// Handle specific error cases
+				if (err.response?.status === 403) {
+					alert('You are not authorized to leave this group.');
+				} else if (err.response?.status === 404) {
+					alert('Group not found or you are not a member.');
+				} else if (err.response?.status === 401) {
+					console.log('Authentication error during group leave');
+					this.$emit('logout');
+				} else {
+					alert('Failed to leave group. Please try again.');
+				}
+			}
+		},
+
+		// Delete message function
+		async deleteMessage(message) {
+			if (!message || !message.id) {
+				console.error('Invalid message for deletion');
+				return;
+			}
+
+			try {
+				// Set loading state
+				this.deletingMessage = message.id;
+
+				console.log('Deleting message:', message.id);
+
+				// Make DELETE request to the backend
+				const response = await this.$axios.delete(`/messages/${message.id}`);
+
+				console.log('Delete response:', response.data);
+
+				// Check if chat was deleted
+				if (response.data && response.data.chatDeleted) {
+					console.log('Chat was deleted, removing from chat list');
+
+					// Remove chat from the chats list
+					this.chats = this.chats.filter(chat => chat.id !== this.selectedChatId);
+
+					// Clear selected chat
+					this.selectedChatId = null;
+					this.messages = [];
+					this.lastReadMessageId = null;
+
+					// Reset indicators
+					this.hasNewMessages = false;
+					this.newMessageCount = 0;
+
+					// Show success message
+					alert('Message deleted. The conversation has been removed since it was the last message.');
+				} else {
+					// Just remove the message from the current messages list
+					const messageIndex = this.messages.findIndex(msg => msg.id === message.id);
+					if (messageIndex !== -1) {
+						this.messages.splice(messageIndex, 1);
+					}
+
+					// Update chat preview if this was the last message
+					const chat = this.chats.find(c => c.id === this.selectedChatId);
+					if (chat && this.messages.length > 0) {
+						// Find the new last message
+						const lastMessage = this.messages[this.messages.length - 1];
+						this.updateChatPreview(this.selectedChatId, {
+							lastMsgText: lastMessage.text || (lastMessage.type === 'image' ? '📷 Photo' : '🎞️ GIF'),
+							lastMsgTime: lastMessage.createdAt,
+							lastMsgType: lastMessage.type,
+							lastMsgUsername: lastMessage.username
+						});
+					}
+
+					// Force reactivity update
+					this.$forceUpdate();
+				}
+
+			} catch (error) {
+				console.error('Failed to delete message:', error);
+
+				// Handle specific error cases
+				if (error.response?.status === 403) {
+					alert('You can only delete your own messages.');
+				} else if (error.response?.status === 404) {
+					alert('Message not found or already deleted.');
+				} else if (error.response?.status === 401) {
+					console.log('Authentication error during message deletion');
+					this.$emit('logout');
+				} else {
+					alert('Failed to delete message. Please try again.');
+				}
+			} finally {
+				// Clear loading state
+				this.deletingMessage = null;
+			}
+		},
+
 		// Enhanced scrollToBottom method
 		scrollToBottom() {
 			this.$nextTick(() => {
@@ -1170,22 +1328,6 @@ export default {
 			}
 		},
 
-		async leaveGroup() {
-			if (!confirm('Are you sure you want to leave this group?')) return;
-
-			try {
-				await this.$axios.delete(`/chats/${this.selectedChatId}/members`);
-
-				// Refresh chats and clear selection
-				await this.getMyConversations();
-				this.selectedChatId = null;
-
-			} catch (err) {
-				console.error('Failed to leave group', err);
-				alert('Failed to leave group. Please try again.');
-			}
-		},
-
 		// Enhanced selectChat method
 		selectChat(chatId) {
 			console.log('Selecting chat:', chatId);
@@ -1506,13 +1648,6 @@ export default {
 			} finally {
 				this.setGroupPhotoLoading = false;
 			}
-		},
-
-		generateMediaFilename(file) {
-			const timestamp = Date.now();
-			const randomString = Math.random().toString(36).substring(2, 8);
-			const extension = file.name.split('.').pop().toLowerCase();
-			return `${timestamp}_${randomString}.${extension}`;
 		},
 
 		// Format file size for display

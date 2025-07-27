@@ -18,3 +18,7 @@ type Chat struct {
 type ChatNameRequest struct {
 	ChatName string `json:"chatName"`
 }
+
+type ChatDeleted struct {
+	ChatDeleted bool ` json:"chatDeleted"`
+}

@@ -54,7 +54,6 @@ type AppDatabase interface {
 	AddPrivateChat(user1Id int, user2Id int, chatId int) error
 	GetMyConversations(userID int) ([]types.Chat, error)
 	GetConversation(userId int, chatID int) ([]types.Message, error)
-	DeleteMessage(messageID int) error
 	SetMyPhoto(userId int, path string) error
 	GetMyPhoto(token string) (string, error)
 	CommentMessage(messageID int, userID int) error
@@ -62,7 +61,7 @@ type AppDatabase interface {
 	GetSenderId(messageId int) (int, error)
 	AddToGroup(chatID int, userID int) error
 	SetGroupPhoto(chatId int, imagePath string) error
-	LeaveGroup(userId int, chatId int) error
+	LeaveGroup(chatId int, userId int) (bool, error)
 	SetGroupName(chatId int, chatName string) error
 	GetMessageText(messageID int) (string, error)
 	GetMessageType(messageID int) (string, error)
@@ -74,6 +73,7 @@ type AppDatabase interface {
 	GetUsernameById(id int) (string, error)
 	GetUsers(userId int) ([]types.User, error)
 	GetComments(messageId int) ([]string, error)
+	DeleteMessage(messageId int) (bool, error)
 }
 
 type appdbimpl struct {

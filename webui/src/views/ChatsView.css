@@ -255,6 +255,260 @@ main.col-md-8.col-lg-9 {
 	padding: 0;
 }
 
+/* Message Like Button */
+.message-hover-actions {
+	position: absolute;
+	right: -40px; /* Increased width to accommodate both buttons */
+	top: 50%;
+	transform: translateY(-50%);
+	opacity: 0;
+	transition: opacity 0.2s ease;
+	z-index: 10;
+	display: flex;
+	gap: 4px; /* Space between buttons */
+}
+
+.message-wrapper:hover .message-hover-actions {
+	opacity: 1;
+}
+
+.message-wrapper.message-sent .message-hover-actions {
+	left: -80px;
+	right: auto;
+}
+
+/* Message Delete Button */
+.delete-btn {
+	background: rgba(255, 255, 255, 0.9);
+	border: 1px solid #dee2e6;
+	border-radius: 50%;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	color: #6c757d;
+	position: relative;
+}
+
+.delete-btn:hover {
+	background: white;
+	border-color: #dc3545;
+	transform: scale(1.1);
+	color: #dc3545;
+}
+
+/* Delete Dropdown Menu */
+.delete-dropdown {
+	position: absolute;
+	top: 100%;
+	right: 0;
+	margin-top: 4px;
+	background: white;
+	border: 1px solid #dee2e6;
+	border-radius: 8px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	padding: 4px;
+	min-width: 120px;
+	z-index: 100;
+}
+
+.message-sent .delete-dropdown {
+	left: 0;
+	right: auto;
+}
+
+.delete-dropdown::before {
+	content: '';
+	position: absolute;
+	bottom: 100%;
+	right: 8px;
+	border: 4px solid transparent;
+	border-bottom-color: white;
+}
+
+.message-sent .delete-dropdown::before {
+	left: 8px;
+	right: auto;
+}
+
+.delete-option {
+	padding: 8px 12px;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	color: #dc3545;
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	white-space: nowrap;
+}
+
+.delete-option:hover {
+	background-color: #f8f9fa;
+}
+
+.delete-option svg {
+	width: 14px;
+	height: 14px;
+	flex-shrink: 0;
+}
+
+/* Loading state for delete button */
+.delete-btn.loading {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.delete-btn.loading:hover {
+	transform: none;
+	border-color: #dee2e6;
+	color: #6c757d;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+	.message-hover-actions {
+		right: -40px; /* Keep original spacing for received messages */
+	}
+
+	.message-wrapper.message-sent .message-hover-actions {
+		left: -70px; /* Slightly less space on mobile for sent messages */
+	}
+
+	.delete-btn,
+	.like-btn {
+		width: 28px;
+		height: 28px;
+	}
+
+	.delete-dropdown {
+		min-width: 100px;
+	}
+}
+
+.like-btn {
+	background: rgba(255, 255, 255, 0.9);
+	border: 1px solid #dee2e6;
+	border-radius: 50%;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	color: #6c757d; /* Muted color by default */
+}
+
+.like-btn:hover {
+	background: white;
+	border-color: #007bff;
+	transform: scale(1.1);
+	color: #007bff;
+}
+
+.like-btn.liked {
+	background: #ff69b4;
+	border-color: #ff69b4;
+	color: white; /* Not muted when liked */
+}
+
+.like-btn.liked:hover {
+	background: #ff1493;
+	border-color: #ff1493;
+	color: white;
+}
+
+/* Message Like Count */
+.message-likes {
+	position: absolute;
+	bottom: 4px;
+	left: 4px; /* Moved closer to corner */
+	background: rgba(255, 255, 255, 0.95);
+	border: 1px solid #dee2e6;
+	border-radius: 12px;
+	padding: 3px 8px; /* Increased padding */
+	font-size: 0.75rem;
+	color: #6c757d;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	z-index: 5;
+	min-width: 32px; /* Ensure minimum width */
+	text-align: center;
+}
+
+.message-sent .message-likes {
+	left: 4px; /* Keep in bottom left for sent messages too */
+	right: auto; /* Remove right positioning */
+}
+
+.message-likes:hover {
+	background: white;
+	border-color: #007bff;
+	color: #007bff;
+}
+
+/* Likes Dropdown */
+.likes-dropdown {
+	position: absolute;
+	top: 100%; /* Changed from bottom: 100% */
+	left: 0;
+	margin-top: 4px; /* Changed from margin-bottom */
+	background: white;
+	border: 1px solid #dee2e6;
+	border-radius: 8px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	padding: 8px;
+	min-width: 140px; /* Increased width */
+	max-width: 200px; /* Set max width */
+	z-index: 100;
+}
+
+.message-sent .likes-dropdown {
+	left: auto;
+	right: 0;
+}
+
+.likes-dropdown::before {
+	content: '';
+	position: absolute;
+	bottom: 100%; /* Changed from top: 100% */
+	left: 12px;
+	border: 4px solid transparent;
+	border-bottom-color: white; /* Changed from border-top-color */
+}
+
+.message-sent .likes-dropdown::before {
+	left: auto;
+	right: 12px;
+}
+
+.likes-list {
+	max-height: 150px; /* Increased height */
+	overflow-y: auto;
+}
+
+.like-user {
+	padding: 6px 8px; /* Increased padding */
+	border-radius: 4px;
+	font-size: 0.8rem;
+	color: #495057;
+	white-space: nowrap; /* Prevent text wrapping */
+	overflow: hidden;
+	text-overflow: ellipsis; /* Handle long usernames */
+}
+
+.like-user:hover {
+	background: #f8f9fa;
+}
+
+
 /* Modern Chat List Styles */
 .chat-list {
 	padding: 0;
@@ -1338,141 +1592,4 @@ main.col-md-8.col-lg-9 {
 		width: 14px !important;
 		height: 14px !important;
 	}
-}
-
-/* Message Like Button */
-.message-hover-actions {
-	position: absolute;
-	right: -40px;
-	top: 50%;
-	transform: translateY(-50%);
-	opacity: 0;
-	transition: opacity 0.2s ease;
-	z-index: 10;
-}
-
-.message-wrapper:hover .message-hover-actions {
-	opacity: 1;
-}
-
-.message-wrapper.message-sent .message-hover-actions {
-	left: -40px;
-	right: auto;
-}
-
-.like-btn {
-	background: rgba(255, 255, 255, 0.9);
-	border: 1px solid #dee2e6;
-	border-radius: 50%;
-	width: 32px;
-	height: 32px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	cursor: pointer;
-	transition: all 0.2s ease;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-	color: #6c757d; /* Muted color by default */
-}
-
-.like-btn:hover {
-	background: white;
-	border-color: #007bff;
-	transform: scale(1.1);
-	color: #007bff;
-}
-
-.like-btn.liked {
-	background: #ff69b4;
-	border-color: #ff69b4;
-	color: white; /* Not muted when liked */
-}
-
-.like-btn.liked:hover {
-	background: #ff1493;
-	border-color: #ff1493;
-	color: white;
-}
-
-/* Message Like Count */
-.message-likes {
-	position: absolute;
-	bottom: 4px;
-	left: 4px; /* Moved closer to corner */
-	background: rgba(255, 255, 255, 0.95);
-	border: 1px solid #dee2e6;
-	border-radius: 12px;
-	padding: 3px 8px; /* Increased padding */
-	font-size: 0.75rem;
-	color: #6c757d;
-	cursor: pointer;
-	transition: all 0.2s ease;
-	z-index: 5;
-	min-width: 32px; /* Ensure minimum width */
-	text-align: center;
-}
-
-.message-sent .message-likes {
-	left: 4px; /* Keep in bottom left for sent messages too */
-	right: auto; /* Remove right positioning */
-}
-
-.message-likes:hover {
-	background: white;
-	border-color: #007bff;
-	color: #007bff;
-}
-
-/* Likes Dropdown */
-.likes-dropdown {
-	position: absolute;
-	top: 100%; /* Changed from bottom: 100% */
-	left: 0;
-	margin-top: 4px; /* Changed from margin-bottom */
-	background: white;
-	border: 1px solid #dee2e6;
-	border-radius: 8px;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-	padding: 8px;
-	min-width: 140px; /* Increased width */
-	max-width: 200px; /* Set max width */
-	z-index: 100;
-}
-
-.message-sent .likes-dropdown {
-	left: auto;
-	right: 0;
-}
-
-.likes-dropdown::before {
-	content: '';
-	position: absolute;
-	bottom: 100%; /* Changed from top: 100% */
-	left: 12px;
-	border: 4px solid transparent;
-	border-bottom-color: white; /* Changed from border-top-color */
-}
-
-.message-sent .likes-dropdown::before {
-	left: auto;
-	right: 12px;
-}
-
-.likes-list {
-	max-height: 150px; /* Increased height */
-	overflow-y: auto;
-}
-
-.like-user {
-	padding: 6px 8px; /* Increased padding */
-	border-radius: 4px;
-	font-size: 0.8rem;
-	color: #495057;
-	white-space: nowrap; /* Prevent text wrapping */
-	overflow: hidden;
-	text-overflow: ellipsis; /* Handle long usernames */
-}
-
-.like-user:hover {
-	background: #f8f9fa;
 }

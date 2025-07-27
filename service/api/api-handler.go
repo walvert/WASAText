@@ -19,11 +19,12 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.PUT("/chats/:chatId", rt.setGroupName)
 	rt.router.PUT("/chats/:chatId/image", rt.setGroupPhoto)
 	rt.router.POST("/chats/:chatId/members", rt.addToGroup)
-	rt.router.DELETE("/chats/:chatId/members", rt.leaveGroup)
+	rt.router.DELETE("/chats/:chatId/members", rt.wrap(rt.leaveGroup))
 	rt.router.GET("/chats/:chatId/last-read", rt.getLastRead)
 	rt.router.POST("/chats/:chatId/messages", rt.wrap(rt.sendMessage))
-	rt.router.DELETE("/chats/:chatId/messages/:messageId", rt.authMiddleware(rt.authDeleteMessage(rt.deleteMessage)))
 	rt.router.POST("/chats/:chatId/messages/:messageId", rt.authMiddleware(rt.forwardMessage))
+
+	rt.router.DELETE("/messages/:messageId", rt.wrap(rt.deleteMessage))
 
 	rt.router.GET("/messages/:messageId/comments", rt.wrap(rt.getComments))
 	rt.router.PUT("/messages/:messageId/comments", rt.wrap(rt.commentMessage))
