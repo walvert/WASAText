@@ -172,6 +172,7 @@
 							:key="message.id"
 							class="message-wrapper mb-3"
 							:class="{ 'message-sent': isCurrentUserMessage(message) }"
+							:data-message-id="message.id"
 						>
 							<div class="message-content" style="position: relative;">
 								<!-- Show sender name for group chats and incoming messages -->
