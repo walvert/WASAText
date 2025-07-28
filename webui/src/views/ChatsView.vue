@@ -161,6 +161,18 @@ export default {
 		},
 		forwardGroupChats() {
 			return this.chats.filter(chat => chat.isGroup && chat.id !== this.selectedChatId);
+		},
+		canCreateNewChat() {
+			// Check if recipients are selected
+			const hasRecipients = this.selectedUsers.length > 0;
+
+			// Check if group name is provided when needed
+			const hasGroupNameIfNeeded = this.selectedUsers.length <= 1 || this.newChatName.trim();
+
+			// Check if initial content (message or media) is provided
+			const hasInitialContent = this.initialMessage.trim() || this.selectedNewChatImage;
+
+			return hasRecipients && hasGroupNameIfNeeded && hasInitialContent && !this.newChatLoading;
 		}
 	},
 	async created() {
@@ -224,12 +236,33 @@ export default {
 			if (messagesContainer) {
 				messagesContainer.addEventListener('scroll', this.handleScroll);
 			}
+
+			// Focus input if there's already a selected chat (page refresh case)
+			if (this.selectedChatId) {
+				setTimeout(() => {
+					this.focusMessageInput();
+				}, 500);
+			}
 		});
 
 		// Close dropdowns when clicking outside
 		document.addEventListener('click', () => {
 			this.showLikesDropdown = null;
-			this.showDeleteDropdown = null; // Add this line
+			this.showDeleteDropdown = null;
+			this.showReplyDropdown = null;
+			this.showForwardDropdown = null;
+		});
+
+		// Re-focus input when clicking in the chat area (but not on other interactive elements)
+		document.addEventListener('click', (event) => {
+			// Check if click is within the main chat area but not on buttons, inputs, etc.
+			const chatContainer = document.querySelector('.chat-container');
+			const isClickInChatArea = chatContainer && chatContainer.contains(event.target);
+			const isInteractiveElement = event.target.closest('button, input, textarea, select, a, [role="button"]');
+
+			if (isClickInChatArea && !isInteractiveElement && this.selectedChatId) {
+				this.focusMessageInput();
+			}
 		});
 	},
 
@@ -360,9 +393,13 @@ export default {
 					if (!container) return;
 
 					if (isFirstLoad) {
-						// Case 1: First chat opening - scroll to bottom
-						console.log('First load - scrolling to bottom');
+						// Case 1: First chat opening - scroll to bottom and focus input
+						console.log('First load - scrolling to bottom and focusing input');
 						this.scrollToBottom();
+						// Focus input after a short delay to ensure everything is rendered
+						setTimeout(() => {
+							this.focusMessageInput();
+						}, 200);
 
 					} else if (this.shouldScrollAfterSend) {
 						// Case 4: New message sent - scroll to bottom
@@ -560,16 +597,14 @@ export default {
 			this.replyingToMessage = message;
 			this.showReplyDropdown = null; // Close dropdown
 
-			// Focus the message input
-			this.$nextTick(() => {
-				if (this.$refs.messageInput) {
-					this.$refs.messageInput.focus();
-				}
-			});
+			// Focus the message input after reply is set
+			this.focusMessageInput();
 		},
 
 		clearReply() {
 			this.replyingToMessage = null;
+			// Maintain focus when clearing reply
+			this.focusMessageInput();
 		},
 
 		getReplyMessage(messageId) {
@@ -725,6 +760,11 @@ export default {
 
 				// Refresh messages - shouldScrollAfterSend flag will make it scroll to bottom
 				await this.getConversation(this.selectedChatId, false);
+
+				// Maintain focus on message input after sending (with delay to ensure DOM is updated)
+				setTimeout(() => {
+					this.focusMessageInput();
+				}, 100);
 
 			} catch (err) {
 				console.error('Failed to send message', err);
@@ -1322,14 +1362,9 @@ export default {
 		},
 
 		async createNewChat() {
-			// Validation
-			if (this.selectedUsers.length === 0) {
-				this.newChatError = 'Please select at least one recipient';
-				return;
-			}
-
-			if (this.selectedUsers.length > 1 && !this.newChatName.trim()) {
-				this.newChatError = 'Group name is required for group chats';
+			// The computed property already handles validation, but keep basic checks for safety
+			if (!this.canCreateNewChat) {
+				console.warn('Attempted to create chat when conditions not met');
 				return;
 			}
 
@@ -1363,12 +1398,9 @@ export default {
 					// JSON request for text message
 					requestData = {
 						type: 'text',
-						receivers: this.selectedUsers.map(user => user.username)
+						receivers: this.selectedUsers.map(user => user.username),
+						text: this.initialMessage.trim()
 					};
-
-					if (this.initialMessage.trim()) {
-						requestData.text = this.initialMessage.trim();
-					}
 
 					if (this.selectedUsers.length > 1) {
 						requestData.chatName = this.newChatName.trim();
@@ -1431,6 +1463,11 @@ export default {
 
 			// Clear media selection
 			this.clearNewChatImageSelection();
+
+			// Focus message input if a chat is selected
+			if (this.selectedChatId) {
+				this.focusMessageInput();
+			}
 		},
 
 		openNewChatModal() {
@@ -1694,6 +1731,25 @@ export default {
 
 			// Load chat for first time - will scroll to bottom
 			this.getConversation(chatId, true);
+
+			// Focus message input after chat is loaded
+			this.$nextTick(() => {
+				this.focusMessageInput();
+			});
+		},
+
+		focusMessageInput() {
+			this.$nextTick(() => {
+				const messageInput = this.$refs.messageInput;
+				if (messageInput && this.selectedChatId) {
+					try {
+						messageInput.focus();
+						console.log('Message input focused');
+					} catch (error) {
+						console.error('Failed to focus message input:', error);
+					}
+				}
+			});
 		},
 
 		getChatName(chat) {

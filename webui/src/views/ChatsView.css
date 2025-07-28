@@ -1431,8 +1431,16 @@ main.col-md-8.col-lg-9 {
 }
 
 .btn:disabled {
-	opacity: 0.65;
+	opacity: 0.6;
 	cursor: not-allowed;
+	background-color: #6c757d !important;
+	border-color: #6c757d !important;
+}
+
+.btn:disabled:hover {
+	background-color: #6c757d !important;
+	border-color: #6c757d !important;
+	transform: none !important;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -1803,6 +1811,14 @@ main.col-md-8.col-lg-9 {
 .vue-modal-footer .btn:disabled {
 	opacity: 0.6;
 	cursor: not-allowed;
+	background-color: #6c757d !important;
+	border-color: #6c757d !important;
+}
+
+.vue-modal-footer .btn:disabled:hover {
+	background-color: #6c757d !important;
+	border-color: #6c757d !important;
+	transform: none !important;
 }
 
 /* Enhanced error message styling for photo upload */

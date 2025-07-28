@@ -751,7 +751,7 @@
 								v-model="initialMessage"
 							>
 						</div>
-						<div class="form-text">Optional: Send an initial message to start the conversation.</div>
+						<div class="form-text">Required: Either enter a message or select media to start the conversation.</div>
 					</div>
 
 					<ErrorMsg v-if="newChatError" :message="newChatError"/>
@@ -762,7 +762,7 @@
 						type="button"
 						class="btn btn-primary"
 						@click="createNewChat"
-						:disabled="newChatLoading || selectedUsers.length === 0 || (selectedUsers.length > 1 && !newChatName.trim())"
+						:disabled="!canCreateNewChat"
 					>
 						<div v-if="newChatLoading" class="spinner-border spinner-border-sm me-2" role="status">
 							<span class="visually-hidden">Creating...</span>

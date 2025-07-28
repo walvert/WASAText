@@ -1,6 +1,8 @@
 package database
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func (db *appdbimpl) DeleteComment(messageID int, userID int) error {
 	result, err := db.c.Exec(`DELETE FROM comments
@@ -19,16 +21,11 @@ func (db *appdbimpl) DeleteComment(messageID int, userID int) error {
 }
 
 func (db *appdbimpl) DeleteAllComments(messageID int) error {
-	result, err := db.c.Exec(`DELETE FROM comments
+	_, err := db.c.Exec(`DELETE FROM comments
                             WHERE message_id = ?`,
 		messageID)
 	if err != nil {
 		return err
-	}
-
-	rowsAffected, _ := result.RowsAffected()
-	if rowsAffected == 0 {
-		return fmt.Errorf("comment not found")
 	}
 
 	return nil
