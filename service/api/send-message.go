@@ -21,14 +21,12 @@ import (
 func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	w.Header().Set("Content-Type", "application/json")
 
-	// Authorization check
 	token := r.Header.Get("Authorization")
 	if token == "" {
 		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
 		return
 	}
 
-	// Get user info
 	userId, err := rt.db.GetIdWithToken(token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

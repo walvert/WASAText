@@ -58,13 +58,10 @@ type AppDatabase interface {
 	GetMyPhoto(token string) (string, error)
 	CommentMessage(messageID int, userID int) error
 	DeleteComment(messageID int, userID int) error
-	GetSenderId(messageId int) (int, error)
 	AddToGroup(chatID int, userID int) error
 	SetGroupPhoto(chatId int, imagePath string) error
 	LeaveGroup(chatId int, userId int) (bool, error)
 	SetGroupName(chatId int, chatName string) error
-	GetMessageText(messageID int) (string, error)
-	GetMessageType(messageID int) (string, error)
 	GetLastRead(chatID int) (int, error)
 	SetLastRead(userId int, chatId int, lastRead int) error
 	GetIdWithToken(token string) (int, error)
@@ -74,6 +71,7 @@ type AppDatabase interface {
 	GetUsers(userId int) ([]types.User, error)
 	GetComments(messageId int) ([]string, error)
 	DeleteMessage(messageId int) (bool, error)
+	GetForwardInfo(messageId int) (types.ForwardInfo, error)
 }
 
 type appdbimpl struct {

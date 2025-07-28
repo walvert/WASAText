@@ -19,36 +19,30 @@ func (rt *_router) getImage(w http.ResponseWriter, r *http.Request, ps httproute
 	folder := ps.ByName("folder")
 	filename := ps.ByName("filename")
 
-	// Debug logging
-	fmt.Printf("DEBUG: folder='%s', filename='%s'\n", folder, filename)
-	fmt.Printf("DEBUG: Full URL path: %s\n", r.URL.Path)
-
 	validFolders := map[string]bool{
 		"user":     true,
 		"chats":    true,
 		"messages": true,
 	}
 	if !validFolders[folder] {
-		fmt.Printf("DEBUG: Invalid folder '%s'\n", folder)
+		ctx.Logger.Warnf("Invalid folder %s", folder)
 		http.Error(w, "Invalid folder", http.StatusBadRequest)
 		return
 	}
 
 	if strings.Contains(filename, "..") {
-		fmt.Printf("DEBUG: Invalid filename '%s' (contains ..)\n", filename)
+		ctx.Logger.Warnf("Invalid filename %s", filename)
 		http.Error(w, "Invalid filename", http.StatusBadRequest)
 		return
 	}
 
 	filePath := fmt.Sprintf("./uploads/%s/%s", folder, filename)
-	fmt.Printf("DEBUG: Looking for file at: %s\n", filePath)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		fmt.Printf("DEBUG: File not found: %s\n", filePath)
+		ctx.Logger.Warnf("File %s does not exist", filePath)
 		http.Error(w, "File not found", http.StatusNotFound)
 		return
 	}
 
-	fmt.Printf("DEBUG: Serving file: %s\n", filePath)
 	http.ServeFile(w, r, filePath)
 }

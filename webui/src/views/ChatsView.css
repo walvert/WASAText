@@ -255,28 +255,6 @@ main.col-md-8.col-lg-9 {
 	padding: 0;
 }
 
-/* Message Like Button */
-.message-hover-actions {
-	position: absolute;
-	right: -40px; /* Increased width to accommodate both buttons */
-	top: 50%;
-	transform: translateY(-50%);
-	opacity: 0;
-	transition: opacity 0.2s ease;
-	z-index: 10;
-	display: flex;
-	gap: 4px; /* Space between buttons */
-}
-
-.message-wrapper:hover .message-hover-actions {
-	opacity: 1;
-}
-
-.message-wrapper.message-sent .message-hover-actions {
-	left: -80px;
-	right: auto;
-}
-
 /* Message Delete Button */
 .delete-btn {
 	background: rgba(255, 255, 255, 0.9);
@@ -372,6 +350,287 @@ main.col-md-8.col-lg-9 {
 	color: #6c757d;
 }
 
+/* Forward Button - Same styling as Reply and Delete buttons */
+.message-forward-btn {
+	background: rgba(255, 255, 255, 0.9);
+	border: 1px solid #dee2e6;
+	border-radius: 50%;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	color: #6c757d;
+	position: relative;
+}
+
+.message-forward-btn:hover {
+	background: white;
+	border-color: #28a745;
+	transform: scale(1.1);
+	color: #28a745;
+}
+
+/* Forward Dropdown Menu */
+.forward-dropdown {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	margin-top: 4px;
+	background: white;
+	border: 1px solid #dee2e6;
+	border-radius: 8px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	padding: 4px;
+	min-width: 120px;
+	z-index: 100;
+}
+
+/* For sent messages, position dropdown towards the left (inside) */
+.message-sent .forward-dropdown {
+	right: 0;
+	left: auto;
+}
+
+/* Update arrow positioning */
+.forward-dropdown::before {
+	content: '';
+	position: absolute;
+	bottom: 100%;
+	left: 8px;
+	border: 4px solid transparent;
+	border-bottom-color: white;
+}
+
+.message-sent .forward-dropdown::before {
+	right: 8px;
+	left: auto;
+}
+
+.forward-option {
+	padding: 8px 12px;
+	border-radius: 4px;
+	font-size: 0.875rem;
+	color: #28a745;
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	white-space: nowrap;
+}
+
+.forward-option:hover {
+	background-color: #f8f9fa;
+}
+
+.forward-option svg {
+	width: 14px;
+	height: 14px;
+	flex-shrink: 0;
+}
+
+/* Forward Modal Styles */
+.forward-modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.5);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	z-index: 1050;
+}
+
+.forward-modal-dialog {
+	background: white;
+	border-radius: 0.5rem;
+	box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+	max-width: 700px;
+	width: 95%;
+	max-height: 90vh;
+	overflow-y: auto;
+}
+
+/* Recipient Selection Styles */
+.recipient-tabs {
+	display: flex;
+	border-bottom: 1px solid #dee2e6;
+	margin-bottom: 1rem;
+}
+
+.recipient-tab {
+	flex: 1;
+	padding: 0.75rem 1rem;
+	background: none;
+	border: none;
+	border-bottom: 3px solid transparent;
+	cursor: pointer;
+	font-weight: 500;
+	color: #6c757d;
+	transition: all 0.2s ease;
+}
+
+.recipient-tab.active {
+	color: #007bff;
+	border-bottom-color: #007bff;
+	background-color: #f8f9fa;
+}
+
+.recipient-tab:hover:not(.active) {
+	background-color: #f8f9fa;
+	color: #495057;
+}
+
+/* Selected Recipients Display */
+.selected-recipients {
+	min-height: 40px;
+	padding: 0.5rem;
+	background-color: #f8f9fa;
+	border-radius: 0.375rem;
+	border: 1px solid #dee2e6;
+	margin-bottom: 1rem;
+}
+
+.recipient-chip {
+	background-color: #007bff;
+	color: white;
+	padding: 0.375rem 0.75rem;
+	border-radius: 1rem;
+	font-size: 0.875rem;
+	margin: 0.25rem;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.recipient-chip.user-chip {
+	background-color: #007bff;
+}
+
+.recipient-chip.chat-chip {
+	background-color: #28a745;
+}
+
+.recipient-chip-close {
+	background: none;
+	border: none;
+	color: white;
+	cursor: pointer;
+	padding: 0;
+	width: 1rem;
+	height: 1rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	font-size: 0.75rem;
+}
+
+.recipient-chip-close:hover {
+	background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Chat List Styles for Forward Modal */
+.forward-chat-list {
+	background-color: #f8f9fa;
+	border: 1px solid #dee2e6;
+	border-radius: 0.375rem;
+	max-height: 200px;
+	overflow-y: auto;
+}
+
+.forward-chat-item {
+	padding: 0.75rem;
+	cursor: pointer;
+	border-bottom: 1px solid #e9ecef;
+	transition: background-color 0.2s ease;
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.forward-chat-item:last-child {
+	border-bottom: none;
+}
+
+.forward-chat-item:hover {
+	background-color: #e9ecef;
+}
+
+.forward-chat-item.selected {
+	background-color: #e3f2fd;
+}
+
+.forward-chat-avatar {
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: white;
+	font-weight: 600;
+	font-size: 12px;
+	flex-shrink: 0;
+}
+
+.forward-chat-info {
+	flex: 1;
+}
+
+.forward-chat-name {
+	font-weight: 500;
+	margin-bottom: 0.25rem;
+}
+
+.forward-chat-type {
+	font-size: 0.75rem;
+	color: #6c757d;
+}
+
+/* Message Preview in Forward Modal */
+.forward-message-preview {
+	background-color: #f8f9fa;
+	border: 1px solid #dee2e6;
+	border-radius: 0.5rem;
+	padding: 0.75rem;
+	margin-bottom: 1rem;
+}
+
+.forward-preview-header {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: #495057;
+	margin-bottom: 0.5rem;
+}
+
+.forward-preview-content {
+	font-size: 0.875rem;
+	color: #6c757d;
+	font-style: italic;
+	max-height: 3em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+}
+
+.forward-preview-image {
+	max-width: 100px;
+	max-height: 100px;
+	border-radius: 0.25rem;
+	object-fit: cover;
+	margin-bottom: 0.5rem;
+}
+
 /* Reply Feature Styles */
 .message-reply-btn {
 	background: rgba(255, 255, 255, 0.9);
@@ -410,6 +669,8 @@ main.col-md-8.col-lg-9 {
 	min-width: 120px;
 	z-index: 100;
 }
+
+
 
 /* For sent messages, position dropdown towards the left (inside) */
 .message-sent .reply-dropdown {
@@ -576,10 +837,42 @@ main.col-md-8.col-lg-9 {
 	color: rgba(255, 255, 255, 0.7);
 }
 
+/* Forwarded Message Indicator */
+.message-forwarded-indicator {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	margin-bottom: 0.5rem;
+	font-size: 0.75rem;
+	font-weight: 500;
+	color: #6c757d;
+	opacity: 0.8;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+	padding: 0.25rem 0 0.4rem;
+}
+
+.message-sent .message-forwarded-indicator {
+	color: rgba(255, 255, 255, 0.8);
+	border-bottom-color: rgba(255, 255, 255, 0.2);
+}
+
+.forwarded-icon {
+	width: 12px;
+	height: 12px;
+	flex-shrink: 0;
+	opacity: 0.7;
+}
+
+.forwarded-text {
+	font-style: italic;
+	letter-spacing: 0.3px;
+}
+
+
 /* Update hover actions to include reply button */
 .message-hover-actions {
 	position: absolute;
-	right: -80px; /* Increased width to accommodate three buttons */
+	right: -110px; /* Increased width to accommodate three buttons */
 	top: 50%;
 	transform: translateY(-50%);
 	opacity: 0;
@@ -590,10 +883,13 @@ main.col-md-8.col-lg-9 {
 }
 
 .message-wrapper.message-sent .message-hover-actions {
-	left: -120px; /* Increased for sent messages */
+	left: -150px; /* Increased for sent messages */
 	right: auto;
 }
 
+.message-wrapper:hover .message-hover-actions {
+	opacity: 1;
+}
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
@@ -624,6 +920,33 @@ main.col-md-8.col-lg-9 {
 
 	.reply-dropdown {
 		min-width: 100px;
+	}
+	.message-forward-btn {
+		width: 28px;
+		height: 28px;
+	}
+
+	.forward-dropdown {
+		min-width: 100px;
+	}
+
+	.forward-modal-dialog {
+		max-width: 95%;
+		margin: 1rem;
+	}
+
+	.recipient-tabs {
+		flex-direction: column;
+	}
+
+	.recipient-tab {
+		border-bottom: 1px solid #dee2e6;
+		border-right: none;
+	}
+
+	.recipient-tab.active {
+		border-bottom-color: #dee2e6;
+		border-left: 3px solid #007bff;
 	}
 }
 
@@ -1828,4 +2151,26 @@ main.col-md-8.col-lg-9 {
 		width: 14px !important;
 		height: 14px !important;
 	}
+}
+
+/* Empty state styles */
+.forward-empty-state {
+	text-align: center;
+	padding: 2rem;
+	color: #6c757d;
+}
+
+.forward-empty-state svg {
+	margin-bottom: 1rem;
+	opacity: 0.5;
+}
+
+/* Loading state for forward modal */
+.forward-loading {
+	text-align: center;	padding: 2rem;
+}
+
+.forward-loading .spinner-border {
+	width: 2rem;
+	height: 2rem;
 }

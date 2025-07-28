@@ -17,3 +17,19 @@ func (db *appdbimpl) DeleteComment(messageID int, userID int) error {
 
 	return nil
 }
+
+func (db *appdbimpl) DeleteAllComments(messageID int) error {
+	result, err := db.c.Exec(`DELETE FROM comments
+                            WHERE message_id = ?`,
+		messageID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("comment not found")
+	}
+
+	return nil
+}

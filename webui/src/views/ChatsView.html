@@ -184,6 +184,16 @@
 								</div>
 
 								<div class="message-bubble" :class="{ 'has-likes': message.likes && message.likes.length > 0 }" style="position: relative;">
+									<!-- Forwarded Message Indicator -->
+									<div v-if="message.isForward" class="message-forwarded-indicator">
+										<!-- Forward icon SVG -->
+										<svg class="forwarded-icon" viewBox="0 0 24 24" fill="currentColor">
+											<path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+											<path d="M2.59 16.59L7.17 12 2.59 7.41 4 6l6 6-6 6-1.41-1.41z"/>
+										</svg>
+										<span class="forwarded-text">Forwarded</span>
+									</div>
+
 									<!-- Reply Section (if this message is a reply) -->
 									<div
 										v-if="message.replyTo && getReplyMessage(message.replyTo)"
@@ -284,7 +294,7 @@
 												/>
 											</svg>
 
-																			<!-- Single checkmark for sent but not read messages -->
+											<!-- Single checkmark for sent but not read messages -->
 											<svg
 												v-else
 												class="message-status-sent"
@@ -381,6 +391,37 @@
 										</div>
 									</button>
 
+									<!-- Forward Button -->
+									<button
+										class="message-forward-btn"
+										@click="toggleForwardDropdown(message.id)"
+										@click.stop
+									>
+										<!-- Forward arrow icon -->
+										<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+											<path d="M9.5 13a.5.5 0 0 1-.5-.5V10H2.5a.5.5 0 0 1 0-1H9V6.5a.5.5 0 0 1 .854-.354l3 3a.5.5 0 0 1 0 .708l-3 3A.5.5 0 0 1 9.5 13z"/>
+										</svg>
+
+										<!-- Forward Dropdown with mouse leave behavior -->
+										<div
+											v-if="showForwardDropdown === message.id"
+											class="forward-dropdown"
+											@click.stop
+											@mouseleave="handleDropdownMouseLeave('forward')"
+											@mouseenter="handleDropdownMouseEnter('forward')"
+										>
+											<div
+												class="forward-option"
+												@click="openForwardModal(message)"
+											>
+												<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+													<path d="M9.5 13a.5.5 0 0 1-.5-.5V10H2.5a.5.5 0 0 1 0-1H9V6.5a.5.5 0 0 1 .854-.354l3 3a.5.5 0 0 1 0 .708l-3 3A.5.5 0 0 1 9.5 13z"/>
+												</svg>
+												Forward
+											</div>
+										</div>
+									</button>
+
 									<!-- Delete Button -->
 									<button
 										class="delete-btn"
@@ -464,7 +505,6 @@
 					</div>
 				</div>
 
-				<!-- Message input -->
 				<!-- Message input -->
 				<div class="message-input-container p-3 border-top bg-light">
 					<form @submit.prevent="sendMessage">
@@ -875,6 +915,217 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Forward Message Modal -->
+	<div v-if="showForwardModal" class="forward-modal" @click.self="closeForwardModal">
+		<div class="forward-modal-dialog">
+			<div class="vue-modal-content">
+				<div class="vue-modal-header">
+					<h5 class="vue-modal-title">Forward Message</h5>
+					<button type="button" class="vue-modal-close" @click="closeForwardModal">×</button>
+				</div>
+				<div class="vue-modal-body">
+					<!-- Message Preview -->
+					<div class="forward-message-preview">
+						<div class="forward-preview-header">Forwarding message:</div>
+						<div class="forward-preview-content">
+							<img
+								v-if="forwardingMessage && (forwardingMessage.type === 'image' || forwardingMessage.type === 'gif') && messageImageUrls[forwardingMessage.id]"
+								:src="messageImageUrls[forwardingMessage.id]"
+								:alt="forwardingMessage.mediaUrl || 'Image'"
+								class="forward-preview-image"
+							>
+							{{ getForwardPreviewText(forwardingMessage) }}
+						</div>
+					</div>
+
+					<!-- Recipient Selection Tabs -->
+					<div class="recipient-tabs">
+						<button
+							class="recipient-tab"
+							:class="{ active: forwardActiveTab === 'users' }"
+							@click="forwardActiveTab = 'users'"
+						>
+							Users
+						</button>
+						<button
+							class="recipient-tab"
+							:class="{ active: forwardActiveTab === 'chats' }"
+							@click="forwardActiveTab = 'chats'"
+						>
+							Group Chats
+						</button>
+					</div>
+
+					<!-- Selected Recipients Display -->
+					<div v-if="selectedForwardRecipients.length > 0" class="mb-3">
+						<label class="form-label">Selected Recipients ({{ selectedForwardRecipients.length }})</label>
+						<div class="selected-recipients d-flex flex-wrap">
+                        <span
+							v-for="recipient in selectedForwardRecipients"
+							:key="`${recipient.type}-${recipient.id}`"
+							class="recipient-chip"
+							:class="recipient.type === 'user' ? 'user-chip' : 'chat-chip'"
+						>
+                            {{ recipient.name }}
+                            <button
+								type="button"
+								class="recipient-chip-close"
+								@click="removeForwardRecipient(recipient)"
+							>
+                                ×
+                            </button>
+                        </span>
+						</div>
+					</div>
+
+					<!-- Users Tab Content -->
+					<div v-if="forwardActiveTab === 'users'">
+						<!-- User Search -->
+						<div class="mb-3">
+							<label class="form-label">Select Users</label>
+							<div class="user-search-container mb-3">
+								<div class="input-group">
+									<input
+										type="text"
+										class="form-control"
+										placeholder="Search users..."
+										v-model="forwardUserSearchQuery"
+										@input="filterForwardUsers"
+									>
+									<button class="btn btn-outline-secondary" type="button" @click="getForwardUsers">
+										<svg v-if="!loadingForwardUsers" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+											<path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+										</svg>
+										<div v-else class="spinner-border spinner-border-sm" role="status">
+											<span class="visually-hidden">Loading...</span>
+										</div>
+									</button>
+								</div>
+							</div>
+
+							<!-- Loading state for users -->
+							<div v-if="loadingForwardUsers" class="forward-loading">
+								<div class="spinner-border" role="status">
+									<span class="visually-hidden">Loading users...</span>
+								</div>
+							</div>
+
+							<!-- Users list -->
+							<div v-else-if="filteredForwardUsers.length > 0" class="user-list border rounded p-2" style="max-height: 200px; overflow-y: auto;">
+								<div
+									v-for="user in filteredForwardUsers"
+									:key="user.id"
+									class="user-item d-flex align-items-center p-2 rounded hover-bg-light"
+									style="cursor: pointer;"
+									@click="toggleForwardUserSelection(user)"
+								>
+									<input
+										type="checkbox"
+										class="form-check-input me-3"
+										:checked="isForwardRecipientSelected(user.id, 'user')"
+										@click.stop="toggleForwardUserSelection(user)"
+									>
+									<div class="user-avatar me-3">
+										<div class="avatar-circle" style="width: 32px; height: 32px; font-size: 12px;">
+											<span class="avatar-text">{{ getUserInitials(user.username) }}</span>
+										</div>
+									</div>
+									<div class="user-info">
+										<div class="fw-medium">{{ user.username }}</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- No users found -->
+							<div v-else-if="forwardUsers.length === 0 && !loadingForwardUsers" class="forward-empty-state">
+								<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+									<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+									<circle cx="9" cy="7" r="4"/>
+									<path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+									<path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+								</svg>
+								<p>No users found. Click search to load users.</p>
+							</div>
+
+							<!-- No filtered results -->
+							<div v-else-if="filteredForwardUsers.length === 0 && forwardUserSearchQuery && !loadingForwardUsers" class="forward-empty-state">
+								<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+									<circle cx="11" cy="11" r="8"/>
+									<path d="M21 21l-4.35-4.35"/>
+								</svg>
+								<p>No users found matching "{{ forwardUserSearchQuery }}"</p>
+							</div>
+						</div>
+					</div>
+
+					<!-- Chats Tab Content -->
+					<div v-if="forwardActiveTab === 'chats'">
+						<div class="mb-3">
+							<label class="form-label">Select Group Chats</label>
+
+							<!-- Group chats list -->
+							<div v-if="forwardGroupChats.length > 0" class="forward-chat-list">
+								<div
+									v-for="chat in forwardGroupChats"
+									:key="chat.id"
+									class="forward-chat-item"
+									:class="{ selected: isForwardRecipientSelected(chat.id, 'chat') }"
+									@click="toggleForwardChatSelection(chat)"
+								>
+									<input
+										type="checkbox"
+										class="form-check-input me-3"
+										:checked="isForwardRecipientSelected(chat.id, 'chat')"
+										@click.stop="toggleForwardChatSelection(chat)"
+									>
+									<div class="forward-chat-avatar">
+										<img
+											v-if="chatImageUrls[chat.id]"
+											:src="chatImageUrls[chat.id]"
+											:alt="getChatName(chat)"
+											style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;"
+										>
+										<span v-else>{{ getChatInitials(chat) }}</span>
+									</div>
+									<div class="forward-chat-info">
+										<div class="forward-chat-name">{{ getChatName(chat) }}</div>
+										<div class="forward-chat-type">Group Chat</div>
+									</div>
+								</div>
+							</div>
+
+							<!-- No group chats -->
+							<div v-else class="forward-empty-state">
+								<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+									<path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+								</svg>
+								<p>No group chats available for forwarding.</p>
+							</div>
+						</div>
+					</div>
+
+					<!-- Error Message -->
+					<ErrorMsg v-if="forwardError" :message="forwardError"/>
+				</div>
+				<div class="vue-modal-footer">
+					<button type="button" class="btn btn-secondary" @click="closeForwardModal">Cancel</button>
+					<button
+						type="button"
+						class="btn btn-success"
+						@click="forwardMessage"
+						:disabled="forwardLoading || selectedForwardRecipients.length === 0"
+					>
+						<div v-if="forwardLoading" class="spinner-border spinner-border-sm me-2" role="status">
+							<span class="visually-hidden">Forwarding...</span>
+						</div>
+						Forward to {{ selectedForwardRecipients.length }} recipient{{ selectedForwardRecipients.length !== 1 ? 's' : '' }}
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
 
 	<!-- Rename Group Modal -->
 	<div v-if="showSetGroupNameModal" class="vue-modal" @click.self="showSetGroupNameModal = false">

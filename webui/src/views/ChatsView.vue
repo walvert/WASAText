@@ -133,12 +133,34 @@ export default {
 
 			showReplyDropdown: null,
 			replyingToMessage: null,
+
+			// Forward modal states
+			showForwardModal: false,
+			forwardingMessage: null,
+			forwardActiveTab: 'users',
+			forwardLoading: false,
+			forwardError: null,
+
+			// Forward users
+			forwardUsers: [],
+			filteredForwardUsers: [],
+			loadingForwardUsers: false,
+			forwardUserSearchQuery: '',
+
+			// Forward recipients
+			selectedForwardRecipients: [],
+
+			// Forward dropdown
+			showForwardDropdown: null,
 		}
 	},
 
 	computed: {
 		selectedChat() {
 			return this.chats.find(chat => chat.id === this.selectedChatId);
+		},
+		forwardGroupChats() {
+			return this.chats.filter(chat => chat.isGroup && chat.id !== this.selectedChatId);
 		}
 	},
 	async created() {
@@ -431,6 +453,18 @@ export default {
 			if (this.showLikesDropdown === messageId) {
 				this.showReplyDropdown = null;
 				this.showDeleteDropdown = null;
+				this.showForwardDropdown = null;
+			}
+		},
+
+		// Forward dropdown toggle
+		toggleForwardDropdown(messageId) {
+			this.showForwardDropdown = this.showForwardDropdown === messageId ? null : messageId;
+			// Close other dropdowns when opening forward dropdown
+			if (this.showForwardDropdown === messageId) {
+				this.showLikesDropdown = null;
+				this.showReplyDropdown = null;
+				this.showDeleteDropdown = null;
 			}
 		},
 
@@ -518,6 +552,7 @@ export default {
 			if (this.showReplyDropdown === messageId) {
 				this.showLikesDropdown = null;
 				this.showDeleteDropdown = null;
+				this.showForwardDropdown = null;
 			}
 		},
 
@@ -709,6 +744,32 @@ export default {
 			}
 		},
 
+		// Open forward modal
+		openForwardModal(message) {
+			this.forwardingMessage = message;
+			this.showForwardModal = true;
+			this.showForwardDropdown = null;
+			this.forwardActiveTab = 'users';
+			this.selectedForwardRecipients = [];
+			this.forwardError = null;
+
+			// Auto-fetch users when modal opens
+			this.getForwardUsers();
+		},
+
+		// Close forward modal
+		closeForwardModal() {
+			this.showForwardModal = false;
+			this.forwardingMessage = null;
+			this.selectedForwardRecipients = [];
+			this.forwardUsers = [];
+			this.filteredForwardUsers = [];
+			this.forwardUserSearchQuery = '';
+			this.forwardError = null;
+			this.forwardLoading = false;
+			this.loadingForwardUsers = false;
+		},
+
 		// New Chat Image Modal Methods
 		openNewChatImageModal() {
 			this.showNewChatImageModal = true;
@@ -847,17 +908,19 @@ export default {
 			if (this.showDeleteDropdown === messageId) {
 				this.showLikesDropdown = null;
 				this.showReplyDropdown = null;
+				this.showForwardDropdown = null;
 			}
 		},
 
 		handleDropdownMouseLeave(dropdownType) {
-			// Close the dropdown when mouse leaves
 			if (dropdownType === 'likes') {
 				this.showLikesDropdown = null;
 			} else if (dropdownType === 'reply') {
 				this.showReplyDropdown = null;
 			} else if (dropdownType === 'delete') {
 				this.showDeleteDropdown = null;
+			} else if (dropdownType === 'forward') {
+				this.showForwardDropdown = null;
 			}
 		},
 
@@ -1061,6 +1124,162 @@ export default {
 			this.filteredUsers = this.users.filter(user =>
 				user.username.toLowerCase().includes(query)
 			);
+		},
+
+		// Get users for forwarding (reuse existing logic)
+		async getForwardUsers() {
+			try {
+				this.loadingForwardUsers = true;
+				this.forwardError = null;
+
+				const response = await this.$axios.get('/users');
+				this.forwardUsers = response.data;
+				this.filteredForwardUsers = response.data;
+
+				console.log('Forward users fetched successfully:', this.forwardUsers);
+
+			} catch (err) {
+				console.error('Failed to fetch forward users', err);
+				this.forwardError = 'Failed to load users. Please try again.';
+			} finally {
+				this.loadingForwardUsers = false;
+			}
+		},
+
+		// Filter forward users
+		filterForwardUsers() {
+			if (!this.forwardUserSearchQuery.trim()) {
+				this.filteredForwardUsers = this.forwardUsers;
+				return;
+			}
+
+			const query = this.forwardUserSearchQuery.toLowerCase();
+			this.filteredForwardUsers = this.forwardUsers.filter(user =>
+				user.username.toLowerCase().includes(query)
+			);
+		},
+
+		// Check if recipient is selected
+		isForwardRecipientSelected(id, type) {
+			return this.selectedForwardRecipients.some(recipient =>
+				recipient.id === id && recipient.type === type
+			);
+		},
+
+		// Toggle user selection for forwarding
+		toggleForwardUserSelection(user) {
+			const existingIndex = this.selectedForwardRecipients.findIndex(recipient =>
+				recipient.id === user.id && recipient.type === 'user'
+			);
+
+			if (existingIndex > -1) {
+				// User is already selected, remove them
+				this.selectedForwardRecipients.splice(existingIndex, 1);
+			} else {
+				// User is not selected, add them
+				this.selectedForwardRecipients.push({
+					id: user.id,
+					type: 'user',
+					name: user.username
+				});
+			}
+		},
+
+		// Toggle chat selection for forwarding
+		toggleForwardChatSelection(chat) {
+			const existingIndex = this.selectedForwardRecipients.findIndex(recipient =>
+				recipient.id === chat.id && recipient.type === 'chat'
+			);
+
+			if (existingIndex > -1) {
+				// Chat is already selected, remove it
+				this.selectedForwardRecipients.splice(existingIndex, 1);
+			} else {
+				// Chat is not selected, add it
+				this.selectedForwardRecipients.push({
+					id: chat.id,
+					type: 'chat',
+					name: this.getChatName(chat)
+				});
+			}
+		},
+
+		// Remove forward recipient
+		removeForwardRecipient(recipient) {
+			const index = this.selectedForwardRecipients.findIndex(r =>
+				r.id === recipient.id && r.type === recipient.type
+			);
+			if (index > -1) {
+				this.selectedForwardRecipients.splice(index, 1);
+			}
+		},
+
+		// Get preview text for forwarding message
+		getForwardPreviewText(message) {
+			if (!message) return '';
+
+			if (message.type === 'image') {
+				return message.text ? message.text : '📷 Photo';
+			} else if (message.type === 'gif') {
+				return message.text ? message.text : '🎞️ GIF';
+			}
+
+			return message.text || '';
+		},
+
+		// Send forward message
+		async forwardMessage() {
+			if (!this.forwardingMessage || this.selectedForwardRecipients.length === 0) {
+				this.forwardError = 'Please select at least one recipient';
+				return;
+			}
+
+			try {
+				this.forwardLoading = true;
+				this.forwardError = null;
+
+				// Prepare recipients array for API
+				const recipients = this.selectedForwardRecipients.map(recipient => ({
+					id: recipient.id,
+					type: recipient.type
+				}));
+
+				console.log('Forwarding message:', this.forwardingMessage.id, 'to recipients:', recipients);
+
+				// Send forward request
+				const response = await this.$axios.post(`/messages/${this.forwardingMessage.id}/forwards`, {
+					recipients: recipients
+				});
+
+				console.log('Forward response:', response.data);
+
+				// Close modal
+				this.closeForwardModal();
+
+				// Show success message
+				const recipientCount = this.selectedForwardRecipients.length;
+				alert(`Message forwarded successfully to ${recipientCount} recipient${recipientCount !== 1 ? 's' : ''}!`);
+
+				// Refresh conversations to show new messages
+				await this.getMyConversations();
+
+			} catch (err) {
+				console.error('Failed to forward message', err);
+
+				// Handle specific error cases
+				if (err.response?.status === 403) {
+					this.forwardError = 'You are not authorized to forward this message.';
+				} else if (err.response?.status === 404) {
+					this.forwardError = 'Message not found or some recipients are invalid.';
+				} else if (err.response?.status === 401) {
+					console.log('Authentication error during message forward');
+					this.$emit('logout');
+				} else {
+					this.forwardError = err.response?.data?.message || 'Failed to forward message. Please try again.';
+				}
+			} finally {
+				this.forwardLoading = false;
+			}
 		},
 
 		toggleUserSelection(user) {

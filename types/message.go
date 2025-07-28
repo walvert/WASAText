@@ -43,6 +43,17 @@ type ForwardRequest struct {
 	Recipients []ForwardRecipient `json:"recipients"`
 }
 
+type ForwardResult struct {
+	ChatID    int `json:"chatId"`
+	MessageID int `json:"messageId"`
+}
+
+type ForwardInfo struct {
+	Type     string `db:"type"`
+	Text     string `db:"text"`
+	MediaUrl string `db:"media_url"`
+}
+
 type ForwardRecipient struct {
 	ID   int    `json:"id"`
 	Type string `json:"type"`
