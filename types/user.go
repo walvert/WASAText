@@ -1,8 +1,9 @@
 package types
 
 type User struct {
-	ID       int    `json:"id"`
-	Username string `json:"username"`
+	ID       int    `db:"id" json:"id"`
+	Username string `db:"username" json:"username"`
+	ImageUrl string `db:"image_url" json:"imageUrl"`
 }
 
 type LoginRequest struct {

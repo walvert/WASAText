@@ -356,6 +356,33 @@ paths:
   /chats/{chatId}/members:
     parameters:
       - $ref: "#/components/parameters/ChatID"
+    get:
+      tags:
+        - chats
+      operationId: getGroupMembers
+      summary: get the list of members of the group chat
+      description: "Return the list of users members of the group chat"
+      responses:
+        "200":
+          description: Chat members fetched successfully
+          content:
+            application/json:
+              schema:
+                description: chat members
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+                minItems: 1
+                maxItems: 9999
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
     post:
       tags:
         - chats
@@ -369,21 +396,26 @@ paths:
               $ref: '#/components/schemas/UsernameRequest'
       responses:
         "201":
-          description: User added
+          description: User added to chat
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
-        "200":
-          description: User already present
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "User is already a member"
+                description: chat members
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+                minItems: 1
+                maxItems: 9999
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "409":
+          $ref: '#/components/responses/ConflictError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
     delete:
       tags:
         - chats
@@ -469,6 +501,7 @@ paths:
         The request requires an Authorization header.
       tags:
         - media
+      operationId: getImage
       parameters:
         - name: folder
           in: path
@@ -969,16 +1002,6 @@ components:
           example: 400
 
   parameters:
-    UserID:
-      schema:
-        type: number
-        format: integer
-        example: 134
-      name: userId
-      in: path
-      required: true
-      description: User identifier
-
     ChatID:
       schema:
         type: number
@@ -1041,6 +1064,13 @@ components:
 
     NotFoundError:
       description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ConflictError:
+      description: Conflict error
       content:
         application/json:
           schema:

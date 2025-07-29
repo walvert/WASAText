@@ -72,6 +72,7 @@ type AppDatabase interface {
 	GetComments(messageId int) ([]string, error)
 	DeleteMessage(messageId int) (bool, error)
 	GetForwardInfo(messageId int) (types.ForwardInfo, error)
+	GetGroupMembers(chatId int) ([]types.User, error)
 }
 
 type appdbimpl struct {

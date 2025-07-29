@@ -48,27 +48,27 @@ export default {
 			profileLoading: false,
 			profileError: null,
 
-			chatImageUrls: {}, // Store blob URLs for each chat
-			imageCache: {}, // Cache blob URLs by image path
+			chatImageUrls: {},
+			imageCache: {},
 
 			// Polling improvements
 			pollingInterval: null,
 			isPolling: false,
 			pollingRetryCount: 0,
 			maxRetries: 3,
-			basePollingInterval: 2000, // 5 seconds
+			basePollingInterval: 2000,
 			currentPollingInterval: 2000,
 
 			// Request tracking
 			activeRequests: new Set(),
 			requestController: null,
 
-			// New Chat Modal - Enhanced
-			showNewChatModal: false, // Make sure this is initialized
+			// New Chat Modal
+			showNewChatModal: false,
 			newChatLoading: false,
 			newChatError: null,
-			newChatName: '', // For group chats
-			initialMessage: '', // Optional initial message
+			newChatName: '',
+			initialMessage: '',
 
 			// User Selection
 			users: [],
@@ -96,7 +96,7 @@ export default {
 			tempSelectedImage: null,
 			tempImagePreviewUrl: null,
 			imageModalError: null,
-			messageImageUrls: {}, // Store blob URLs for message images
+			messageImageUrls: {},
 
 			// Image viewer
 			showImageViewer: false,
@@ -129,7 +129,7 @@ export default {
 			showLikesDropdown: null,
 
 			showDeleteDropdown: null,
-			deletingMessage: null, // Track which message is being deleted
+			deletingMessage: null,
 
 			showReplyDropdown: null,
 			replyingToMessage: null,
@@ -152,6 +152,13 @@ export default {
 
 			// Forward dropdown
 			showForwardDropdown: null,
+
+			// Chat header info dropdown
+			showChatInfoDropdown: false,
+			chatMembers: [],
+			loadingChatMembers: false,
+			memberImageUrls: {},
+			chatInfoDropdownTimeout: null,
 		}
 	},
 
@@ -163,15 +170,9 @@ export default {
 			return this.chats.filter(chat => chat.isGroup && chat.id !== this.selectedChatId);
 		},
 		canCreateNewChat() {
-			// Check if recipients are selected
 			const hasRecipients = this.selectedUsers.length > 0;
-
-			// Check if group name is provided when needed
 			const hasGroupNameIfNeeded = this.selectedUsers.length <= 1 || this.newChatName.trim();
-
-			// Check if initial content (message or media) is provided
 			const hasInitialContent = this.initialMessage.trim() || this.selectedNewChatImage;
-
 			return hasRecipients && hasGroupNameIfNeeded && hasInitialContent && !this.newChatLoading;
 		}
 	},
@@ -251,6 +252,7 @@ export default {
 			this.showDeleteDropdown = null;
 			this.showReplyDropdown = null;
 			this.showForwardDropdown = null;
+			this.showChatInfoDropdown = false;
 		});
 
 		// Re-focus input when clicking in the chat area (but not on other interactive elements)
@@ -342,7 +344,7 @@ export default {
 				this.messagesError = null;
 				this.activeRequests.add(requestId);
 
-				// Store scroll position ONLY for polling (not first load)
+				// Store scroll position before updating messages
 				let savedScrollTop = 0;
 				let savedScrollHeight = 0;
 				const messagesContainer = this.$refs.messagesContainer;
@@ -351,10 +353,16 @@ export default {
 					savedScrollTop = messagesContainer.scrollTop;
 					savedScrollHeight = messagesContainer.scrollHeight;
 
-					// Update user position status
-					const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
-					const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+					// Calculate distance from bottom to determine user position
+					const distanceFromBottom = savedScrollHeight - (savedScrollTop + messagesContainer.clientHeight);
 					this.isUserAtBottom = distanceFromBottom <= this.scrollThreshold;
+
+					console.log('Saving scroll position:', {
+						scrollTop: savedScrollTop,
+						scrollHeight: savedScrollHeight,
+						distanceFromBottom,
+						isUserAtBottom: this.isUserAtBottom
+					});
 				}
 
 				const response = await this.$axios.get(`/chats/${chatId}`, {
@@ -362,18 +370,19 @@ export default {
 					timeout: 10000
 				});
 
-				// Store previous message count to detect new messages
-				const previousMessageCount = this.messages.length;
+				// Store previous message IDs to detect new messages
 				const previousMessageIds = new Set(this.messages.map(m => m.id));
 
-				// Sort messages by timestamp (oldest first, newest at bottom)
+				// Sort messages by timestamp (oldest first)
 				const newMessages = response.data.sort((a, b) => {
 					return new Date(a.createdAt) - new Date(b.createdAt);
 				});
 
-				// Detect new messages
-				const hasNewMessages = newMessages.some(msg => !previousMessageIds.has(msg.id));
-				const newMessageCount = newMessages.filter(msg => !previousMessageIds.has(msg.id)).length;
+				// Detect new messages from other users
+				const newIncomingMessages = newMessages.filter(msg =>
+					!previousMessageIds.has(msg.id) &&
+					msg.username !== this.currentUsername
+				);
 
 				// Update messages
 				this.messages = newMessages;
@@ -388,39 +397,85 @@ export default {
 				await this.getLastReadMessageId(chatId);
 
 				// Handle scrolling after DOM update
-				this.$nextTick(() => {
-					const container = this.$refs.messagesContainer;
-					if (!container) return;
+				await this.$nextTick();
 
-					if (isFirstLoad) {
-						// Case 1: First chat opening - scroll to bottom and focus input
-						console.log('First load - scrolling to bottom and focusing input');
-						this.scrollToBottom();
-						// Focus input after a short delay to ensure everything is rendered
+				const container = this.$refs.messagesContainer;
+				if (!container) return;
+
+				if (isFirstLoad) {
+					// First load - ensure we scroll to bottom after DOM is fully rendered
+					console.log('First load - scrolling to bottom');
+
+					// Use requestAnimationFrame to ensure DOM is fully updated
+					requestAnimationFrame(() => {
+						if (this.$refs.messagesContainer) {
+							this.$refs.messagesContainer.scrollTop = this.$refs.messagesContainer.scrollHeight;
+							this.isUserAtBottom = true;
+							this.hasNewMessages = false;
+							this.newMessageCount = 0;
+
+							console.log('First load scroll complete:', {
+								scrollHeight: this.$refs.messagesContainer.scrollHeight,
+								scrollTop: this.$refs.messagesContainer.scrollTop
+							});
+						}
+
+						// Focus input after ensuring scroll is complete
 						setTimeout(() => {
 							this.focusMessageInput();
-						}, 200);
+						}, 100);
+					});
 
-					} else if (this.shouldScrollAfterSend) {
-						// Case 4: New message sent - scroll to bottom
-						console.log('Message sent - scrolling to bottom');
-						this.scrollToBottom();
-						this.shouldScrollAfterSend = false;
+				} else if (this.shouldScrollAfterSend) {
+					// Message sent - scroll to bottom with requestAnimationFrame for reliability
+					console.log('Message sent - scrolling to bottom');
 
-					} else {
-						// Case 2: Polling refresh - restore exact position
-						console.log('Polling refresh - restoring position');
-						const heightDifference = container.scrollHeight - savedScrollHeight;
+					requestAnimationFrame(() => {
+						if (this.$refs.messagesContainer) {
+							this.$refs.messagesContainer.scrollTop = this.$refs.messagesContainer.scrollHeight;
+							this.isUserAtBottom = true;
+							this.hasNewMessages = false;
+							this.newMessageCount = 0;
+
+							console.log('Scroll to bottom after send complete:', {
+								scrollHeight: this.$refs.messagesContainer.scrollHeight,
+								scrollTop: this.$refs.messagesContainer.scrollTop
+							});
+						}
+					});
+
+					this.shouldScrollAfterSend = false;
+
+				} else {
+					// Polling refresh - restore position
+					console.log('Polling refresh - restoring position');
+
+					// IMPORTANT: Use requestAnimationFrame to ensure DOM has fully updated
+					requestAnimationFrame(() => {
+						if (!container) return;
+
+						const newScrollHeight = container.scrollHeight;
+						const heightDifference = newScrollHeight - savedScrollHeight;
+
+						// Restore the exact scroll position accounting for any height changes
 						container.scrollTop = savedScrollTop + heightDifference;
 
-						// Case 3: New messages received while user is mid-chat
-						if (hasNewMessages && !this.isUserAtBottom) {
+						console.log('Restored scroll position:', {
+							oldHeight: savedScrollHeight,
+							newHeight: newScrollHeight,
+							heightDiff: heightDifference,
+							oldScrollTop: savedScrollTop,
+							newScrollTop: container.scrollTop
+						});
+
+						// Show new message indicator if user is not at bottom and there are new messages
+						if (newIncomingMessages.length > 0 && !this.isUserAtBottom) {
 							console.log('New messages detected, showing indicator');
 							this.hasNewMessages = true;
-							this.newMessageCount += newMessageCount;
+							this.newMessageCount += newIncomingMessages.length;
 						}
-					}
-				});
+					});
+				}
 
 			} catch (err) {
 				if (err.name === 'AbortError' || err.code === 'ECONNABORTED') {
@@ -470,6 +525,89 @@ export default {
 			}
 		},
 
+		// Toggle chat info dropdown
+		toggleChatInfoDropdown() {
+			if (this.showChatInfoDropdown) {
+				this.showChatInfoDropdown = false;
+			} else {
+				this.showChatInfoDropdown = true;
+				this.getChatMembers();
+			}
+
+			// Clear timeout if it exists
+			if (this.chatInfoDropdownTimeout) {
+				clearTimeout(this.chatInfoDropdownTimeout);
+				this.chatInfoDropdownTimeout = null;
+			}
+		},
+
+		// Handle dropdown mouse leave with delay
+		handleChatInfoDropdownMouseLeave() {
+			this.chatInfoDropdownTimeout = setTimeout(() => {
+				this.showChatInfoDropdown = false;
+			}, 300);
+		},
+
+		// Handle dropdown mouse enter (cancel close)
+		handleChatInfoDropdownMouseEnter() {
+			if (this.chatInfoDropdownTimeout) {
+				clearTimeout(this.chatInfoDropdownTimeout);
+				this.chatInfoDropdownTimeout = null;
+			}
+		},
+
+		// Get chat members from API
+		async getChatMembers() {
+			if (!this.selectedChatId) return;
+
+			try {
+				this.loadingChatMembers = true;
+
+				const response = await this.$axios.get(`/chats/${this.selectedChatId}/members`);
+				this.chatMembers = response.data || [];
+
+				console.log('Chat members loaded:', this.chatMembers);
+
+				// Load member images
+				await this.loadMemberImages();
+
+			} catch (error) {
+				console.error('Failed to load chat members:', error);
+				this.chatMembers = [];
+
+				// Don't show error for 404 (not a group chat) or 401
+				if (error.response?.status === 401) {
+					this.$emit('logout');
+				}
+			} finally {
+				this.loadingChatMembers = false;
+			}
+		},
+
+		// Load member profile images
+		async loadMemberImages() {
+			for (const member of this.chatMembers) {
+				if (member.imageUrl && !this.memberImageUrls[member.id]) {
+					try {
+						const imageUrl = await this.getChatImageUrl(member.imageUrl);
+						if (imageUrl) {
+							this.memberImageUrls[member.id] = imageUrl;
+						}
+					} catch (error) {
+						console.error(`Failed to load image for member ${member.id}:`, error);
+					}
+				}
+			}
+		},
+
+		// Handle member image load error
+		handleMemberImageError(memberId) {
+			if (this.memberImageUrls[memberId]) {
+				URL.revokeObjectURL(this.memberImageUrls[memberId]);
+				delete this.memberImageUrls[memberId];
+			}
+		},
+
 		async toggleMessageLike(message) {
 			const isLiked = this.isMessageLikedByUser(message);
 
@@ -512,15 +650,28 @@ export default {
 
 			const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
 
-			// Update bottom detection
+			// Calculate distance from bottom
 			const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+
+			// Consider user "at bottom" if within threshold
 			this.isUserAtBottom = distanceFromBottom <= this.scrollThreshold;
+
+			// Store the current scroll position for debugging
+			this.lastScrollTop = scrollTop;
 
 			// Hide indicator if user scrolls to bottom
 			if (this.isUserAtBottom && this.hasNewMessages) {
 				this.hasNewMessages = false;
 				this.newMessageCount = 0;
 			}
+
+			console.log('Scroll position:', {
+				scrollTop,
+				scrollHeight,
+				clientHeight,
+				distanceFromBottom,
+				isUserAtBottom: this.isUserAtBottom
+			});
 		},
 
 
@@ -761,7 +912,25 @@ export default {
 				// Refresh messages - shouldScrollAfterSend flag will make it scroll to bottom
 				await this.getConversation(this.selectedChatId, false);
 
-				// Maintain focus on message input after sending (with delay to ensure DOM is updated)
+				// Force scroll to bottom after conversation loads (as a backup)
+				this.$nextTick(() => {
+					requestAnimationFrame(() => {
+						if (this.$refs.messagesContainer) {
+							const container = this.$refs.messagesContainer;
+							container.scrollTop = container.scrollHeight;
+							this.isUserAtBottom = true;
+							this.hasNewMessages = false;
+							this.newMessageCount = 0;
+
+							console.log('Forced scroll to bottom after send:', {
+								scrollHeight: container.scrollHeight,
+								scrollTop: container.scrollTop
+							});
+						}
+					});
+				});
+
+				// Maintain focus on message input after sending
 				setTimeout(() => {
 					this.focusMessageInput();
 				}, 100);
@@ -1297,7 +1466,7 @@ export default {
 				this.closeForwardModal();
 
 				// Show success message
-				const recipientCount = this.selectedForwardRecipients.length;
+				const recipientCount = recipients.length;
 				alert(`Message forwarded successfully to ${recipientCount} recipient${recipientCount !== 1 ? 's' : ''}!`);
 
 				// Refresh conversations to show new messages
@@ -1712,6 +1881,10 @@ export default {
 		// Enhanced selectChat method
 		selectChat(chatId) {
 			console.log('Selecting chat:', chatId);
+
+			// Close chat info dropdown when switching chats
+			this.showChatInfoDropdown = false;
+			this.chatMembers = [];
 
 			// Clear unread count
 			const chatIndex = this.chats.findIndex(chat => chat.id === chatId);
@@ -2322,19 +2495,19 @@ export default {
 			const weekAgo = new Date(now);
 			weekAgo.setDate(now.getDate() - 7);
 			if (date > weekAgo) {
-				return date.toLocaleDateString([], { weekday: 'short' }) + ' ' +
-					date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+				return date.toLocaleDateString([], {weekday: 'short'}) + ' ' +
+					date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false});
 			}
 
 			// If this year, show month and day with time
 			if (date.getFullYear() === now.getFullYear()) {
-				return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
-					date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+				return date.toLocaleDateString([], {month: 'short', day: 'numeric'}) + ' ' +
+					date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false});
 			}
 
 			// Otherwise show full date with time
 			return date.toLocaleDateString() + ' ' +
-				date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+				date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false});
 		},
 
 		handleImageError(event) {
@@ -2449,6 +2622,10 @@ export default {
 				URL.revokeObjectURL(blobUrl);
 			});
 
+			Object.values(this.memberImageUrls).forEach(blobUrl => {
+				URL.revokeObjectURL(blobUrl);
+			});
+
 			if (this.photoPreviewUrl) {
 				URL.revokeObjectURL(this.photoPreviewUrl);
 			}
@@ -2472,6 +2649,7 @@ export default {
 			this.imageCache = {};
 			this.chatImageUrls = {};
 			this.messageImageUrls = {};
+			this.memberImageUrls = {};
 			this.photoPreviewUrl = null;
 			this.profileImagePreviewUrl = null;
 			this.currentUserImageUrl = null;
