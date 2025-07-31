@@ -270,6 +270,104 @@ export default {
 
 
 	methods: {
+		async updateProfile() {
+			if (!this.editUsername.trim() && !this.selectedProfileImage) {
+				this.profileError = 'Please enter a username or select a profile image to update';
+				return;
+			}
+
+			try {
+				this.profileLoading = true;
+				this.profileError = null;
+
+				// Update username if provided
+				if (this.editUsername.trim()) {
+					console.log('Updating username to:', this.editUsername.trim());
+
+					const response = await this.$axios.put('/users', {
+						username: this.editUsername.trim(),
+					}, {
+						headers: {
+							'Content-Type': 'application/json'
+						}
+					});
+
+					console.log('Username update response:', response.data);
+
+					// Update current user info from server response
+					if (response.data && response.data.username) {
+						this.currentUsername = response.data.username;
+
+						const userData = {
+							id: response.data.id || this.currentUserId,
+							username: this.currentUsername,
+						};
+						localStorage.setItem('user', JSON.stringify(userData));
+					}
+				}
+
+				// Update profile image if provided
+				if (this.selectedProfileImage) {
+					console.log('Updating profile image...');
+
+					const formData = new FormData();
+					formData.append('image', this.selectedProfileImage);
+
+					const response = await this.$axios.put('/users/image', formData, {
+						headers: {
+							'Content-Type': 'multipart/form-data'
+						}
+					});
+
+					console.log('Image update response:', response.data);
+
+					// Clear old cached image URL
+					if (this.currentUserImageUrl) {
+						URL.revokeObjectURL(this.currentUserImageUrl);
+						this.currentUserImageUrl = null;
+					}
+
+					// If server returns the new image URL, use it to load the image
+					if (response.data && response.data.imageUrl) {
+						console.log('Loading new image from:', response.data.imageUrl);
+						this.currentUserImageUrl = await this.getImageUrl(response.data.imageUrl);
+					} else {
+						// Fallback: reload user image from server
+						await this.loadCurrentUserImage();
+					}
+				}
+
+				// Close modal and reset
+				this.showProfileModal = false;
+				this.clearProfileImageSelection();
+				this.editUsername = '';
+
+				// Show success message
+				alert('Profile updated successfully!');
+
+			} catch (err) {
+				console.error('Failed to update profile', err);
+				console.error('Error response:', err.response);
+
+				// Check for authentication errors
+				if (err.response?.status === 401) {
+					console.log('Authentication error during profile update, logging out');
+					this.$emit('logout');
+					return;
+				}
+
+				if (err.response?.status === 413) {
+					this.profileError = 'File is too large. Please choose a smaller image.';
+				} else if (err.response?.status === 400) {
+					this.profileError = 'Invalid file format. Please choose a valid image.';
+				} else {
+					this.profileError = err.response?.data?.message || 'Failed to update profile. Please try again.';
+				}
+			} finally {
+				this.profileLoading = false;
+			}
+		},
+
 		async getMyConversations() {
 			// Create abort controller for this request
 			const controller = new AbortController();
@@ -491,6 +589,649 @@ export default {
 			}
 		},
 
+		async createNewChat() {
+			if (!this.canCreateNewChat) {
+				console.warn('Attempted to create chat when conditions not met');
+				return;
+			}
+
+			try {
+				this.newChatLoading = true;
+				this.newChatError = null;
+
+				let requestData;
+				let requestConfig = {};
+
+				if (this.selectedNewChatImage) {
+					// Create FormData for file upload
+					const formData = new FormData();
+					formData.append('image', this.selectedNewChatImage);
+					formData.append('type', this.getFileType(this.selectedNewChatImage));
+					formData.append('receivers', JSON.stringify(this.selectedUsers.map(user => user.username)));
+
+					if (this.initialMessage.trim()) {
+						formData.append('text', this.initialMessage.trim());
+					}
+
+					if (this.selectedUsers.length > 1 && this.newChatName.trim()) {
+						formData.append('chatName', this.newChatName.trim());
+					}
+
+					formData.append('isForward', 'false');
+
+					requestData = formData;
+					requestConfig = {};
+				} else {
+					// JSON request for text message
+					requestData = {
+						type: 'text',
+						receivers: this.selectedUsers.map(user => user.username),
+						text: this.initialMessage.trim()
+					};
+
+					if (this.selectedUsers.length > 1) {
+						requestData.chatName = this.newChatName.trim();
+					}
+
+					requestConfig = {
+						headers: {
+							'Content-Type': 'application/json'
+						}
+					};
+				}
+
+				console.log('Creating chat with media support...');
+
+				// Create the chat
+				const response = await this.$axios.post('/chats', requestData, requestConfig);
+
+				console.log('Chat created successfully:', response.data);
+
+				// Close modal and reset form
+				this.closeNewChatModal();
+
+				// Refresh chats and select the new one
+				await this.getMyConversations();
+
+				// Select the new chat if we have an ID from the response
+				if (response.data && response.data.id) {
+					this.selectChat(response.data.id);
+				}
+
+			} catch (err) {
+				console.error('Failed to create chat', err);
+
+				if (err.response?.status === 413) {
+					this.newChatError = 'File is too large. Please choose a smaller image.';
+				} else if (err.response?.status === 415) {
+					this.newChatError = 'Unsupported file type. Please choose a valid image.';
+				} else {
+					this.newChatError = err.response?.data?.message || 'Failed to create conversation. Please try again.';
+				}
+			} finally {
+				this.newChatLoading = false;
+			}
+		},
+
+		async sendMessage() {
+			if ((!this.newMessage.trim() && !this.selectedMessageImage) || !this.selectedChatId) return;
+
+			try {
+				this.sendingMessage = true;
+				this.pendingMessage = this.newMessage.trim();
+
+				// Set flag to scroll to bottom after sending
+				this.shouldScrollAfterSend = true;
+
+				let requestData;
+				let requestConfig = {};
+				const messageText = this.newMessage.trim();
+				const messageTime = new Date().toISOString();
+				let messageType = 'text';
+				let previewText = messageText;
+
+				if (this.selectedMessageImage) {
+					const formData = new FormData();
+					formData.append('image', this.selectedMessageImage);
+					messageType = this.getFileType(this.selectedMessageImage);
+					formData.append('type', messageType);
+
+					if (messageText) {
+						formData.append('text', messageText);
+					}
+
+					formData.append('isForward', 'false');
+
+					// Add reply information
+					if (this.replyingToMessage) {
+						formData.append('replyTo', this.replyingToMessage.id.toString());
+					} else {
+						formData.append('replyTo', '0');
+					}
+
+					requestData = formData;
+
+					if (messageText) {
+						previewText = messageText;
+					} else {
+						previewText = messageType === 'gif' ? '🎞️ GIF' : '📷 Photo';
+					}
+
+					requestConfig = {};
+				} else {
+					requestData = {
+						type: 'text',
+						text: messageText
+					};
+
+					// Add reply information
+					if (this.replyingToMessage) {
+						requestData.replyTo = this.replyingToMessage.id;
+					}
+
+					requestConfig = {
+						headers: {
+							'Content-Type': 'application/json'
+						}
+					};
+				}
+
+				console.log('Sending message - will scroll to bottom after');
+
+				const response = await this.$axios.post(
+					`/chats/${this.selectedChatId}/messages`,
+					requestData,
+					requestConfig
+				);
+
+				// Clear input and reply
+				this.newMessage = '';
+				this.pendingMessage = '';
+				this.clearReply();
+
+				if (this.selectedMessageImage) {
+					this.clearMessageImageSelection();
+				}
+
+				// Update chat preview
+				this.updateChatPreview(this.selectedChatId, {
+					lastMsgText: previewText,
+					lastMsgTime: messageTime,
+					lastMsgType: messageType,
+					lastMsgUsername: this.currentUsername
+				});
+
+				// Refresh messages - shouldScrollAfterSend flag will make it scroll to bottom
+				await this.getConversation(this.selectedChatId, false);
+
+				// Force scroll to bottom after conversation loads (as a backup)
+				this.$nextTick(() => {
+					requestAnimationFrame(() => {
+						if (this.$refs.messagesContainer) {
+							const container = this.$refs.messagesContainer;
+							container.scrollTop = container.scrollHeight;
+							this.isUserAtBottom = true;
+							this.hasNewMessages = false;
+							this.newMessageCount = 0;
+
+							console.log('Forced scroll to bottom after send:', {
+								scrollHeight: container.scrollHeight,
+								scrollTop: container.scrollTop
+							});
+						}
+					});
+				});
+
+				// Maintain focus on message input after sending
+				setTimeout(() => {
+					this.focusMessageInput();
+				}, 100);
+
+			} catch (err) {
+				console.error('Failed to send message', err);
+				this.shouldScrollAfterSend = false; // Reset flag on error
+
+				if (err.response?.status === 400) {
+					alert('Invalid message format. Please try again.');
+				} else if (err.response?.status === 413) {
+					alert('File is too large. Please choose a smaller image.');
+				} else if (err.response?.status === 415) {
+					alert('Unsupported file type. Please choose a valid image.');
+				} else {
+					alert('Failed to send message. Please try again.');
+				}
+			} finally {
+				this.sendingMessage = false;
+			}
+		},
+
+		async forwardMessage() {
+			if (!this.forwardingMessage || this.selectedForwardRecipients.length === 0) {
+				this.forwardError = 'Please select at least one recipient';
+				return;
+			}
+
+			try {
+				this.forwardLoading = true;
+				this.forwardError = null;
+
+				// Prepare recipients array for API
+				const recipients = this.selectedForwardRecipients.map(recipient => ({
+					id: recipient.id,
+					type: recipient.type
+				}));
+
+				console.log('Forwarding message:', this.forwardingMessage.id, 'to recipients:', recipients);
+
+				// Send forward request
+				const response = await this.$axios.post(`/messages/${this.forwardingMessage.id}/forwards`, {
+					recipients: recipients
+				});
+
+				console.log('Forward response:', response.data);
+
+				// Close modal
+				this.closeForwardModal();
+
+				// Show success message
+				const recipientCount = recipients.length;
+				alert(`Message forwarded successfully to ${recipientCount} recipient${recipientCount !== 1 ? 's' : ''}!`);
+
+				// Refresh conversations to show new messages
+				await this.getMyConversations();
+
+			} catch (err) {
+				console.error('Failed to forward message', err);
+
+				// Handle specific error cases
+				if (err.response?.status === 403) {
+					this.forwardError = 'You are not authorized to forward this message.';
+				} else if (err.response?.status === 404) {
+					this.forwardError = 'Message not found or some recipients are invalid.';
+				} else if (err.response?.status === 401) {
+					console.log('Authentication error during message forward');
+					this.$emit('logout');
+				} else {
+					this.forwardError = err.response?.data?.message || 'Failed to forward message. Please try again.';
+				}
+			} finally {
+				this.forwardLoading = false;
+			}
+		},
+
+		async setGroupName() {
+			if (!this.editGroupName.trim()) {
+				this.setGroupNameError = 'Group name is required';
+				return;
+			}
+
+			if (!this.selectedChatId) {
+				this.setGroupNameError = 'No group selected';
+				return;
+			}
+
+			try {
+				this.setGroupNameLoading = true;
+				this.setGroupNameError = null;
+
+				const response = await this.$axios.put(`/chats/${this.selectedChatId}`, {
+					chatName: this.editGroupName.trim()
+				});
+
+				console.log('Group renamed successfully:', response.data);
+
+				// Update the local chat name immediately for better UX
+				const chatIndex = this.chats.findIndex(chat => chat.id === this.selectedChatId);
+				if (chatIndex !== -1) {
+					this.chats[chatIndex].name = this.editGroupName.trim();
+				}
+
+				// Close modal and reset form
+				this.showSetGroupNameModal = false;
+				this.editGroupName = '';
+
+				// Refresh chats to get latest data from server
+				await this.getMyConversations();
+
+				// Show success message
+				alert('Group renamed successfully!');
+
+			} catch (err) {
+				console.error('Failed to rename group', err);
+				this.setGroupNameError = err.response?.data?.message || 'Failed to rename group. Please try again.';
+			} finally {
+				this.setGroupNameLoading = false;
+			}
+		},
+
+		async setGroupPhoto() {
+			if (!this.selectedPhotoFile) {
+				this.setGroupPhotoError = 'Please select a photo';
+				return;
+			}
+
+			if (!this.selectedChatId) {
+				this.setGroupPhotoError = 'No group selected';
+				return;
+			}
+
+			try {
+				this.setGroupPhotoLoading = true;
+				this.setGroupPhotoError = null;
+
+				// Create FormData for multipart/form-data request
+				const formData = new FormData();
+				formData.append('image', this.selectedPhotoFile);
+
+				// Make the API request
+				const response = await this.$axios.put(`/chats/${this.selectedChatId}/image`, formData, {
+					headers: {
+						'Content-Type': 'multipart/form-data'
+					}
+				});
+
+				console.log('Group photo updated successfully:', response.data);
+
+				// Clear the old cached image URL for this chat
+				if (this.chatImageUrls[this.selectedChatId]) {
+					URL.revokeObjectURL(this.chatImageUrls[this.selectedChatId]);
+					delete this.chatImageUrls[this.selectedChatId];
+				}
+
+				// Clear image cache entries
+				const chat = this.chats.find(c => c.id === this.selectedChatId);
+				if (chat && chat.image && this.imageCache[chat.image]) {
+					URL.revokeObjectURL(this.imageCache[chat.image]);
+					delete this.imageCache[chat.image];
+				}
+
+				// Close modal and reset form
+				this.showSetGroupPhotoModal = false;
+				this.clearPhotoSelection();
+
+				// Refresh chats to get the updated image path from server
+				await this.getMyConversations();
+
+				// Show success message
+				alert('Group photo updated successfully!');
+
+			} catch (err) {
+				console.error('Failed to update group photo', err);
+
+				// Handle specific error cases
+				if (err.response?.status === 413) {
+					this.setGroupPhotoError = 'File is too large. Please choose a smaller image.';
+				} else if (err.response?.status === 400) {
+					this.setGroupPhotoError = 'Invalid file format. Please choose a valid image.';
+				} else {
+					this.setGroupPhotoError = err.response?.data?.message || 'Failed to update group photo. Please try again.';
+				}
+			} finally {
+				this.setGroupPhotoLoading = false;
+			}
+		},
+
+		async addToGroup() {
+			if (!this.newMemberUsername.trim()) {
+				this.addToGroupError = 'Username is required';
+				return;
+			}
+
+			if (!this.selectedChatId) {
+				this.addToGroupError = 'No group selected';
+				return;
+			}
+
+			try {
+				this.addToGroupLoading = true;
+				this.addToGroupError = null;
+
+				const response = await this.$axios.post(`/chats/${this.selectedChatId}/members`, {
+					username: this.newMemberUsername.trim()
+				});
+
+
+				console.log('Member added successfully:', response.data);
+
+				// Close modal and reset form
+				this.showAddToGroupModal = false;
+				this.newMemberUsername = '';
+
+				// Refresh chats to get latest data
+				await this.getMyConversations();
+
+				// Show success message
+				alert(`${this.newMemberUsername.trim()} has been added to the group!`);
+
+			} catch (err) {
+				console.error('Failed to add member', err);
+
+				// Handle specific error cases
+				if (err.response?.status === 404) {
+					this.addToGroupError = 'User not found. Please check the username.';
+				} else if (err.response?.status === 409) {
+					this.addToGroupError = 'User is already a member of this group.';
+				} else {
+					this.addToGroupError = err.response?.data?.message || 'Failed to add member. Please try again.';
+				}
+			} finally {
+				this.addToGroupLoading = false;
+			}
+		},
+
+		async leaveGroup() {
+			if (!confirm('Are you sure you want to leave this group?')) return;
+
+			try {
+				console.log('Leaving group:', this.selectedChatId);
+
+				const response = await this.$axios.delete(`/chats/${this.selectedChatId}/members`);
+
+				console.log('Leave group response:', response.data);
+
+				// Check if chat was deleted (user was the last member)
+				if (response.data && response.data.chatDeleted) {
+					console.log('Chat was deleted, removing from chat list');
+
+					// Remove chat from the chats list
+					this.chats = this.chats.filter(chat => chat.id !== this.selectedChatId);
+
+					// Clear selected chat and reset state
+					this.selectedChatId = null;
+					this.messages = [];
+					this.lastReadMessageId = null;
+
+					// Reset indicators
+					this.hasNewMessages = false;
+					this.newMessageCount = 0;
+
+					// Show success message
+					alert('You have left the group. The group has been deleted since you were the last member.');
+				} else {
+					// Group still exists, just refresh chats and clear selection
+					await this.getMyConversations();
+					this.selectedChatId = null;
+
+					// Show success message
+					alert('You have successfully left the group.');
+				}
+
+			} catch (err) {
+				console.error('Failed to leave group', err);
+
+				// Handle specific error cases
+				if (err.response?.status === 403) {
+					alert('You are not authorized to leave this group.');
+				} else if (err.response?.status === 404) {
+					alert('Group not found or you are not a member.');
+				} else if (err.response?.status === 401) {
+					console.log('Authentication error during group leave');
+					this.$emit('logout');
+				} else {
+					alert('Failed to leave group. Please try again.');
+				}
+			}
+		},
+
+		async deleteMessage(message) {
+			if (!message || !message.id) {
+				console.error('Invalid message for deletion');
+				return;
+			}
+
+			try {
+				// Set loading state
+				this.deletingMessage = message.id;
+
+				console.log('Deleting message:', message.id);
+
+				// Make DELETE request to the backend
+				const response = await this.$axios.delete(`/messages/${message.id}`);
+
+				console.log('Delete response:', response.data);
+
+				// Check if chat was deleted
+				if (response.data && response.data.chatDeleted) {
+					console.log('Chat was deleted, removing from chat list');
+
+					// Remove chat from the chats list
+					this.chats = this.chats.filter(chat => chat.id !== this.selectedChatId);
+
+					// Clear selected chat
+					this.selectedChatId = null;
+					this.messages = [];
+					this.lastReadMessageId = null;
+
+					// Reset indicators
+					this.hasNewMessages = false;
+					this.newMessageCount = 0;
+
+					// Show success message
+					alert('Message deleted. The conversation has been removed since it was the last message.');
+				} else {
+					// Just remove the message from the current messages list
+					const messageIndex = this.messages.findIndex(msg => msg.id === message.id);
+					if (messageIndex !== -1) {
+						this.messages.splice(messageIndex, 1);
+					}
+
+					// Update chat preview if this was the last message
+					const chat = this.chats.find(c => c.id === this.selectedChatId);
+					if (chat && this.messages.length > 0) {
+						// Find the new last message
+						const lastMessage = this.messages[this.messages.length - 1];
+						this.updateChatPreview(this.selectedChatId, {
+							lastMsgText: lastMessage.text || (lastMessage.type === 'image' ? '📷 Photo' : '🎞️ GIF'),
+							lastMsgTime: lastMessage.createdAt,
+							lastMsgType: lastMessage.type,
+							lastMsgUsername: lastMessage.username
+						});
+					}
+
+					// Force reactivity update
+					this.$forceUpdate();
+				}
+
+			} catch (error) {
+				console.error('Failed to delete message:', error);
+
+				// Handle specific error cases
+				if (error.response?.status === 403) {
+					alert('You can only delete your own messages.');
+				} else if (error.response?.status === 404) {
+					alert('Message not found or already deleted.');
+				} else if (error.response?.status === 401) {
+					console.log('Authentication error during message deletion');
+					this.$emit('logout');
+				} else {
+					alert('Failed to delete message. Please try again.');
+				}
+			} finally {
+				// Clear loading state
+				this.deletingMessage = null;
+			}
+		},
+
+		async getUsers() {
+			try {
+				this.loadingUsers = true;
+				this.newChatError = null;
+
+				const response = await this.$axios.get('/users');
+				this.users = response.data;
+				this.filteredUsers = response.data;
+
+				console.log('Users fetched successfully:', this.users);
+
+			} catch (err) {
+				console.error('Failed to fetch users', err);
+				this.newChatError = 'Failed to load users. Please try again.';
+			} finally {
+				this.loadingUsers = false;
+			}
+		},
+
+		async getForwardUsers() {
+			try {
+				this.loadingForwardUsers = true;
+				this.forwardError = null;
+
+				const response = await this.$axios.get('/users');
+				this.forwardUsers = response.data;
+				this.filteredForwardUsers = response.data;
+
+				console.log('Forward users fetched successfully:', this.forwardUsers);
+
+			} catch (err) {
+				console.error('Failed to fetch forward users', err);
+				this.forwardError = 'Failed to load users. Please try again.';
+			} finally {
+				this.loadingForwardUsers = false;
+			}
+		},
+
+		async getGroupMembers() {
+			if (!this.selectedChatId) return;
+
+			try {
+				this.loadingChatMembers = true;
+
+				const response = await this.$axios.get(`/chats/${this.selectedChatId}/members`);
+				this.chatMembers = response.data || [];
+
+				console.log('Chat members loaded:', this.chatMembers);
+
+				// Load member images
+				await this.loadMemberImages();
+
+			} catch (error) {
+				console.error('Failed to load chat members:', error);
+				this.chatMembers = [];
+
+				// Don't show error for 404 (not a group chat) or 401
+				if (error.response?.status === 401) {
+					this.$emit('logout');
+				}
+			} finally {
+				this.loadingChatMembers = false;
+			}
+		},
+
+		async loadMemberImages() {
+			for (const member of this.chatMembers) {
+				if (member.imageUrl && !this.memberImageUrls[member.id]) {
+					try {
+						const imageUrl = await this.getImageUrl(member.imageUrl);
+						if (imageUrl) {
+							this.memberImageUrls[member.id] = imageUrl;
+						}
+					} catch (error) {
+						console.error(`Failed to load image for member ${member.id}:`, error);
+					}
+				}
+			}
+		},
+
 		async getComments() {
 			for (const message of this.messages) {
 				if (!message.likes) {
@@ -531,7 +1272,7 @@ export default {
 				this.showChatInfoDropdown = false;
 			} else {
 				this.showChatInfoDropdown = true;
-				this.getChatMembers();
+				this.getGroupMembers();
 			}
 
 			// Clear timeout if it exists
@@ -556,49 +1297,7 @@ export default {
 			}
 		},
 
-		// Get chat members from API
-		async getChatMembers() {
-			if (!this.selectedChatId) return;
 
-			try {
-				this.loadingChatMembers = true;
-
-				const response = await this.$axios.get(`/chats/${this.selectedChatId}/members`);
-				this.chatMembers = response.data || [];
-
-				console.log('Chat members loaded:', this.chatMembers);
-
-				// Load member images
-				await this.loadMemberImages();
-
-			} catch (error) {
-				console.error('Failed to load chat members:', error);
-				this.chatMembers = [];
-
-				// Don't show error for 404 (not a group chat) or 401
-				if (error.response?.status === 401) {
-					this.$emit('logout');
-				}
-			} finally {
-				this.loadingChatMembers = false;
-			}
-		},
-
-		// Load member profile images
-		async loadMemberImages() {
-			for (const member of this.chatMembers) {
-				if (member.imageUrl && !this.memberImageUrls[member.id]) {
-					try {
-						const imageUrl = await this.getChatImageUrl(member.imageUrl);
-						if (imageUrl) {
-							this.memberImageUrls[member.id] = imageUrl;
-						}
-					} catch (error) {
-						console.error(`Failed to load image for member ${member.id}:`, error);
-					}
-				}
-			}
-		},
 
 		// Handle member image load error
 		handleMemberImageError(memberId) {
@@ -820,140 +1519,6 @@ export default {
 			});
 		},
 
-		// Updated sendMessage method with better preview handling
-		async sendMessage() {
-			if ((!this.newMessage.trim() && !this.selectedMessageImage) || !this.selectedChatId) return;
-
-			try {
-				this.sendingMessage = true;
-				this.pendingMessage = this.newMessage.trim();
-
-				// Set flag to scroll to bottom after sending
-				this.shouldScrollAfterSend = true;
-
-				let requestData;
-				let requestConfig = {};
-				const messageText = this.newMessage.trim();
-				const messageTime = new Date().toISOString();
-				let messageType = 'text';
-				let previewText = messageText;
-
-				if (this.selectedMessageImage) {
-					const formData = new FormData();
-					formData.append('image', this.selectedMessageImage);
-					messageType = this.getFileType(this.selectedMessageImage);
-					formData.append('type', messageType);
-
-					if (messageText) {
-						formData.append('text', messageText);
-					}
-
-					formData.append('isForward', 'false');
-
-					// Add reply information
-					if (this.replyingToMessage) {
-						formData.append('replyTo', this.replyingToMessage.id.toString());
-					} else {
-						formData.append('replyTo', '0');
-					}
-
-					requestData = formData;
-
-					if (messageText) {
-						previewText = messageText;
-					} else {
-						previewText = messageType === 'gif' ? '🎞️ GIF' : '📷 Photo';
-					}
-
-					requestConfig = {};
-				} else {
-					requestData = {
-						type: 'text',
-						text: messageText
-					};
-
-					// Add reply information
-					if (this.replyingToMessage) {
-						requestData.replyTo = this.replyingToMessage.id;
-					}
-
-					requestConfig = {
-						headers: {
-							'Content-Type': 'application/json'
-						}
-					};
-				}
-
-				console.log('Sending message - will scroll to bottom after');
-
-				const response = await this.$axios.post(
-					`/chats/${this.selectedChatId}/messages`,
-					requestData,
-					requestConfig
-				);
-
-				// Clear input and reply
-				this.newMessage = '';
-				this.pendingMessage = '';
-				this.clearReply();
-
-				if (this.selectedMessageImage) {
-					this.clearMessageImageSelection();
-				}
-
-				// Update chat preview
-				this.updateChatPreview(this.selectedChatId, {
-					lastMsgText: previewText,
-					lastMsgTime: messageTime,
-					lastMsgType: messageType,
-					lastMsgUsername: this.currentUsername
-				});
-
-				// Refresh messages - shouldScrollAfterSend flag will make it scroll to bottom
-				await this.getConversation(this.selectedChatId, false);
-
-				// Force scroll to bottom after conversation loads (as a backup)
-				this.$nextTick(() => {
-					requestAnimationFrame(() => {
-						if (this.$refs.messagesContainer) {
-							const container = this.$refs.messagesContainer;
-							container.scrollTop = container.scrollHeight;
-							this.isUserAtBottom = true;
-							this.hasNewMessages = false;
-							this.newMessageCount = 0;
-
-							console.log('Forced scroll to bottom after send:', {
-								scrollHeight: container.scrollHeight,
-								scrollTop: container.scrollTop
-							});
-						}
-					});
-				});
-
-				// Maintain focus on message input after sending
-				setTimeout(() => {
-					this.focusMessageInput();
-				}, 100);
-
-			} catch (err) {
-				console.error('Failed to send message', err);
-				this.shouldScrollAfterSend = false; // Reset flag on error
-
-				if (err.response?.status === 400) {
-					alert('Invalid message format. Please try again.');
-				} else if (err.response?.status === 413) {
-					alert('File is too large. Please choose a smaller image.');
-				} else if (err.response?.status === 415) {
-					alert('Unsupported file type. Please choose a valid image.');
-				} else {
-					alert('Failed to send message. Please try again.');
-				}
-			} finally {
-				this.sendingMessage = false;
-			}
-		},
-
-		// Open forward modal
 		openForwardModal(message) {
 			this.forwardingMessage = message;
 			this.showForwardModal = true;
@@ -1133,7 +1698,6 @@ export default {
 			}
 		},
 
-		// Keep dropdown open when mouse is over it
 		handleDropdownMouseEnter(dropdownType) {
 			// This prevents the dropdown from closing when hovering over it
 			// The dropdown stays open as long as mouse is over it
@@ -1150,141 +1714,6 @@ export default {
 			}
 		},
 
-		async leaveGroup() {
-			if (!confirm('Are you sure you want to leave this group?')) return;
-
-			try {
-				console.log('Leaving group:', this.selectedChatId);
-
-				const response = await this.$axios.delete(`/chats/${this.selectedChatId}/members`);
-
-				console.log('Leave group response:', response.data);
-
-				// Check if chat was deleted (user was the last member)
-				if (response.data && response.data.chatDeleted) {
-					console.log('Chat was deleted, removing from chat list');
-
-					// Remove chat from the chats list
-					this.chats = this.chats.filter(chat => chat.id !== this.selectedChatId);
-
-					// Clear selected chat and reset state
-					this.selectedChatId = null;
-					this.messages = [];
-					this.lastReadMessageId = null;
-
-					// Reset indicators
-					this.hasNewMessages = false;
-					this.newMessageCount = 0;
-
-					// Show success message
-					alert('You have left the group. The group has been deleted since you were the last member.');
-				} else {
-					// Group still exists, just refresh chats and clear selection
-					await this.getMyConversations();
-					this.selectedChatId = null;
-
-					// Show success message
-					alert('You have successfully left the group.');
-				}
-
-			} catch (err) {
-				console.error('Failed to leave group', err);
-
-				// Handle specific error cases
-				if (err.response?.status === 403) {
-					alert('You are not authorized to leave this group.');
-				} else if (err.response?.status === 404) {
-					alert('Group not found or you are not a member.');
-				} else if (err.response?.status === 401) {
-					console.log('Authentication error during group leave');
-					this.$emit('logout');
-				} else {
-					alert('Failed to leave group. Please try again.');
-				}
-			}
-		},
-
-		// Delete message function
-		async deleteMessage(message) {
-			if (!message || !message.id) {
-				console.error('Invalid message for deletion');
-				return;
-			}
-
-			try {
-				// Set loading state
-				this.deletingMessage = message.id;
-
-				console.log('Deleting message:', message.id);
-
-				// Make DELETE request to the backend
-				const response = await this.$axios.delete(`/messages/${message.id}`);
-
-				console.log('Delete response:', response.data);
-
-				// Check if chat was deleted
-				if (response.data && response.data.chatDeleted) {
-					console.log('Chat was deleted, removing from chat list');
-
-					// Remove chat from the chats list
-					this.chats = this.chats.filter(chat => chat.id !== this.selectedChatId);
-
-					// Clear selected chat
-					this.selectedChatId = null;
-					this.messages = [];
-					this.lastReadMessageId = null;
-
-					// Reset indicators
-					this.hasNewMessages = false;
-					this.newMessageCount = 0;
-
-					// Show success message
-					alert('Message deleted. The conversation has been removed since it was the last message.');
-				} else {
-					// Just remove the message from the current messages list
-					const messageIndex = this.messages.findIndex(msg => msg.id === message.id);
-					if (messageIndex !== -1) {
-						this.messages.splice(messageIndex, 1);
-					}
-
-					// Update chat preview if this was the last message
-					const chat = this.chats.find(c => c.id === this.selectedChatId);
-					if (chat && this.messages.length > 0) {
-						// Find the new last message
-						const lastMessage = this.messages[this.messages.length - 1];
-						this.updateChatPreview(this.selectedChatId, {
-							lastMsgText: lastMessage.text || (lastMessage.type === 'image' ? '📷 Photo' : '🎞️ GIF'),
-							lastMsgTime: lastMessage.createdAt,
-							lastMsgType: lastMessage.type,
-							lastMsgUsername: lastMessage.username
-						});
-					}
-
-					// Force reactivity update
-					this.$forceUpdate();
-				}
-
-			} catch (error) {
-				console.error('Failed to delete message:', error);
-
-				// Handle specific error cases
-				if (error.response?.status === 403) {
-					alert('You can only delete your own messages.');
-				} else if (error.response?.status === 404) {
-					alert('Message not found or already deleted.');
-				} else if (error.response?.status === 401) {
-					console.log('Authentication error during message deletion');
-					this.$emit('logout');
-				} else {
-					alert('Failed to delete message. Please try again.');
-				}
-			} finally {
-				// Clear loading state
-				this.deletingMessage = null;
-			}
-		},
-
-		// Enhanced scrollToBottom method
 		scrollToBottom() {
 			this.$nextTick(() => {
 				const messagesContainer = this.$refs.messagesContainer;
@@ -1304,25 +1733,6 @@ export default {
 			this.newMessageCount = 0;
 		},
 
-		async getUsers() {
-			try {
-				this.loadingUsers = true;
-				this.newChatError = null;
-
-				const response = await this.$axios.get('/users');
-				this.users = response.data;
-				this.filteredUsers = response.data;
-
-				console.log('Users fetched successfully:', this.users);
-
-			} catch (err) {
-				console.error('Failed to fetch users', err);
-				this.newChatError = 'Failed to load users. Please try again.';
-			} finally {
-				this.loadingUsers = false;
-			}
-		},
-
 		filterUsers() {
 			if (!this.userSearchQuery.trim()) {
 				this.filteredUsers = this.users;
@@ -1335,27 +1745,6 @@ export default {
 			);
 		},
 
-		// Get users for forwarding (reuse existing logic)
-		async getForwardUsers() {
-			try {
-				this.loadingForwardUsers = true;
-				this.forwardError = null;
-
-				const response = await this.$axios.get('/users');
-				this.forwardUsers = response.data;
-				this.filteredForwardUsers = response.data;
-
-				console.log('Forward users fetched successfully:', this.forwardUsers);
-
-			} catch (err) {
-				console.error('Failed to fetch forward users', err);
-				this.forwardError = 'Failed to load users. Please try again.';
-			} finally {
-				this.loadingForwardUsers = false;
-			}
-		},
-
-		// Filter forward users
 		filterForwardUsers() {
 			if (!this.forwardUserSearchQuery.trim()) {
 				this.filteredForwardUsers = this.forwardUsers;
@@ -1368,14 +1757,12 @@ export default {
 			);
 		},
 
-		// Check if recipient is selected
 		isForwardRecipientSelected(id, type) {
 			return this.selectedForwardRecipients.some(recipient =>
 				recipient.id === id && recipient.type === type
 			);
 		},
 
-		// Toggle user selection for forwarding
 		toggleForwardUserSelection(user) {
 			const existingIndex = this.selectedForwardRecipients.findIndex(recipient =>
 				recipient.id === user.id && recipient.type === 'user'
@@ -1413,7 +1800,6 @@ export default {
 			}
 		},
 
-		// Remove forward recipient
 		removeForwardRecipient(recipient) {
 			const index = this.selectedForwardRecipients.findIndex(r =>
 				r.id === recipient.id && r.type === recipient.type
@@ -1434,61 +1820,6 @@ export default {
 			}
 
 			return message.text || '';
-		},
-
-		// Send forward message
-		async forwardMessage() {
-			if (!this.forwardingMessage || this.selectedForwardRecipients.length === 0) {
-				this.forwardError = 'Please select at least one recipient';
-				return;
-			}
-
-			try {
-				this.forwardLoading = true;
-				this.forwardError = null;
-
-				// Prepare recipients array for API
-				const recipients = this.selectedForwardRecipients.map(recipient => ({
-					id: recipient.id,
-					type: recipient.type
-				}));
-
-				console.log('Forwarding message:', this.forwardingMessage.id, 'to recipients:', recipients);
-
-				// Send forward request
-				const response = await this.$axios.post(`/messages/${this.forwardingMessage.id}/forwards`, {
-					recipients: recipients
-				});
-
-				console.log('Forward response:', response.data);
-
-				// Close modal
-				this.closeForwardModal();
-
-				// Show success message
-				const recipientCount = recipients.length;
-				alert(`Message forwarded successfully to ${recipientCount} recipient${recipientCount !== 1 ? 's' : ''}!`);
-
-				// Refresh conversations to show new messages
-				await this.getMyConversations();
-
-			} catch (err) {
-				console.error('Failed to forward message', err);
-
-				// Handle specific error cases
-				if (err.response?.status === 403) {
-					this.forwardError = 'You are not authorized to forward this message.';
-				} else if (err.response?.status === 404) {
-					this.forwardError = 'Message not found or some recipients are invalid.';
-				} else if (err.response?.status === 401) {
-					console.log('Authentication error during message forward');
-					this.$emit('logout');
-				} else {
-					this.forwardError = err.response?.data?.message || 'Failed to forward message. Please try again.';
-				}
-			} finally {
-				this.forwardLoading = false;
-			}
 		},
 
 		toggleUserSelection(user) {
@@ -1530,92 +1861,6 @@ export default {
 			return username.charAt(0).toUpperCase();
 		},
 
-		async createNewChat() {
-			// The computed property already handles validation, but keep basic checks for safety
-			if (!this.canCreateNewChat) {
-				console.warn('Attempted to create chat when conditions not met');
-				return;
-			}
-
-			try {
-				this.newChatLoading = true;
-				this.newChatError = null;
-
-				let requestData;
-				let requestConfig = {};
-
-				if (this.selectedNewChatImage) {
-					// Create FormData for file upload
-					const formData = new FormData();
-					formData.append('image', this.selectedNewChatImage);
-					formData.append('type', this.getFileType(this.selectedNewChatImage));
-					formData.append('receivers', JSON.stringify(this.selectedUsers.map(user => user.username)));
-
-					if (this.initialMessage.trim()) {
-						formData.append('text', this.initialMessage.trim());
-					}
-
-					if (this.selectedUsers.length > 1 && this.newChatName.trim()) {
-						formData.append('chatName', this.newChatName.trim());
-					}
-
-					formData.append('isForward', 'false');
-
-					requestData = formData;
-					requestConfig = {};
-				} else {
-					// JSON request for text message
-					requestData = {
-						type: 'text',
-						receivers: this.selectedUsers.map(user => user.username),
-						text: this.initialMessage.trim()
-					};
-
-					if (this.selectedUsers.length > 1) {
-						requestData.chatName = this.newChatName.trim();
-					}
-
-					requestConfig = {
-						headers: {
-							'Content-Type': 'application/json'
-						}
-					};
-				}
-
-				console.log('Creating chat with media support...');
-
-				// Create the chat
-				const response = await this.$axios.post('/chats', requestData, requestConfig);
-
-				console.log('Chat created successfully:', response.data);
-
-				// Close modal and reset form
-				this.closeNewChatModal();
-
-				// Refresh chats and select the new one
-				await this.getMyConversations();
-
-				// Select the new chat if we have an ID from the response
-				if (response.data && response.data.id) {
-					this.selectChat(response.data.id);
-				}
-
-			} catch (err) {
-				console.error('Failed to create chat', err);
-
-				if (err.response?.status === 413) {
-					this.newChatError = 'File is too large. Please choose a smaller image.';
-				} else if (err.response?.status === 415) {
-					this.newChatError = 'Unsupported file type. Please choose a valid image.';
-				} else {
-					this.newChatError = err.response?.data?.message || 'Failed to create conversation. Please try again.';
-				}
-			} finally {
-				this.newChatLoading = false;
-			}
-		},
-
-		// Updated closeNewChatModal method
 		closeNewChatModal() {
 			this.showNewChatModal = false;
 
@@ -1647,100 +1892,6 @@ export default {
 			this.getUsers();
 		},
 
-
-		async setGroupName() {
-			if (!this.editGroupName.trim()) {
-				this.setGroupNameError = 'Group name is required';
-				return;
-			}
-
-			if (!this.selectedChatId) {
-				this.setGroupNameError = 'No group selected';
-				return;
-			}
-
-			try {
-				this.setGroupNameLoading = true;
-				this.setGroupNameError = null;
-
-				const response = await this.$axios.put(`/chats/${this.selectedChatId}`, {
-					chatName: this.editGroupName.trim()
-				});
-
-				console.log('Group renamed successfully:', response.data);
-
-				// Update the local chat name immediately for better UX
-				const chatIndex = this.chats.findIndex(chat => chat.id === this.selectedChatId);
-				if (chatIndex !== -1) {
-					this.chats[chatIndex].name = this.editGroupName.trim();
-				}
-
-				// Close modal and reset form
-				this.showSetGroupNameModal = false;
-				this.editGroupName = '';
-
-				// Refresh chats to get latest data from server
-				await this.getMyConversations();
-
-				// Show success message
-				alert('Group renamed successfully!');
-
-			} catch (err) {
-				console.error('Failed to rename group', err);
-				this.setGroupNameError = err.response?.data?.message || 'Failed to rename group. Please try again.';
-			} finally {
-				this.setGroupNameLoading = false;
-			}
-		},
-
-		async addToGroup() {
-			if (!this.newMemberUsername.trim()) {
-				this.addToGroupError = 'Username is required';
-				return;
-			}
-
-			if (!this.selectedChatId) {
-				this.addToGroupError = 'No group selected';
-				return;
-			}
-
-			try {
-				this.addToGroupLoading = true;
-				this.addToGroupError = null;
-
-				const response = await this.$axios.post(`/chats/${this.selectedChatId}/members`, {
-					username: this.newMemberUsername.trim()
-				});
-
-
-				console.log('Member added successfully:', response.data);
-
-				// Close modal and reset form
-				this.showAddToGroupModal = false;
-				this.newMemberUsername = '';
-
-				// Refresh chats to get latest data
-				await this.getMyConversations();
-
-				// Show success message
-				alert(`${this.newMemberUsername.trim()} has been added to the group!`);
-
-			} catch (err) {
-				console.error('Failed to add member', err);
-
-				// Handle specific error cases
-				if (err.response?.status === 404) {
-					this.addToGroupError = 'User not found. Please check the username.';
-				} else if (err.response?.status === 409) {
-					this.addToGroupError = 'User is already a member of this group.';
-				} else {
-					this.addToGroupError = err.response?.data?.message || 'Failed to add member. Please try again.';
-				}
-			} finally {
-				this.addToGroupLoading = false;
-			}
-		},
-
 		openSetGroupNameModal() {
 			if (this.selectedChat) {
 				this.editGroupName = this.selectedChat.name || '';
@@ -1769,105 +1920,6 @@ export default {
 				}
 			});
 		},
-
-		async updateProfile() {
-			if (!this.editUsername.trim() && !this.selectedProfileImage) {
-				this.profileError = 'Please enter a username or select a profile image to update';
-				return;
-			}
-
-			try {
-				this.profileLoading = true;
-				this.profileError = null;
-
-				// Update username if provided
-				if (this.editUsername.trim()) {
-					console.log('Updating username to:', this.editUsername.trim());
-
-					const response = await this.$axios.put('/users', {
-						username: this.editUsername.trim(),
-					}, {
-						headers: {
-							'Content-Type': 'application/json'
-						}
-					});
-
-					console.log('Username update response:', response.data);
-
-					// Update current user info from server response
-					if (response.data && response.data.username) {
-						this.currentUsername = response.data.username;
-
-						const userData = {
-							id: response.data.id || this.currentUserId,
-							username: this.currentUsername,
-						};
-						localStorage.setItem('user', JSON.stringify(userData));
-					}
-				}
-
-				// Update profile image if provided
-				if (this.selectedProfileImage) {
-					console.log('Updating profile image...');
-
-					const formData = new FormData();
-					formData.append('image', this.selectedProfileImage);
-
-					const response = await this.$axios.put('/users/image', formData, {
-						headers: {
-							'Content-Type': 'multipart/form-data'
-						}
-					});
-
-					console.log('Image update response:', response.data);
-
-					// Clear old cached image URL
-					if (this.currentUserImageUrl) {
-						URL.revokeObjectURL(this.currentUserImageUrl);
-						this.currentUserImageUrl = null;
-					}
-
-					// If server returns the new image URL, use it to load the image
-					if (response.data && response.data.imageUrl) {
-						console.log('Loading new image from:', response.data.imageUrl);
-						this.currentUserImageUrl = await this.getChatImageUrl(response.data.imageUrl);
-					} else {
-						// Fallback: reload user image from server
-						await this.loadCurrentUserImage();
-					}
-				}
-
-				// Close modal and reset
-				this.showProfileModal = false;
-				this.clearProfileImageSelection();
-				this.editUsername = '';
-
-				// Show success message
-				alert('Profile updated successfully!');
-
-			} catch (err) {
-				console.error('Failed to update profile', err);
-				console.error('Error response:', err.response);
-
-				// Check for authentication errors
-				if (err.response?.status === 401) {
-					console.log('Authentication error during profile update, logging out');
-					this.$emit('logout');
-					return;
-				}
-
-				if (err.response?.status === 413) {
-					this.profileError = 'File is too large. Please choose a smaller image.';
-				} else if (err.response?.status === 400) {
-					this.profileError = 'Invalid file format. Please choose a valid image.';
-				} else {
-					this.profileError = err.response?.data?.message || 'Failed to update profile. Please try again.';
-				}
-			} finally {
-				this.profileLoading = false;
-			}
-		},
-
 
 		// Add method to handle visibility changes (pause polling when tab is hidden)
 		handleVisibilityChange() {
@@ -1949,7 +2001,7 @@ export default {
 			}
 		},
 
-		async getChatImageUrl(imagePath) {
+		async getImageUrl(imagePath) {
 			if (!imagePath) return null;
 
 			// Check if we already have a blob URL cached for this image
@@ -2008,7 +2060,7 @@ export default {
 			for (const chat of this.chats) {
 				if (chat.image && !this.chatImageUrls[chat.id]) {
 					try {
-						const imageUrl = await this.getChatImageUrl(chat.image);
+						const imageUrl = await this.getImageUrl(chat.image);
 						if (imageUrl) {
 							this.chatImageUrls[chat.id] = imageUrl;
 						}
@@ -2028,7 +2080,7 @@ export default {
 
 				if (response.data && response.data.imageUrl) {
 					console.log('Loading image from URL:', response.data.imageUrl);
-					this.currentUserImageUrl = await this.getChatImageUrl(response.data.imageUrl);
+					this.currentUserImageUrl = await this.getImageUrl(response.data.imageUrl);
 					console.log('User image loaded successfully');
 				} else {
 					console.log('No image URL in response, using initials');
@@ -2153,73 +2205,6 @@ export default {
 			// Clear the file input
 			if (this.$refs.photoFileInput) {
 				this.$refs.photoFileInput.value = '';
-			}
-		},
-
-		async setGroupPhoto() {
-			if (!this.selectedPhotoFile) {
-				this.setGroupPhotoError = 'Please select a photo';
-				return;
-			}
-
-			if (!this.selectedChatId) {
-				this.setGroupPhotoError = 'No group selected';
-				return;
-			}
-
-			try {
-				this.setGroupPhotoLoading = true;
-				this.setGroupPhotoError = null;
-
-				// Create FormData for multipart/form-data request
-				const formData = new FormData();
-				formData.append('image', this.selectedPhotoFile);
-
-				// Make the API request
-				const response = await this.$axios.put(`/chats/${this.selectedChatId}/image`, formData, {
-					headers: {
-						'Content-Type': 'multipart/form-data'
-					}
-				});
-
-				console.log('Group photo updated successfully:', response.data);
-
-				// Clear the old cached image URL for this chat
-				if (this.chatImageUrls[this.selectedChatId]) {
-					URL.revokeObjectURL(this.chatImageUrls[this.selectedChatId]);
-					delete this.chatImageUrls[this.selectedChatId];
-				}
-
-				// Clear image cache entries
-				const chat = this.chats.find(c => c.id === this.selectedChatId);
-				if (chat && chat.image && this.imageCache[chat.image]) {
-					URL.revokeObjectURL(this.imageCache[chat.image]);
-					delete this.imageCache[chat.image];
-				}
-
-				// Close modal and reset form
-				this.showSetGroupPhotoModal = false;
-				this.clearPhotoSelection();
-
-				// Refresh chats to get the updated image path from server
-				await this.getMyConversations();
-
-				// Show success message
-				alert('Group photo updated successfully!');
-
-			} catch (err) {
-				console.error('Failed to update group photo', err);
-
-				// Handle specific error cases
-				if (err.response?.status === 413) {
-					this.setGroupPhotoError = 'File is too large. Please choose a smaller image.';
-				} else if (err.response?.status === 400) {
-					this.setGroupPhotoError = 'Invalid file format. Please choose a valid image.';
-				} else {
-					this.setGroupPhotoError = err.response?.data?.message || 'Failed to update group photo. Please try again.';
-				}
-			} finally {
-				this.setGroupPhotoLoading = false;
 			}
 		},
 
@@ -2542,7 +2527,6 @@ export default {
 			this.schedulePoll();
 		},
 
-		// Update your polling method to not force scroll
 		schedulePoll() {
 			if (!this.isPolling) return;
 
