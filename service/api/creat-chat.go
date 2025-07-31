@@ -240,7 +240,7 @@ func (rt *_router) handleCreateChatFileUpload(r *http.Request, ctx reqcontext.Re
 	// Parse multipart form (32MB max memory)
 	err := r.ParseMultipartForm(32 << 20) // 32 MB
 	if err != nil {
-		return messageRequest, "", fmt.Errorf("failed to parse multipart form: %v", err)
+		return messageRequest, "", fmt.Errorf("failed to parse multipart form: %w", err)
 	}
 
 	// Get form values
@@ -253,7 +253,7 @@ func (rt *_router) handleCreateChatFileUpload(r *http.Request, ctx reqcontext.Re
 	if receiversStr != "" {
 		err := json.Unmarshal([]byte(receiversStr), &messageRequest.Receivers)
 		if err != nil {
-			return messageRequest, "", fmt.Errorf("failed to parse receivers: %v", err)
+			return messageRequest, "", fmt.Errorf("failed to parse receivers: %w", err)
 		}
 	}
 
@@ -264,13 +264,13 @@ func (rt *_router) handleCreateChatFileUpload(r *http.Request, ctx reqcontext.Re
 
 	// Validate message type
 	if messageRequest.Type != "image" && messageRequest.Type != "gif" {
-		return messageRequest, "", fmt.Errorf("invalid message type for file upload: %s", messageRequest.Type)
+		return messageRequest, "", fmt.Errorf("error: %w. invalid message type for file upload: %s", err, messageRequest.Type)
 	}
 
 	// Get the uploaded file
 	file, fileHeader, err := r.FormFile("image")
 	if err != nil {
-		return messageRequest, "", fmt.Errorf("failed to get uploaded file: %v", err)
+		return messageRequest, "", fmt.Errorf("failed to get uploaded file: %w", err)
 	}
 	defer file.Close()
 
@@ -285,13 +285,13 @@ func (rt *_router) handleCreateChatFileUpload(r *http.Request, ctx reqcontext.Re
 	// Create uploads directory if it doesn't exist
 	uploadsDir := "uploads/messages"
 	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
-		return messageRequest, "", fmt.Errorf("failed to create uploads directory: %v", err)
+		return messageRequest, "", fmt.Errorf("failed to create uploads directory: %w", err)
 	}
 
 	// Save the file
-	filepath := filepath.Join(uploadsDir, filename)
-	if err := rt.saveCreateChatUploadedFile(file, filepath); err != nil {
-		return messageRequest, "", fmt.Errorf("failed to save file: %v", err)
+	myFilepath := filepath.Join(uploadsDir, filename)
+	if err := rt.saveCreateChatUploadedFile(file, myFilepath); err != nil {
+		return messageRequest, "", fmt.Errorf("failed to save file: %w", err)
 	}
 
 	ctx.Logger.Infof("File uploaded successfully for new chat: %s", filename)
@@ -307,17 +307,23 @@ func (rt *_router) validateCreateChatUploadedFile(file multipart.File, fileHeade
 	}
 
 	// Reset file pointer for content validation
-	file.Seek(0, 0)
+	_, err := file.Seek(0, 0)
+	if err != nil {
+		return fmt.Errorf("failed to seek file: %w", err)
+	}
 
 	// Read first 512 bytes to detect content type
 	buffer := make([]byte, 512)
-	_, err := file.Read(buffer)
+	_, err = file.Read(buffer)
 	if err != nil && err != io.EOF {
-		return fmt.Errorf("failed to read file content: %v", err)
+		return fmt.Errorf("failed to read file content: %w", err)
 	}
 
 	// Reset file pointer again
-	file.Seek(0, 0)
+	_, err = file.Seek(0, 0)
+	if err != nil {
+		return fmt.Errorf("failed to seek file: %w", err)
+	}
 
 	// Detect content type
 	contentType := http.DetectContentType(buffer)
@@ -336,7 +342,7 @@ func (rt *_router) validateCreateChatUploadedFile(file multipart.File, fileHeade
 		}
 	}
 
-	return fmt.Errorf("invalid file type: %s for message type: %s", contentType, messageType)
+	return fmt.Errorf("error: %w. invalid file type: %s for message type: %s", err, contentType, messageType)
 }
 
 func (rt *_router) generateCreateChatMessageFilename(originalFilename string) string {

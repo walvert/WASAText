@@ -15,7 +15,7 @@ func (db *appdbimpl) DeleteChat(chatId int) error {
 	err := db.c.QueryRow(`SELECT is_group, chat_image FROM chats WHERE id = ?`, chatId).Scan(&isGroup, &imageUrl)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("chat not found")
+			return fmt.Errorf("chat not found: %w", err)
 		}
 		return err
 	}
@@ -25,7 +25,6 @@ func (db *appdbimpl) DeleteChat(chatId int) error {
 
 		err := os.Remove(filePath)
 		if err != nil && !os.IsNotExist(err) {
-			fmt.Printf("Warning: failed to delete image file %s: %v\n", filePath, err)
 		}
 	}
 

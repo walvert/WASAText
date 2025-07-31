@@ -10,7 +10,7 @@ func (db *appdbimpl) DeleteMessage(messageId int) (chatDeleted bool, err error) 
 	var chatId int
 	err = db.c.QueryRow(`SELECT chat_id FROM messages WHERE id = ?`, messageId).Scan(&chatId)
 	if err != nil {
-		return false, fmt.Errorf("message not found")
+		return false, fmt.Errorf("message not found: %w", err)
 	}
 
 	result, err := db.c.Exec(`DELETE FROM messages WHERE id = ?`, messageId)

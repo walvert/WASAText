@@ -2505,7 +2505,7 @@ export default {
 				delete this.chatImageUrls[chatId];
 
 				// Also remove from image cache
-				const chat = this.chats.find(c => c.id == chatId);
+				const chat = this.chats.find(c => c.id === chatId);
 				if (chat && chat.image && this.imageCache[chat.image]) {
 					URL.revokeObjectURL(this.imageCache[chat.image]);
 					delete this.imageCache[chat.image];
