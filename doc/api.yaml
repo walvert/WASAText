@@ -32,6 +32,7 @@ paths:
         content:
           application/json:
             schema:
+              description: username for login
               type: object
               properties:
                 name:
@@ -116,6 +117,7 @@ paths:
             application/json:
               schema:
                 type: object
+                description: url or oath where the image is stored in the server
                 properties:
                   imageUrl:
                     description: image url
@@ -142,6 +144,7 @@ paths:
           multipart/form-data:
             schema:
               type: object
+              description: image loaded by the user to update the profile picture
               properties:
                 file:
                   type: string
@@ -154,6 +157,7 @@ paths:
             application/json:
               schema:
                 type: object
+                description: successful response when updating the profile picture
                 properties:
                   success:
                     description: successful operation
@@ -314,6 +318,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: new name of the group chat set by the user
               properties:
                 chatName:
                   type: string
@@ -428,13 +433,12 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  chatDeleted:
-                    type: boolean
-                    description: flag to communicate if the chat is being deleted
-                      by cascade if the user leaving was the last one left
-                    example: false
+                description: chat members
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+                minItems: 1
+                maxItems: 9999
         "400":
           $ref: '#/components/responses/BadRequestError'
         "401":
@@ -470,6 +474,7 @@ paths:
             application/json:
               schema:
                 type: object
+                description: successful response when updating group chat image
                 properties:
                   success:
                     description: successful operation
@@ -509,24 +514,28 @@ paths:
           description: The folder where the image is stored (users, chats, messages)
           schema:
             type: string
+            description: The folder where the image is stored (users, chats, messages)
             enum: [ user, chats, messages ]
         - name: filename
           in: path
           required: true
           description: The filename of the image to fetch (e.g. abc123.jpg)
           schema:
+            description: The filename of the image to fetch (e.g. abc123.jpg)
             type: string
             example: "image.png"
       responses:
         '200':
-          description: The requested image file.
+          description: Image file fetched successfully
           content:
             image/jpeg:
               schema:
+                description: The requested image file.
                 type: string
                 format: binary
             image/png:
               schema:
+                description: The requested image file.
                 type: string
                 format: binary
         "400":
@@ -592,7 +601,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Message'
         "404":
-          $ref: "#/components/responses/Response"
+          $ref: "#/components/responses/NotFoundError"
     delete:
       tags:
         - messages
@@ -601,11 +610,12 @@ paths:
       operationId: deleteMessage
       responses:
         "200":
-          description: Message deleted
+          description: Message deleted successfully
           content:
             application/json:
               schema:
                 type: object
+                description: Response JSON for deleting messages lets the user know if the chat gets deleted as well
                 properties:
                   chatDeleted:
                     type: boolean
@@ -1004,6 +1014,7 @@ components:
   parameters:
     ChatID:
       schema:
+        description: identifier for the chat
         type: number
         format: integer
         example: 134
@@ -1014,6 +1025,7 @@ components:
 
     MessageID:
       schema:
+        description: identifier for the message
         type: number
         format: integer
         example: 134
@@ -1024,6 +1036,7 @@ components:
 
     CommentID:
       schema:
+        description: identifier for the comment
         type: number
         format: integer
         example: 134
@@ -1033,28 +1046,6 @@ components:
       description: Comment identifier
 
   responses:
-    Response:
-      description: Operation response
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              code:
-                type: string
-                description: Response code
-                pattern: "^[0-9]{3}$"
-                example: "200"
-                minLength: 3
-                maxLength: 3
-              message:
-                type: string
-                description: Response message
-                pattern: "^[a-zA-Z ]+$"
-                minLength: 2
-                maxLength: 99
-                example: "Successful operation"
-
     UnauthorizedError:
       description: Invalid or missing bearer token
       content:

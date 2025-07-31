@@ -56,8 +56,8 @@ export default {
 			isPolling: false,
 			pollingRetryCount: 0,
 			maxRetries: 3,
-			basePollingInterval: 2000,
-			currentPollingInterval: 2000,
+			basePollingInterval: 5000,
+			currentPollingInterval: 5000,
 
 			// Request tracking
 			activeRequests: new Set(),
@@ -218,7 +218,7 @@ export default {
 		if (messagesContainer) {
 			messagesContainer.removeEventListener('scroll', this.handleScroll);
 		}
-		// Enhanced cleanup
+		// Cleanup
 		this.cleanup();
 
 		// Remove visibility change listener
