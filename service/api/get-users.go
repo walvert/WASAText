@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 )
@@ -26,6 +27,10 @@ func (rt *_router) getUsers(w http.ResponseWriter, r *http.Request, ps httproute
 		ctx.Logger.WithError(err).Error("Error getting users")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	if users == nil {
+		users = make([]types.User, 0)
 	}
 
 	err = json.NewEncoder(w).Encode(users)

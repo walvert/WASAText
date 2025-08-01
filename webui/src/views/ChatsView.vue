@@ -1266,6 +1266,104 @@ export default {
 			}
 		},
 
+		async getImageUrl(imagePath) {
+			if (!imagePath) return null;
+
+			// Check if we already have a blob URL cached for this image
+			if (this.imageCache[imagePath]) {
+				return this.imageCache[imagePath];
+			}
+
+			try {
+				const baseURL = this.$axios.defaults.baseURL;
+
+				// Example imagePath "uploads/chats/image.jpg"
+				let imageUrl;
+
+				// Remove leading slash if present and ensure it starts with uploads/
+				const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
+
+				if (cleanPath.startsWith('uploads/')) {
+					// Path already includes uploads/, use as is
+					imageUrl = `${baseURL}/${cleanPath}`;
+				} else {
+					// Path doesn't include uploads/, add it
+					imageUrl = `${baseURL}/uploads/${cleanPath}`;
+				}
+
+				console.log('Fetching image from:', imageUrl); // Debug log
+
+				// Get the token from localStorage
+				const token = localStorage.getItem('token');
+
+				// Fetch the image with authorization header
+				const response = await this.$axios.get(imageUrl, {
+					responseType: 'blob',
+					headers: {
+						'Authorization': token
+					}
+				});
+
+				// Convert blob to object URL
+				const blobUrl = URL.createObjectURL(response.data);
+
+				// Cache the blob URL
+				this.imageCache[imagePath] = blobUrl;
+
+				return blobUrl;
+
+			} catch (error) {
+				console.error('Failed to fetch chat image:', error);
+				console.error('Image path was:', imagePath);
+				return null;
+			}
+		},
+
+		async loadChatImages() {
+			for (const chat of this.chats) {
+				if (chat.image && !this.chatImageUrls[chat.id]) {
+					try {
+						const imageUrl = await this.getImageUrl(chat.image);
+						if (imageUrl) {
+							this.chatImageUrls[chat.id] = imageUrl;
+						}
+					} catch (error) {
+						console.error(`Failed to load image for chat ${chat.id}:`, error);
+					}
+				}
+			}
+		},
+
+		async loadCurrentUserImage() {
+			try {
+				console.log('Loading current user image...');
+
+				const response = await this.$axios.get('/users/image');
+				console.log('User image response:', response.data);
+
+				if (response.data && response.data.imageUrl) {
+					console.log('Loading image from URL:', response.data.imageUrl);
+					this.currentUserImageUrl = await this.getImageUrl(response.data.imageUrl);
+					console.log('User image loaded successfully');
+				} else {
+					console.log('No image URL in response, using initials');
+				}
+			} catch (error) {
+				console.error('Failed to load user image:', error);
+
+				// Check if it's a 404 (no image set) vs other errors
+				if (error.response?.status === 404) {
+					console.log('User has no profile image set');
+				} else if (error.response?.status === 401) {
+					console.log('Authentication error loading user image');
+					// Don't emit logout here as this is called during initialization
+				}
+
+				// Don't show error to user, just use initials
+				this.currentUserImageUrl = null;
+			}
+		},
+
 		// Toggle chat info dropdown
 		toggleChatInfoDropdown() {
 			if (this.showChatInfoDropdown) {
@@ -2001,106 +2099,6 @@ export default {
 			}
 		},
 
-		async getImageUrl(imagePath) {
-			if (!imagePath) return null;
-
-			// Check if we already have a blob URL cached for this image
-			if (this.imageCache[imagePath]) {
-				return this.imageCache[imagePath];
-			}
-
-			try {
-				// Get the base URL from your axios configuration
-				const baseURL = this.$axios.defaults.baseURL;
-
-				// The imagePath should be something like "uploads/chats/image.jpg"
-				// We need to construct the URL as: /uploads/chats/image.jpg
-				let imageUrl;
-
-				// Remove leading slash if present and ensure it starts with uploads/
-				const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
-
-				if (cleanPath.startsWith('uploads/')) {
-					// Path already includes uploads/, use as is
-					imageUrl = `${baseURL}/${cleanPath}`;
-				} else {
-					// Path doesn't include uploads/, add it
-					imageUrl = `${baseURL}/uploads/${cleanPath}`;
-				}
-
-				console.log('Fetching image from:', imageUrl); // Debug log
-
-				// Get the token from localStorage
-				const token = localStorage.getItem('token');
-
-				// Fetch the image with authorization header
-				const response = await this.$axios.get(imageUrl, {
-					responseType: 'blob',
-					headers: {
-						'Authorization': token
-					}
-				});
-
-				// Convert blob to object URL
-				const blobUrl = URL.createObjectURL(response.data);
-
-				// Cache the blob URL
-				this.imageCache[imagePath] = blobUrl;
-
-				return blobUrl;
-
-			} catch (error) {
-				console.error('Failed to fetch chat image:', error);
-				console.error('Image path was:', imagePath);
-				return null;
-			}
-		},
-
-		async loadChatImages() {
-			for (const chat of this.chats) {
-				if (chat.image && !this.chatImageUrls[chat.id]) {
-					try {
-						const imageUrl = await this.getImageUrl(chat.image);
-						if (imageUrl) {
-							this.chatImageUrls[chat.id] = imageUrl;
-						}
-					} catch (error) {
-						console.error(`Failed to load image for chat ${chat.id}:`, error);
-					}
-				}
-			}
-		},
-
-		async loadCurrentUserImage() {
-			try {
-				console.log('Loading current user image...');
-
-				const response = await this.$axios.get('/users/image');
-				console.log('User image response:', response.data);
-
-				if (response.data && response.data.imageUrl) {
-					console.log('Loading image from URL:', response.data.imageUrl);
-					this.currentUserImageUrl = await this.getImageUrl(response.data.imageUrl);
-					console.log('User image loaded successfully');
-				} else {
-					console.log('No image URL in response, using initials');
-				}
-			} catch (error) {
-				console.error('Failed to load user image:', error);
-
-				// Check if it's a 404 (no image set) vs other errors
-				if (error.response?.status === 404) {
-					console.log('User has no profile image set');
-				} else if (error.response?.status === 401) {
-					console.log('Authentication error loading user image');
-					// Don't emit logout here as this is called during initialization
-				}
-
-				// Don't show error to user, just use initials
-				this.currentUserImageUrl = null;
-			}
-		},
-
 		// Handle user image load error
 		handleUserImageError() {
 			this.currentUserImageUrl = null;
@@ -2319,7 +2317,7 @@ export default {
 
 			try {
 				const baseURL = this.$axios.defaults.baseURL;
-				const imageUrl = `${baseURL}/uploads/messages/${mediaUrl}`;
+				const imageUrl = `${baseURL}/uploads/messages/images/${mediaUrl}`;
 				const token = localStorage.getItem('token');
 
 				console.log('Fetching message image from:', imageUrl);

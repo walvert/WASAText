@@ -618,7 +618,7 @@
 						</div>
 					</div>
 
-					<!-- New Message Indicator - Fixed positioning and visibility -->
+					<!-- New Message Indicator -->
 					<div
 						v-if="hasNewMessages && newMessageCount > 0"
 						class="new-message-indicator"
@@ -789,7 +789,7 @@
 
 						<!-- No users found -->
 						<div v-else-if="users.length === 0 && !loadingUsers" class="text-center py-3 text-muted">
-							<p>No users found. Click search to load users.</p>
+							<p>No users found.</p>
 						</div>
 
 						<!-- No filtered results -->
@@ -957,7 +957,7 @@
 		</div>
 	</div>
 
-	<!-- Fixed Profile Modal -->
+	<!--Profile Modal -->
 	<div v-if="showProfileModal" class="vue-modal" @click.self="showProfileModal = false">
 		<div class="vue-modal-dialog">
 			<div class="vue-modal-content">
@@ -1173,7 +1173,7 @@
 									<path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
 									<path d="M16 3.13a4 4 0 0 1 0 7.75"/>
 								</svg>
-								<p>No users found. Click search to load users.</p>
+								<p>No users found.</p>
 							</div>
 
 							<!-- No filtered results -->

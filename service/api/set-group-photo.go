@@ -43,7 +43,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 	}(file)
 
 	// Ensure upload directory exists
-	uploadDir := "uploads/chats/"
+	uploadDir := "uploads/chats/images/"
 	err = os.MkdirAll(uploadDir, os.ModePerm)
 	if err != nil {
 		return

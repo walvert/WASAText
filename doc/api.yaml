@@ -128,8 +128,8 @@ paths:
                     format: uri
                     minLength: 18
                     maxLength: 255
-                    pattern: '^uploads\/user\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png|gif)$'
-                    example: uploads/user/profile.jpg
+                    pattern: '^uploads\/user\/images\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png|gif)$'
+                    example: uploads/user/images/profile.jpg
         "401":
           $ref: '#/components/responses/UnauthorizedError'
         "404":
@@ -185,8 +185,8 @@ paths:
                     format: uri
                     minLength: 18
                     maxLength: 255
-                    pattern: '^uploads\/user\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png|gif)$'
-                    example: uploads/user/profile.jpg
+                    pattern: '^uploads\/user\/images\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png|gif)$'
+                    example: uploads/user/images/profile.jpg
         "400":
           $ref: '#/components/responses/BadRequestError'
         "401":
@@ -517,8 +517,8 @@ paths:
                     format: uri
                     minLength: 19
                     maxLength: 255
-                    pattern: '^uploads\/chats\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png|gif)$'
-                    example: uploads/chats/profile.jpg
+                    pattern: '^uploads\/chats\/images\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png|gif)$'
+                    example: uploads/chats/images/profile.jpg
         "400":
           $ref: '#/components/responses/BadRequestError'
         "401":
@@ -528,7 +528,7 @@ paths:
         "500":
           $ref: '#/components/responses/InternalServerError'
 
-  /uploads/{folder}/{filename}:
+  /uploads/{folder}/images/{filename}:
     get:
       summary: Get an uploaded image file
       description: Serves a static image file from the uploads directory.

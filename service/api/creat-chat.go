@@ -283,7 +283,7 @@ func (rt *_router) handleCreateChatFileUpload(r *http.Request, ctx reqcontext.Re
 	filename := rt.generateCreateChatMessageFilename(fileHeader.Filename)
 
 	// Create uploads directory if it doesn't exist
-	uploadsDir := "uploads/messages"
+	uploadsDir := "uploads/messages/images"
 	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
 		return messageRequest, "", fmt.Errorf("failed to create uploads directory: %w", err)
 	}

@@ -15,7 +15,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.PUT("/users/image", rt.setMyPhoto)
 	rt.router.GET("/users/image", rt.wrap(rt.getMyPhoto))
 
-	rt.router.GET("/uploads/:folder/:filename", rt.wrap(rt.getImage))
+	rt.router.GET("/uploads/:folder/images/:filename", rt.wrap(rt.getImage))
 
 	rt.router.POST("/chats", rt.wrap(rt.createChat))
 	rt.router.GET("/chats", rt.getMyConversations)

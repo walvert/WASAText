@@ -36,7 +36,7 @@ func (rt *_router) getImage(w http.ResponseWriter, r *http.Request, ps httproute
 		return
 	}
 
-	filePath := fmt.Sprintf("./uploads/%s/%s", folder, filename)
+	filePath := fmt.Sprintf("./uploads/%s/images/%s", folder, filename)
 
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		ctx.Logger.Warnf("File %s does not exist", filePath)

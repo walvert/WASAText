@@ -57,7 +57,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 	}(file)
 
 	// Ensure upload directory exists
-	uploadDir := "uploads/user/"
+	uploadDir := "uploads/user/images/"
 	err = os.MkdirAll(uploadDir, os.ModePerm)
 	if err != nil {
 		return
