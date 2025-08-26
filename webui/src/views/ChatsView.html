@@ -777,9 +777,17 @@
 									@click.stop="toggleUserSelection(user)"
 								>
 								<div class="user-avatar me-3">
-									<div class="avatar-circle" style="width: 32px; height: 32px; font-size: 12px;">
+									<div class="avatar-circle" v-if="!userImageUrls[user.id]" style="width: 32px; height: 32px; font-size: 12px;">
 										<span class="avatar-text">{{ getUserInitials(user.username) }}</span>
 									</div>
+									<img
+										v-else
+										:src="userImageUrls[user.id]"
+										:alt="user.username"
+										class="avatar-image"
+										style="width: 32px; height: 32px;"
+										@error="() => handleUsersImageError(user.id)"
+									>
 								</div>
 								<div class="user-info">
 									<div class="fw-medium">{{ user.username }}</div>

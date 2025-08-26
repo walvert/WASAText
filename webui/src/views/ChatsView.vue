@@ -159,6 +159,9 @@ export default {
 			loadingChatMembers: false,
 			memberImageUrls: {},
 			chatInfoDropdownTimeout: null,
+
+			// User profile images for modal
+			userImageUrls: {},
 		}
 	},
 
@@ -1163,6 +1166,9 @@ export default {
 
 				console.log('Users fetched successfully:', this.users);
 
+				// Load user profile images
+				await this.loadUserImages();
+
 			} catch (err) {
 				console.error('Failed to fetch users', err);
 				this.newChatError = 'Failed to load users. Please try again.';
@@ -1334,6 +1340,21 @@ export default {
 			}
 		},
 
+		async loadUserImages() {
+			for (const user of this.users) {
+				if (user.imageUrl && !this.userImageUrls[user.id]) {
+					try {
+						const imageUrl = await this.getImageUrl(user.imageUrl);
+						if (imageUrl) {
+							this.userImageUrls[user.id] = imageUrl;
+						}
+					} catch (error) {
+						console.error(`Failed to load image for user ${user.id}:`, error);
+					}
+				}
+			}
+		},
+
 		async loadCurrentUserImage() {
 			try {
 				console.log('Loading current user image...');
@@ -1395,7 +1416,12 @@ export default {
 			}
 		},
 
-
+		handleUsersImageError(userId) {
+			if (this.userImageUrls[userId]) {
+				URL.revokeObjectURL(this.userImageUrls[userId]);
+				delete this.userImageUrls[userId];
+			}
+		},
 
 		// Handle member image load error
 		handleMemberImageError(memberId) {
@@ -1972,6 +1998,7 @@ export default {
 			this.newChatError = null;
 			this.newChatLoading = false;
 			this.loadingUsers = false;
+			this.userImageUrls = {};
 
 			// Clear media selection
 			this.clearNewChatImageSelection();
@@ -2606,6 +2633,10 @@ export default {
 				URL.revokeObjectURL(blobUrl);
 			});
 
+			Object.values(this.userImageUrls).forEach(blobUrl => {
+				URL.revokeObjectURL(blobUrl);
+			});
+
 			if (this.photoPreviewUrl) {
 				URL.revokeObjectURL(this.photoPreviewUrl);
 			}
@@ -2635,6 +2666,7 @@ export default {
 			this.currentUserImageUrl = null;
 			this.newChatImagePreviewUrl = null;
 			this.tempNewChatImagePreviewUrl = null;
+			this.userImageUrls = {};
 		}
 	}
 }
