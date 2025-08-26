@@ -2536,10 +2536,10 @@ export default {
 						if (this.selectedChatId) {
 							console.log('Polling - preserving scroll position');
 
-							// Polling should NEVER be treated as first load
 							await Promise.all([
 								this.getConversation(this.selectedChatId, false), // false = preserve position
-								this.getLastReadMessageId(this.selectedChatId)
+								this.getLastReadMessageId(this.selectedChatId),
+								this.getMyConversations()
 							]);
 						}
 
@@ -2568,8 +2568,6 @@ export default {
 		},
 
 		cancelAllRequests() {
-			// If you're using a global axios instance, you might need to implement
-			// request cancellation differently. This is a placeholder for that logic.
 			console.log('Cancelling active requests:', this.activeRequests.size);
 			this.activeRequests.clear();
 		},
