@@ -76,7 +76,7 @@ func (db *appdbimpl) GetImagePath(userId int) (string, error) {
 
 func (db *appdbimpl) GetUsers(userId int) ([]types.User, error) {
 	var users []types.User
-	rows, err := db.c.Query("SELECT id, username FROM users WHERE id != ?", userId)
+	rows, err := db.c.Query("SELECT id, username, image_url FROM users WHERE id != ?", userId)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (db *appdbimpl) GetUsers(userId int) ([]types.User, error) {
 
 	for rows.Next() {
 		var user types.User
-		err := rows.Scan(&user.ID, &user.Username)
+		err := rows.Scan(&user.ID, &user.Username, &user.ImageUrl)
 		if err != nil {
 			return nil, err
 		}
