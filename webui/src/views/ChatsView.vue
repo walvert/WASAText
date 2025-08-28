@@ -285,59 +285,12 @@ export default {
 
 				// Update username if provided
 				if (this.editUsername.trim()) {
-					console.log('Updating username to:', this.editUsername.trim());
-
-					const response = await this.$axios.put('/users', {
-						username: this.editUsername.trim(),
-					}, {
-						headers: {
-							'Content-Type': 'application/json'
-						}
-					});
-
-					console.log('Username update response:', response.data);
-
-					// Update current user info from server response
-					if (response.data && response.data.username) {
-						this.currentUsername = response.data.username;
-
-						const userData = {
-							id: response.data.id || this.currentUserId,
-							username: this.currentUsername,
-						};
-						localStorage.setItem('user', JSON.stringify(userData));
-					}
+					await this.setMyUsername(this.editUsername.trim());
 				}
 
 				// Update profile image if provided
 				if (this.selectedProfileImage) {
-					console.log('Updating profile image...');
-
-					const formData = new FormData();
-					formData.append('image', this.selectedProfileImage);
-
-					const response = await this.$axios.put('/users/image', formData, {
-						headers: {
-							'Content-Type': 'multipart/form-data'
-						}
-					});
-
-					console.log('Image update response:', response.data);
-
-					// Clear old cached image URL
-					if (this.currentUserImageUrl) {
-						URL.revokeObjectURL(this.currentUserImageUrl);
-						this.currentUserImageUrl = null;
-					}
-
-					// If server returns the new image URL, use it to load the image
-					if (response.data && response.data.imageUrl) {
-						console.log('Loading new image from:', response.data.imageUrl);
-						this.currentUserImageUrl = await this.getImageUrl(response.data.imageUrl);
-					} else {
-						// Fallback: reload user image from server
-						await this.loadCurrentUserImage();
-					}
+					await this.setMyPhoto(this.selectedProfileImage);
 				}
 
 				// Close modal and reset
@@ -368,6 +321,61 @@ export default {
 				}
 			} finally {
 				this.profileLoading = false;
+			}
+		},
+
+		async setMyUsername(username) {
+			console.log('Updating username to:', username);
+
+			const response = await this.$axios.put('/users', {
+				username: username,
+			}, {
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			});
+
+			console.log('Username update response:', response.data);
+
+			// Update current user info from server response
+			if (response.data && response.data.username) {
+				this.currentUsername = response.data.username;
+
+				const userData = {
+					id: response.data.id || this.currentUserId,
+					username: this.currentUsername,
+				};
+				localStorage.setItem('user', JSON.stringify(userData));
+			}
+		},
+
+		async setMyPhoto(imageFile) {
+			console.log('Updating profile image...');
+
+			const formData = new FormData();
+			formData.append('image', imageFile);
+
+			const response = await this.$axios.put('/users/image', formData, {
+				headers: {
+					'Content-Type': 'multipart/form-data'
+				}
+			});
+
+			console.log('Image update response:', response.data);
+
+			// Clear old cached image URL
+			if (this.currentUserImageUrl) {
+				URL.revokeObjectURL(this.currentUserImageUrl);
+				this.currentUserImageUrl = null;
+			}
+
+			// If server returns the new image URL, use it to load the image
+			if (response.data && response.data.imageUrl) {
+				console.log('Loading new image from:', response.data.imageUrl);
+				this.currentUserImageUrl = await this.getImageUrl(response.data.imageUrl);
+			} else {
+				// Fallback: reload user image from server
+				await this.loadCurrentUserImage();
 			}
 		},
 
