@@ -1308,68 +1308,6 @@ main.col-md-8.col-lg-9 {
 	background-color: rgba(0, 0, 0, 0.5);
 }
 
-.vue-modal {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	background-color: rgba(0, 0, 0, 0.5);
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	z-index: 1050;
-}
-
-.vue-modal-dialog {
-	background: white;
-	border-radius: 0.5rem;
-	box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-	max-width: 500px;
-	width: 90%;
-	max-height: 90vh;
-	overflow-y: auto;
-}
-
-.vue-modal-header {
-	padding: 1rem 1.5rem;
-	border-bottom: 1px solid #dee2e6;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-}
-
-.vue-modal-title {
-	margin: 0;
-	font-size: 1.25rem;
-	font-weight: 500;
-}
-
-.vue-modal-close {
-	background: none;
-	border: none;
-	font-size: 1.5rem;
-	cursor: pointer;
-	padding: 0;
-	width: 1.5rem;
-	height: 1.5rem;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.vue-modal-body {
-	padding: 1.5rem;
-}
-
-.vue-modal-footer {
-	padding: 1rem 1.5rem;
-	border-top: 1px solid #dee2e6;
-	display: flex;
-	justify-content: flex-end;
-	gap: 0.5rem;
-}
-
 /* Form Styles */
 .form-label {
 	display: block;
@@ -1534,83 +1472,6 @@ main.col-md-8.col-lg-9 {
 	}
 }
 
-/* Vue Modal Styles - Ensure proper display */
-.vue-modal {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	background-color: rgba(0, 0, 0, 0.5);
-	display: flex !important; /* Force display for Vue reactivity */
-	justify-content: center;
-	align-items: center;
-	z-index: 1050;
-}
-
-.vue-modal-dialog {
-	background: white;
-	border-radius: 0.5rem;
-	box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-	max-width: 600px;
-	width: 90%;
-	max-height: 90vh;
-	overflow-y: auto;
-}
-
-.vue-modal-content {
-	display: flex;
-	flex-direction: column;
-	height: 100%;
-}
-
-.vue-modal-header {
-	padding: 1rem 1.5rem;
-	border-bottom: 1px solid #dee2e6;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	flex-shrink: 0;
-}
-
-.vue-modal-title {
-	margin: 0;
-	font-size: 1.25rem;
-	font-weight: 500;
-}
-
-.vue-modal-close {
-	background: none;
-	border: none;
-	font-size: 1.5rem;
-	cursor: pointer;
-	padding: 0;
-	width: 1.5rem;
-	height: 1.5rem;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	color: #6c757d;
-}
-
-.vue-modal-close:hover {
-	color: #000;
-}
-
-.vue-modal-body {
-	padding: 1.5rem;
-	flex: 1;
-	overflow-y: auto;
-}
-
-.vue-modal-footer {
-	padding: 1rem 1.5rem;
-	border-top: 1px solid #dee2e6;
-	display: flex;
-	justify-content: flex-end;
-	gap: 0.5rem;
-	flex-shrink: 0;
-}
 
 /* New Chat Modal Styles */
 .user-search-container {
@@ -1805,19 +1666,6 @@ main.col-md-8.col-lg-9 {
 	}
 }
 
-/* Loading state for photo upload button */
-.vue-modal-footer .btn:disabled {
-	opacity: 0.6;
-	cursor: not-allowed;
-	background-color: #6c757d !important;
-	border-color: #6c757d !important;
-}
-
-.vue-modal-footer .btn:disabled:hover {
-	background-color: #6c757d !important;
-	border-color: #6c757d !important;
-	transform: none !important;
-}
 
 /* Enhanced error message styling for photo upload */
 .error-msg {
@@ -2103,67 +1951,6 @@ main.col-md-8.col-lg-9 {
 	.message-bubble .message-image {
 		max-width: 250px;
 		max-height: 300px;
-	}
-}
-
-/* New Chat Modal Input Group Styling */
-.vue-modal-body .input-group {
-	display: flex !important;
-	align-items: stretch !important;
-	width: 100% !important;
-	gap: 0.5rem !important;
-}
-
-.vue-modal-body .input-group .btn {
-	flex-shrink: 0 !important;
-	border-radius: 50% !important;
-	width: 40px !important;
-	height: 40px !important;
-	display: flex !important;
-	align-items: center !important;
-	justify-content: center !important;
-	padding: 0 !important;
-	border: 1px solid #dee2e6 !important;
-}
-
-.vue-modal-body .input-group .btn:hover {
-	background-color: #f8f9fa !important;
-	border-color: #6c757d !important;
-}
-
-.vue-modal-body .input-group .form-control {
-	flex: 1 !important;
-	border-radius: 1.5rem !important;
-	padding: 0.5rem 1rem !important;
-	border: 1px solid #dee2e6 !important;
-}
-
-.vue-modal-body .input-group .form-control:focus {
-	box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
-	border-color: #007bff !important;
-}
-
-/* Ensure SVG icons are properly sized in modal buttons */
-.vue-modal-body .input-group .btn svg {
-	width: 16px !important;
-	height: 16px !important;
-}
-
-/* Additional spacing for the input group within the modal */
-.vue-modal-body .mb-3:has(.input-group) {
-	margin-bottom: 1.5rem !important;
-}
-
-/* Responsive adjustments for smaller screens */
-@media (max-width: 576px) {
-	.vue-modal-body .input-group .btn {
-		width: 36px !important;
-		height: 36px !important;
-	}
-
-	.vue-modal-body .input-group .btn svg {
-		width: 14px !important;
-		height: 14px !important;
 	}
 }
 

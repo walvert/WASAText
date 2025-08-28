@@ -1,8 +1,16 @@
 <template src="./ChatsView.html"></template>
 
 <script>
+import ProfileModal from '../components/ProfileModal.vue'
+import CreateChatModal from '../components/CreateChatModal.vue';
+
 export default {
 	name: 'ChatsView',
+	components: {
+		ProfileModal,
+		CreateChatModal,
+	},
+
 	data() {
 		return {
 			// Chats list
@@ -17,10 +25,10 @@ export default {
 			messagesError: null,
 			newMessage: '',
 			sendingMessage: false,
-			pendingMessage: '', // Store the message being sent
+			pendingMessage: '',
 
 			// Read status tracking
-			lastReadMessageId: null, // Track the last read message ID for current chat
+			lastReadMessageId: null,
 
 			// User info
 			currentUserId: null,
@@ -110,9 +118,9 @@ export default {
 			isUserAtBottom: true,
 			hasNewMessages: false,
 			newMessageCount: 0,
-			scrollThreshold: 100, // pixels from bottom to consider "at bottom"
-			preserveScrollPosition: false, // Flag to preserve scroll during polling
-			savedScrollPosition: 0, // Store scroll position during updates
+			scrollThreshold: 100,
+			preserveScrollPosition: false,
+			savedScrollPosition: 0,
 
 			// Flags for different scenarios
 			isFirstChatLoad: false,
@@ -174,11 +182,13 @@ export default {
 		},
 		canCreateNewChat() {
 			const hasRecipients = this.selectedUsers.length > 0;
-			const hasGroupNameIfNeeded = this.selectedUsers.length <= 1 || this.newChatName.trim();
-			const hasInitialContent = this.initialMessage.trim() || this.selectedNewChatImage;
+			const hasGroupNameIfNeeded = this.selectedUsers.length <= 1 || (this.selectedUsers.length > 1 && !!this.newChatName.trim());
+			const hasInitialContent = !!(this.initialMessage.trim() || this.selectedNewChatImage);
+
 			return hasRecipients && hasGroupNameIfNeeded && hasInitialContent && !this.newChatLoading;
 		}
 	},
+
 	async created() {
 		document.addEventListener('visibilitychange', this.handleVisibilityChange);
 		// Check if user is authenticated
@@ -273,59 +283,52 @@ export default {
 
 
 	methods: {
-		async updateProfile() {
-			if (!this.editUsername.trim() && !this.selectedProfileImage) {
-				this.profileError = 'Please enter a username or select a profile image to update';
-				return;
-			}
+		async updateProfile(formData) {
+			const { username, profileImage } = formData
 
 			try {
-				this.profileLoading = true;
-				this.profileError = null;
+				this.profileLoading = true
+				this.profileError = null
 
 				// Update username if provided
-				if (this.editUsername.trim()) {
-					await this.setMyUsername(this.editUsername.trim());
+				if (username) {
+					await this.setMyUsername(username)
 				}
 
 				// Update profile image if provided
-				if (this.selectedProfileImage) {
-					await this.setMyPhoto(this.selectedProfileImage);
+				if (profileImage) {
+					await this.setMyPhoto(profileImage)
 				}
 
-				// Close modal and reset
-				this.showProfileModal = false;
-				this.clearProfileImageSelection();
-				this.editUsername = '';
-
-				// Show success message
-				alert('Profile updated successfully!');
+				// Close modal and show success
+				this.showProfileModal = false
+				alert('Profile updated successfully!')
 
 			} catch (err) {
-				console.error('Failed to update profile', err);
-				console.error('Error response:', err.response);
+				console.error('Failed to update profile', err)
+				console.error('Error response:', err.response)
 
 				// Check for authentication errors
 				if (err.response?.status === 401) {
-					console.log('Authentication error during profile update, logging out');
-					this.$emit('logout');
-					return;
+					console.log('Authentication error during profile update, logging out')
+					this.$emit('logout')
+					return
 				}
 
 				if (err.response?.status === 413) {
-					this.profileError = 'File is too large. Please choose a smaller image.';
+					this.profileError = 'File is too large. Please choose a smaller image.'
 				} else if (err.response?.status === 400) {
-					this.profileError = 'Invalid file format. Please choose a valid image.';
+					this.profileError = 'Invalid file format. Please choose a valid image.'
 				} else {
-					this.profileError = err.response?.data?.message || 'Failed to update profile. Please try again.';
+					this.profileError = err.response?.data?.message || 'Failed to update profile. Please try again.'
 				}
 			} finally {
-				this.profileLoading = false;
+				this.profileLoading = false
 			}
 		},
 
 		async setMyUsername(username) {
-			console.log('Updating username to:', username);
+			console.log('Updating username to:', username)
 
 			const response = await this.$axios.put('/users', {
 				username: username,
@@ -333,50 +336,55 @@ export default {
 				headers: {
 					'Content-Type': 'application/json'
 				}
-			});
+			})
 
-			console.log('Username update response:', response.data);
+			console.log('Username update response:', response.data)
 
 			// Update current user info from server response
 			if (response.data && response.data.username) {
-				this.currentUsername = response.data.username;
+				this.currentUsername = response.data.username
 
 				const userData = {
 					id: response.data.id || this.currentUserId,
 					username: this.currentUsername,
-				};
-				localStorage.setItem('user', JSON.stringify(userData));
+				}
+				localStorage.setItem('user', JSON.stringify(userData))
 			}
 		},
 
 		async setMyPhoto(imageFile) {
-			console.log('Updating profile image...');
+			console.log('Updating profile image...')
 
-			const formData = new FormData();
-			formData.append('image', imageFile);
+			const formData = new FormData()
+			formData.append('image', imageFile)
 
 			const response = await this.$axios.put('/users/image', formData, {
 				headers: {
 					'Content-Type': 'multipart/form-data'
 				}
-			});
+			})
 
-			console.log('Image update response:', response.data);
+			console.log('Image update response:', response.data)
 
 			// Clear old cached image URL
-			if (this.currentUserImageUrl) {
-				URL.revokeObjectURL(this.currentUserImageUrl);
-				this.currentUserImageUrl = null;
-			}
+			// if (this.currentUserImageUrl) {
+			// 	URL.revokeObjectURL(this.currentUserImageUrl)
+			// 	this.currentUserImageUrl = null
+			// }
 
 			// If server returns the new image URL, use it to load the image
 			if (response.data && response.data.imageUrl) {
-				console.log('Loading new image from:', response.data.imageUrl);
-				this.currentUserImageUrl = await this.getImageUrl(response.data.imageUrl);
+				console.log('Loading new image from:', response.data.imageUrl)
+				this.currentUserImageUrl = await this.getImageUrl(response.data.imageUrl)
 			} else {
 				// Fallback: reload user image from server
-				await this.loadCurrentUserImage();
+				await this.loadCurrentUserImage()
 			}
+		},
+
+		closeProfileModal() {
+			this.showProfileModal = false
+			this.profileError = ''
 		},
 
 		async getMyConversations() {
@@ -443,7 +451,6 @@ export default {
 			}
 		},
 
-		// Replace your getConversation method with this fixed version:
 		async getConversation(chatId, isFirstLoad = false) {
 			const controller = new AbortController();
 			const requestId = 'getConversation-' + chatId + '-' + Date.now();
@@ -682,6 +689,11 @@ export default {
 			} finally {
 				this.newChatLoading = false;
 			}
+		},
+
+		handleFilterUsers(searchQuery) {
+			this.userSearchQuery = searchQuery;
+			this.filterUsers();
 		},
 
 		async sendMessage() {
@@ -1955,6 +1967,9 @@ export default {
 		},
 
 		toggleUserSelection(user) {
+			console.log('toggleUserSelection called with:', user);
+			console.log('selectedUsers before:', this.selectedUsers);
+
 			const index = this.selectedUsers.findIndex(u => u.id === user.id);
 
 			if (index > -1) {
@@ -1964,6 +1979,8 @@ export default {
 				// User is not selected, add them
 				this.selectedUsers.push(user);
 			}
+
+			console.log('selectedUsers after:', this.selectedUsers);
 
 			// Clear group name if only one user is selected
 			if (this.selectedUsers.length <= 1) {
@@ -2682,5 +2699,6 @@ export default {
 
 <style scoped>
 @import url('../assets/main.css');
+@import url('../assets/modals.css');
 @import "ChatsView.css";
 </style>
