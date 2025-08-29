@@ -19,14 +19,6 @@
 									v-model="userSearchQuery"
 									@input="filterUsers"
 								>
-								<button class="btn btn-outline-secondary" type="button" @click="$emit('get-users')">
-									<svg v-if="!loadingUsers" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-										<path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-									</svg>
-									<div v-else class="spinner-border spinner-border-sm" role="status">
-										<span class="visually-hidden">Loading...</span>
-									</div>
-								</button>
 							</div>
 						</div>
 
@@ -102,7 +94,7 @@
 						</div>
 					</div>
 
-					<!-- Group Name Input (show if multiple users selected) -->
+					<!-- Group Name Input -->
 					<div v-if="selectedUsers.length > 1" class="mb-3">
 						<label class="form-label">Group Name <span class="text-danger">*</span></label>
 						<input
@@ -249,6 +241,10 @@ export default {
 		canCreateNewChat: {
 			type: Boolean,
 			default: false
+		},
+		userSearchQuery: {
+			type: String,
+			default: ''
 		}
 	},
 	data() {
@@ -305,9 +301,6 @@ export default {
 	},
 
 	watch: {
-		canCreateNewChat(newVal) {
-			console.log('Modal received canCreateNewChat prop:', newVal);
-		},
 		show(newVal) {
 			if (newVal) {
 				// Load users when modal opens if not already loaded

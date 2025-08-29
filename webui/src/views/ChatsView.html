@@ -241,7 +241,7 @@
 							</button>
 							<ul class="dropdown-menu dropdown-menu-end">
 								<li>
-									<button class="dropdown-item" @click="openSetGroupNameModal">
+									<button class="dropdown-item" @click="openRenameGroupModal">
 										<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" class="me-2">
 											<path d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
 											<path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
@@ -722,7 +722,6 @@
 		</main>
 	</div>
 
-	<!-- New Chat Modal -->
 	<CreateChatModal
 		:show="showNewChatModal"
 		:users="users"
@@ -750,62 +749,12 @@
 		@update:initialMessage="initialMessage = $event"
 	/>
 
-	<div v-if="showNewChatImageModal" class="vue-modal" @click.self="closeNewChatImageModal">
-		<div class="vue-modal-dialog">
-			<div class="vue-modal-content">
-				<div class="vue-modal-header">
-					<h5 class="vue-modal-title">Add Image or GIF</h5>
-					<button type="button" class="vue-modal-close" @click="closeNewChatImageModal">×</button>
-				</div>
-				<div class="vue-modal-body">
-					<!-- File Upload Section -->
-					<div class="mb-3">
-						<label class="form-label">Choose Image or GIF</label>
-						<input
-							type="file"
-							class="form-control"
-							ref="newChatImageInput"
-							@change="handleNewChatImageSelect"
-							accept="image/*,.gif"
-						>
-						<div class="form-text">Supported formats: JPG, PNG, GIF, WebP. Max size: 10MB</div>
-					</div>
+	<NewChatImageModal
+		:show="showNewChatImageModal"
+		@close="closeNewChatImageModal"
+		@select="handleNewChatImageSelect"
+	/>
 
-					<!-- Image Preview -->
-					<div v-if="tempNewChatImage" class="mb-3 text-center">
-						<label class="form-label">Preview</label>
-						<div class="photo-preview">
-							<img
-								:src="tempNewChatImagePreviewUrl"
-								alt="Preview"
-								class="preview-message-image"
-								style="max-width: 300px; max-height: 300px;"
-							>
-						</div>
-						<div class="mt-2">
-							<small class="text-muted">{{ tempNewChatImage.name }} ({{ formatFileSize(tempNewChatImage.size) }})</small>
-						</div>
-					</div>
-
-					<!-- Error Message -->
-					<div v-if="newChatImageModalError" class="error-msg">{{ newChatImageModalError }}</div>
-				</div>
-				<div class="vue-modal-footer">
-					<button type="button" class="btn btn-secondary" @click="closeNewChatImageModal">Cancel</button>
-					<button
-						type="button"
-						class="btn btn-primary"
-						@click="selectNewChatImage"
-						:disabled="!tempNewChatImage"
-					>
-						Add to Message
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!--Profile Modal -->
 	<ProfileModal
 		:show="showProfileModal"
 		:current-user-image-url="currentUserImageUrl"
@@ -816,251 +765,26 @@
 		@update-profile="updateProfile"
 	/>
 
-	<!-- Forward Message Modal -->
-	<div v-if="showForwardModal" class="forward-modal" @click.self="closeForwardModal">
-		<div class="forward-modal-dialog">
-			<div class="vue-modal-content">
-				<div class="vue-modal-header">
-					<h5 class="vue-modal-title">Forward Message</h5>
-					<button type="button" class="vue-modal-close" @click="closeForwardModal">×</button>
-				</div>
-				<div class="vue-modal-body">
-					<!-- Message Preview -->
-					<div class="forward-message-preview">
-						<div class="forward-preview-header">Forwarding message:</div>
-						<div class="forward-preview-content">
-							<img
-								v-if="forwardingMessage && (forwardingMessage.type === 'image' || forwardingMessage.type === 'gif') && messageImageUrls[forwardingMessage.id]"
-								:src="messageImageUrls[forwardingMessage.id]"
-								:alt="forwardingMessage.mediaUrl || 'Image'"
-								class="forward-preview-image"
-							>
-							{{ getForwardPreviewText(forwardingMessage) }}
-						</div>
-					</div>
-
-					<!-- Recipient Selection Tabs -->
-					<div class="recipient-tabs">
-						<button
-							class="recipient-tab"
-							:class="{ active: forwardActiveTab === 'users' }"
-							@click="forwardActiveTab = 'users'"
-						>
-							Users
-						</button>
-						<button
-							class="recipient-tab"
-							:class="{ active: forwardActiveTab === 'chats' }"
-							@click="forwardActiveTab = 'chats'"
-						>
-							Group Chats
-						</button>
-					</div>
-
-					<!-- Selected Recipients Display -->
-					<div v-if="selectedForwardRecipients.length > 0" class="mb-3">
-						<label class="form-label">Selected Recipients ({{ selectedForwardRecipients.length }})</label>
-						<div class="selected-recipients d-flex flex-wrap">
-                        <span
-							v-for="recipient in selectedForwardRecipients"
-							:key="`${recipient.type}-${recipient.id}`"
-							class="recipient-chip"
-							:class="recipient.type === 'user' ? 'user-chip' : 'chat-chip'"
-						>
-                            {{ recipient.name }}
-                            <button
-								type="button"
-								class="recipient-chip-close"
-								@click="removeForwardRecipient(recipient)"
-							>
-                                ×
-                            </button>
-                        </span>
-						</div>
-					</div>
-
-					<!-- Users Tab Content -->
-					<div v-if="forwardActiveTab === 'users'">
-						<!-- User Search -->
-						<div class="mb-3">
-							<label class="form-label">Select Users</label>
-							<div class="user-search-container mb-3">
-								<div class="input-group">
-									<input
-										type="text"
-										class="form-control"
-										placeholder="Search users..."
-										v-model="forwardUserSearchQuery"
-										@input="filterForwardUsers"
-									>
-									<button class="btn btn-outline-secondary" type="button" @click="getForwardUsers">
-										<svg v-if="!loadingForwardUsers" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-											<path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
-										</svg>
-										<div v-else class="spinner-border spinner-border-sm" role="status">
-											<span class="visually-hidden">Loading...</span>
-										</div>
-									</button>
-								</div>
-							</div>
-
-							<!-- Loading state for users -->
-							<div v-if="loadingForwardUsers" class="forward-loading">
-								<div class="spinner-border" role="status">
-									<span class="visually-hidden">Loading users...</span>
-								</div>
-							</div>
-
-							<!-- Users list -->
-							<div v-else-if="filteredForwardUsers.length > 0" class="user-list border rounded p-2" style="max-height: 200px; overflow-y: auto;">
-								<div
-									v-for="user in filteredForwardUsers"
-									:key="user.id"
-									class="user-item d-flex align-items-center p-2 rounded hover-bg-light"
-									style="cursor: pointer;"
-									@click="toggleForwardUserSelection(user)"
-								>
-									<input
-										type="checkbox"
-										class="form-check-input me-3"
-										:checked="isForwardRecipientSelected(user.id, 'user')"
-										@click.stop="toggleForwardUserSelection(user)"
-									>
-									<div class="user-avatar me-3">
-										<div class="avatar-circle" style="width: 32px; height: 32px; font-size: 12px;">
-											<span class="avatar-text">{{ getUserInitials(user.username) }}</span>
-										</div>
-									</div>
-									<div class="user-info">
-										<div class="fw-medium">{{ user.username }}</div>
-									</div>
-								</div>
-							</div>
-
-							<!-- No users found -->
-							<div v-else-if="forwardUsers.length === 0 && !loadingForwardUsers" class="forward-empty-state">
-								<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-									<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-									<circle cx="9" cy="7" r="4"/>
-									<path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-									<path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-								</svg>
-								<p>No users found.</p>
-							</div>
-
-							<!-- No filtered results -->
-							<div v-else-if="filteredForwardUsers.length === 0 && forwardUserSearchQuery && !loadingForwardUsers" class="forward-empty-state">
-								<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-									<circle cx="11" cy="11" r="8"/>
-									<path d="M21 21l-4.35-4.35"/>
-								</svg>
-								<p>No users found matching "{{ forwardUserSearchQuery }}"</p>
-							</div>
-						</div>
-					</div>
-
-					<!-- Chats Tab Content -->
-					<div v-if="forwardActiveTab === 'chats'">
-						<div class="mb-3">
-							<label class="form-label">Select Group Chats</label>
-
-							<!-- Group chats list -->
-							<div v-if="forwardGroupChats.length > 0" class="forward-chat-list">
-								<div
-									v-for="chat in forwardGroupChats"
-									:key="chat.id"
-									class="forward-chat-item"
-									:class="{ selected: isForwardRecipientSelected(chat.id, 'chat') }"
-									@click="toggleForwardChatSelection(chat)"
-								>
-									<input
-										type="checkbox"
-										class="form-check-input me-3"
-										:checked="isForwardRecipientSelected(chat.id, 'chat')"
-										@click.stop="toggleForwardChatSelection(chat)"
-									>
-									<div class="forward-chat-avatar">
-										<img
-											v-if="chatImageUrls[chat.id]"
-											:src="chatImageUrls[chat.id]"
-											:alt="getChatName(chat)"
-											style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;"
-										>
-										<span v-else>{{ getChatInitials(chat) }}</span>
-									</div>
-									<div class="forward-chat-info">
-										<div class="forward-chat-name">{{ getChatName(chat) }}</div>
-										<div class="forward-chat-type">Group Chat</div>
-									</div>
-								</div>
-							</div>
-
-							<!-- No group chats -->
-							<div v-else class="forward-empty-state">
-								<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-									<path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-								</svg>
-								<p>No group chats available for forwarding.</p>
-							</div>
-						</div>
-					</div>
-
-					<!-- Error Message -->
-					<ErrorMsg v-if="forwardError" :message="forwardError"/>
-				</div>
-				<div class="vue-modal-footer">
-					<button type="button" class="btn btn-secondary" @click="closeForwardModal">Cancel</button>
-					<button
-						type="button"
-						class="btn btn-success"
-						@click="forwardMessage"
-						:disabled="forwardLoading || selectedForwardRecipients.length === 0"
-					>
-						<div v-if="forwardLoading" class="spinner-border spinner-border-sm me-2" role="status">
-							<span class="visually-hidden">Forwarding...</span>
-						</div>
-						Forward to {{ selectedForwardRecipients.length }} recipient{{ selectedForwardRecipients.length !== 1 ? 's' : '' }}
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
+	<ForwardMessageModal
+		:show="showForwardModal"
+		:message="forwardingMessage"
+		:messageImageUrls="messageImageUrls"
+		:chatImageUrls="chatImageUrls"
+		:groupChats="forwardGroupChats"
+		:loadUsers="loadForwardUsers"
+		:forwardMessage="forwardMessage"
+		@close="closeForwardModal"
+	/>
 
 
-	<!-- Rename Group Modal -->
-	<div v-if="showSetGroupNameModal" class="vue-modal" @click.self="showSetGroupNameModal = false">
-		<div class="vue-modal-dialog">
-			<div class="vue-modal-header">
-				<h5 class="vue-modal-title">Rename Group</h5>
-				<button class="vue-modal-close" @click="showSetGroupNameModal = false">×</button>
-			</div>
-			<div class="vue-modal-body">
-				<div class="mb-3">
-					<label class="form-label">Group Name</label>
-					<input
-						type="text"
-						class="form-control"
-						v-model="editGroupName"
-						placeholder="Enter new group name"
-						@keyup.enter="setGroupName"
-						ref="groupNameInput"
-					>
-				</div>
-				<div v-if="setGroupNameError" class="error-msg">{{ setGroupNameError }}</div>
-			</div>
-			<div class="vue-modal-footer">
-				<button class="btn btn-secondary" @click="showSetGroupNameModal = false">Cancel</button>
-				<button
-					class="btn btn-primary"
-					@click="setGroupName"
-					:disabled="setGroupNameLoading || !editGroupName.trim()"
-				>
-					<div v-if="setGroupNameLoading" class="spinner-border"></div>
-					Rename
-				</button>
-			</div>
-		</div>
-	</div>
+	<RenameGroupModal
+		:show="showRenameGroupModal"
+		:current-name="selectedChat?.name || ''"
+		:loading="setGroupNameLoading"
+		:error="setGroupNameError"
+		@close="closeRenameGroupModal"
+		@rename="setGroupName"
+	/>
 
 	<!-- Add Member Modal -->
 	<div v-if="showAddToGroupModal" class="vue-modal" @click.self="showAddToGroupModal = false">

@@ -2,13 +2,19 @@
 
 <script>
 import ProfileModal from '../components/ProfileModal.vue'
-import CreateChatModal from '../components/CreateChatModal.vue';
+import CreateChatModal from '../components/CreateChatModal.vue'
+import NewChatImageModal from '../components/NewChatImageModal.vue'
+import ForwardMessageModal from '../components/ForwardMessageModal.vue'
+import RenameGroupModal from '../components/RenameGroupModal.vue'
 
 export default {
 	name: 'ChatsView',
 	components: {
 		ProfileModal,
 		CreateChatModal,
+		NewChatImageModal,
+		ForwardMessageModal,
+		RenameGroupModal,
 	},
 
 	data() {
@@ -39,8 +45,7 @@ export default {
 			newChatUsername: '',
 
 			// Rename Group Modal
-			showSetGroupNameModal: false,
-			editGroupName: '',
+			showRenameGroupModal: false,
 			setGroupNameLoading: false,
 			setGroupNameError: null,
 
@@ -130,9 +135,6 @@ export default {
 			showNewChatImageModal: false,
 			selectedNewChatImage: null,
 			newChatImagePreviewUrl: null,
-			tempNewChatImage: null,
-			tempNewChatImagePreviewUrl: null,
-			newChatImageModalError: null,
 
 			showLikesDropdown: null,
 
@@ -145,18 +147,9 @@ export default {
 			// Forward modal states
 			showForwardModal: false,
 			forwardingMessage: null,
-			forwardActiveTab: 'users',
-			forwardLoading: false,
-			forwardError: null,
 
 			// Forward users
-			forwardUsers: [],
-			filteredForwardUsers: [],
-			loadingForwardUsers: false,
 			forwardUserSearchQuery: '',
-
-			// Forward recipients
-			selectedForwardRecipients: [],
 
 			// Forward dropdown
 			showForwardDropdown: null,
@@ -178,7 +171,7 @@ export default {
 			return this.chats.find(chat => chat.id === this.selectedChatId);
 		},
 		forwardGroupChats() {
-			return this.chats.filter(chat => chat.isGroup && chat.id !== this.selectedChatId);
+			return this.chats.filter(chat => chat.isGroup);
 		},
 		canCreateNewChat() {
 			const hasRecipients = this.selectedUsers.length > 0;
@@ -621,7 +614,6 @@ export default {
 				let requestConfig = {};
 
 				if (this.selectedNewChatImage) {
-					// Create FormData for file upload
 					const formData = new FormData();
 					formData.append('image', this.selectedNewChatImage);
 					formData.append('type', this.getFileType(this.selectedNewChatImage));
@@ -640,7 +632,6 @@ export default {
 					requestData = formData;
 					requestConfig = {};
 				} else {
-					// JSON request for text message
 					requestData = {
 						type: 'text',
 						receivers: this.selectedUsers.map(user => user.username),
@@ -828,68 +819,12 @@ export default {
 			}
 		},
 
-		async forwardMessage() {
-			if (!this.forwardingMessage || this.selectedForwardRecipients.length === 0) {
-				this.forwardError = 'Please select at least one recipient';
-				return;
-			}
-
-			try {
-				this.forwardLoading = true;
-				this.forwardError = null;
-
-				// Prepare recipients array for API
-				const recipients = this.selectedForwardRecipients.map(recipient => ({
-					id: recipient.id,
-					type: recipient.type
-				}));
-
-				console.log('Forwarding message:', this.forwardingMessage.id, 'to recipients:', recipients);
-
-				// Send forward request
-				const response = await this.$axios.post(`/messages/${this.forwardingMessage.id}/forwards`, {
-					recipients: recipients
-				});
-
-				console.log('Forward response:', response.data);
-
-				// Close modal
-				this.closeForwardModal();
-
-				// Show success message
-				const recipientCount = recipients.length;
-				alert(`Message forwarded successfully to ${recipientCount} recipient${recipientCount !== 1 ? 's' : ''}!`);
-
-				// Refresh conversations to show new messages
-				await this.getMyConversations();
-
-			} catch (err) {
-				console.error('Failed to forward message', err);
-
-				// Handle specific error cases
-				if (err.response?.status === 403) {
-					this.forwardError = 'You are not authorized to forward this message.';
-				} else if (err.response?.status === 404) {
-					this.forwardError = 'Message not found or some recipients are invalid.';
-				} else if (err.response?.status === 401) {
-					console.log('Authentication error during message forward');
-					this.$emit('logout');
-				} else {
-					this.forwardError = err.response?.data?.message || 'Failed to forward message. Please try again.';
-				}
-			} finally {
-				this.forwardLoading = false;
-			}
-		},
-
-		async setGroupName() {
-			if (!this.editGroupName.trim()) {
-				this.setGroupNameError = 'Group name is required';
+		async setGroupName(newName) {
+			if (!newName.trim()) {
 				return;
 			}
 
 			if (!this.selectedChatId) {
-				this.setGroupNameError = 'No group selected';
 				return;
 			}
 
@@ -898,7 +833,7 @@ export default {
 				this.setGroupNameError = null;
 
 				const response = await this.$axios.put(`/chats/${this.selectedChatId}`, {
-					chatName: this.editGroupName.trim()
+					chatName: newName.trim()
 				});
 
 				console.log('Group renamed successfully:', response.data);
@@ -906,12 +841,11 @@ export default {
 				// Update the local chat name immediately for better UX
 				const chatIndex = this.chats.findIndex(chat => chat.id === this.selectedChatId);
 				if (chatIndex !== -1) {
-					this.chats[chatIndex].name = this.editGroupName.trim();
+					this.chats[chatIndex].name = newName.trim();
 				}
 
 				// Close modal and reset form
-				this.showSetGroupNameModal = false;
-				this.editGroupName = '';
+				this.showRenameGroupModal = false;
 
 				// Refresh chats to get latest data from server
 				await this.getMyConversations();
@@ -921,10 +855,15 @@ export default {
 
 			} catch (err) {
 				console.error('Failed to rename group', err);
-				this.setGroupNameError = err.response?.data?.message || 'Failed to rename group. Please try again.';
+				// Error will be handled by the modal's error prop binding
 			} finally {
 				this.setGroupNameLoading = false;
 			}
+		},
+
+		closeRenameGroupModal() {
+			this.showRenameGroupModal = false;
+			this.setGroupNameError = null;
 		},
 
 		async setGroupPhoto() {
@@ -1667,101 +1606,99 @@ export default {
 			this.forwardingMessage = message;
 			this.showForwardModal = true;
 			this.showForwardDropdown = null;
-			this.forwardActiveTab = 'users';
-			this.selectedForwardRecipients = [];
-			this.forwardError = null;
 
 			// Auto-fetch users when modal opens
-			this.getForwardUsers();
+			// this.getForwardUsers();
 		},
 
 		// Close forward modal
 		closeForwardModal() {
 			this.showForwardModal = false;
 			this.forwardingMessage = null;
-			this.selectedForwardRecipients = [];
-			this.forwardUsers = [];
-			this.filteredForwardUsers = [];
-			this.forwardUserSearchQuery = '';
-			this.forwardError = null;
-			this.forwardLoading = false;
-			this.loadingForwardUsers = false;
 		},
 
-		// New Chat Image Modal Methods
+		async forwardMessage(recipients) {
+			if (!this.forwardingMessage || recipients.length === 0) {
+				return { success: false, error: 'Please select at least one recipient' };
+			}
+
+			try {
+				console.log('Forwarding message:', this.forwardingMessage.id, 'to recipients:', recipients);
+
+				const response = await this.$axios.post(`/messages/${this.forwardingMessage.id}/forwards`, {
+					recipients: recipients
+				});
+
+				console.log('Forward response:', response.data);
+
+				// Close modal on success
+				this.closeForwardModal();
+
+				// Show success message
+				const recipientCount = recipients.length;
+				alert(`Message forwarded successfully to ${recipientCount} recipient${recipientCount !== 1 ? 's' : ''}!`);
+
+				// Refresh conversations
+				await this.getMyConversations();
+
+				return { success: true, data: response.data };
+
+			} catch (err) {
+				console.error('Failed to forward message', err);
+
+				let errorMessage;
+				if (err.response?.status === 403) {
+					errorMessage = 'You are not authorized to forward this message.';
+				} else if (err.response?.status === 404) {
+					errorMessage = 'Message not found or some recipients are invalid.';
+				} else if (err.response?.status === 401) {
+					console.log('Authentication error during message forward');
+					this.$emit('logout');
+					return { success: false, error: 'Authentication error' };
+				} else {
+					errorMessage = err.response?.data?.message || 'Failed to forward message. Please try again.';
+				}
+
+				return { success: false, error: errorMessage };
+			}
+		},
+
+		async loadForwardUsers() {
+			try {
+				const response = await this.$axios.get('/users');
+				return { success: true, data: response.data };
+			} catch (err) {
+				console.error('Failed to fetch forward users', err);
+
+				if (err.response?.status === 401) {
+					this.$emit('logout');
+					return { success: false, error: 'Authentication error' };
+				}
+
+				return { success: false, error: 'Failed to load users. Please try again.' };
+			}
+		},
+
+		handleNewChatImageSelect(data) {
+			// data contains { file, previewUrl }
+			this.selectedNewChatImage = data.file
+
+			// Create preview URL for new chat
+			if (this.newChatImagePreviewUrl) {
+				URL.revokeObjectURL(this.newChatImagePreviewUrl)
+			}
+			this.newChatImagePreviewUrl = data.previewUrl
+
+			// Close modal
+			this.closeNewChatImageModal()
+		},
+
 		openNewChatImageModal() {
 			this.showNewChatImageModal = true;
-			this.tempNewChatImage = null;
-			this.tempNewChatImagePreviewUrl = null;
-			this.newChatImageModalError = null;
 		},
 
 		closeNewChatImageModal() {
 			this.showNewChatImageModal = false;
-			this.clearTempNewChatImageSelection();
-		},
-
-		handleNewChatImageSelect(event) {
-			const file = event.target.files[0];
-
-			if (!file) {
-				this.clearTempNewChatImageSelection();
-				return;
-			}
-
-			// Validate file type
-			const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-			if (!validTypes.includes(file.type)) {
-				this.newChatImageModalError = 'Please select a valid image file (JPG, PNG, GIF, WebP)';
-				this.clearTempNewChatImageSelection();
-				return;
-			}
-
-			// Validate file size (10MB limit)
-			const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-			if (file.size > maxSize) {
-				this.newChatImageModalError = 'File size must be less than 10MB';
-				this.clearTempNewChatImageSelection();
-				return;
-			}
-
-			this.tempNewChatImage = file;
-			this.newChatImageModalError = null;
-
-			// Create preview URL
-			if (this.tempNewChatImagePreviewUrl) {
-				URL.revokeObjectURL(this.tempNewChatImagePreviewUrl);
-			}
-			this.tempNewChatImagePreviewUrl = URL.createObjectURL(file);
-		},
-
-		clearTempNewChatImageSelection() {
-			this.tempNewChatImage = null;
-
-			if (this.tempNewChatImagePreviewUrl) {
-				URL.revokeObjectURL(this.tempNewChatImagePreviewUrl);
-				this.tempNewChatImagePreviewUrl = null;
-			}
-
-			// Clear the file input
-			if (this.$refs.newChatImageInput) {
-				this.$refs.newChatImageInput.value = '';
-			}
-		},
-
-		selectNewChatImage() {
-			if (!this.tempNewChatImage) return;
-
-			this.selectedNewChatImage = this.tempNewChatImage;
-
-			// Create preview URL for new chat
-			if (this.newChatImagePreviewUrl) {
-				URL.revokeObjectURL(this.newChatImagePreviewUrl);
-			}
-			this.newChatImagePreviewUrl = URL.createObjectURL(this.selectedNewChatImage);
-
-			// Close modal
-			this.closeNewChatImageModal();
 		},
 
 		clearNewChatImageSelection() {
@@ -1889,83 +1826,6 @@ export default {
 			);
 		},
 
-		filterForwardUsers() {
-			if (!this.forwardUserSearchQuery.trim()) {
-				this.filteredForwardUsers = this.forwardUsers;
-				return;
-			}
-
-			const query = this.forwardUserSearchQuery.toLowerCase();
-			this.filteredForwardUsers = this.forwardUsers.filter(user =>
-				user.username.toLowerCase().includes(query)
-			);
-		},
-
-		isForwardRecipientSelected(id, type) {
-			return this.selectedForwardRecipients.some(recipient =>
-				recipient.id === id && recipient.type === type
-			);
-		},
-
-		toggleForwardUserSelection(user) {
-			const existingIndex = this.selectedForwardRecipients.findIndex(recipient =>
-				recipient.id === user.id && recipient.type === 'user'
-			);
-
-			if (existingIndex > -1) {
-				// User is already selected, remove them
-				this.selectedForwardRecipients.splice(existingIndex, 1);
-			} else {
-				// User is not selected, add them
-				this.selectedForwardRecipients.push({
-					id: user.id,
-					type: 'user',
-					name: user.username
-				});
-			}
-		},
-
-		// Toggle chat selection for forwarding
-		toggleForwardChatSelection(chat) {
-			const existingIndex = this.selectedForwardRecipients.findIndex(recipient =>
-				recipient.id === chat.id && recipient.type === 'chat'
-			);
-
-			if (existingIndex > -1) {
-				// Chat is already selected, remove it
-				this.selectedForwardRecipients.splice(existingIndex, 1);
-			} else {
-				// Chat is not selected, add it
-				this.selectedForwardRecipients.push({
-					id: chat.id,
-					type: 'chat',
-					name: this.getChatName(chat)
-				});
-			}
-		},
-
-		removeForwardRecipient(recipient) {
-			const index = this.selectedForwardRecipients.findIndex(r =>
-				r.id === recipient.id && r.type === recipient.type
-			);
-			if (index > -1) {
-				this.selectedForwardRecipients.splice(index, 1);
-			}
-		},
-
-		// Get preview text for forwarding message
-		getForwardPreviewText(message) {
-			if (!message) return '';
-
-			if (message.type === 'image') {
-				return message.text ? message.text : '📷 Photo';
-			} else if (message.type === 'gif') {
-				return message.text ? message.text : '🎞️ GIF';
-			}
-
-			return message.text || '';
-		},
-
 		toggleUserSelection(user) {
 			console.log('toggleUserSelection called with:', user);
 			console.log('selectedUsers before:', this.selectedUsers);
@@ -2042,20 +1902,8 @@ export default {
 			this.getUsers();
 		},
 
-		openSetGroupNameModal() {
-			if (this.selectedChat) {
-				this.editGroupName = this.selectedChat.name || '';
-				this.setGroupNameError = null;
-				this.showSetGroupNameModal = true;
-
-				// Focus the input after modal is shown
-				this.$nextTick(() => {
-					if (this.$refs.groupNameInput) {
-						this.$refs.groupNameInput.focus();
-						this.$refs.groupNameInput.select();
-					}
-				});
-			}
+		openRenameGroupModal() {
+			this.showRenameGroupModal = true;
 		},
 
 		openAddToGroupModal() {
