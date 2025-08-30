@@ -800,78 +800,15 @@
 		@select="handleImageSelect"
 	/>
 
-	<!-- Set Group Photo Modal -->
-	<div v-if="showSetGroupPhotoModal" class="vue-modal" @click.self="showSetGroupPhotoModal = false">
-		<div class="vue-modal-dialog">
-			<div class="vue-modal-content">
-				<div class="vue-modal-header">
-					<h5 class="vue-modal-title">Set Group Photo</h5>
-					<button class="vue-modal-close" @click="showSetGroupPhotoModal = false">×</button>
-				</div>
-				<div class="vue-modal-body">
-					<!-- Current Photo Preview -->
-					<div v-if="selectedChat && chatImageUrls[selectedChat.id]" class="mb-3 text-center">
-						<label class="form-label">Current Photo</label>
-						<div class="current-photo-preview">
-							<img
-								:src="chatImageUrls[selectedChat.id]"
-								:alt="getChatName(selectedChat)"
-								class="current-group-photo"
-							>
-						</div>
-					</div>
-
-					<!-- File Upload Section -->
-					<div class="mb-3">
-						<label class="form-label">Choose New Photo</label>
-						<input
-							type="file"
-							class="form-control"
-							ref="photoFileInput"
-							@change="handlePhotoFileSelect"
-							accept="image/*"
-						>
-						<div class="form-text">Supported formats: JPG, PNG, GIF. Max size: 5MB</div>
-					</div>
-
-					<!-- Photo Preview -->
-					<div v-if="selectedPhotoFile" class="mb-3 text-center">
-						<label class="form-label">Preview</label>
-						<div class="photo-preview">
-							<img
-								:src="photoPreviewUrl"
-								alt="Preview"
-								class="preview-group-photo"
-							>
-						</div>
-						<button
-							type="button"
-							class="btn btn-sm btn-outline-secondary mt-2"
-							@click="clearPhotoSelection"
-						>
-							Remove Photo
-						</button>
-					</div>
-
-					<!-- Error Message -->
-					<div v-if="setGroupPhotoError" class="error-msg">{{ setGroupPhotoError }}</div>
-				</div>
-				<div class="vue-modal-footer">
-					<button class="btn btn-secondary" @click="showSetGroupPhotoModal = false">Cancel</button>
-					<button
-						class="btn btn-primary"
-						@click="setGroupPhoto"
-						:disabled="setGroupPhotoLoading || !selectedPhotoFile"
-					>
-						<div v-if="setGroupPhotoLoading" class="spinner-border spinner-border-sm me-2" role="status">
-							<span class="visually-hidden">Uploading...</span>
-						</div>
-						{{ selectedPhotoFile ? 'Update Photo' : 'Select Photo' }}
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
+	<SetGroupPhotoModal
+		:show="showSetGroupPhotoModal"
+		:current-photo-url="selectedChat && chatImageUrls[selectedChat.id] ? chatImageUrls[selectedChat.id] : null"
+		:group-name="selectedChat ? getChatName(selectedChat) : ''"
+		:loading="setGroupPhotoLoading"
+		:error="setGroupPhotoError"
+		@close="closeSetGroupPhotoModal"
+		@set-photo="setGroupPhoto"
+	/>
 </div>
 
 

@@ -8,6 +8,7 @@ import ForwardMessageModal from '../components/ForwardMessageModal.vue'
 import RenameGroupModal from '../components/RenameGroupModal.vue'
 import ImageSelectionModal from '../components/ImageSelectionModal.vue'
 import AddToGroupModal from '../components/AddToGroupModal.vue'
+import SetGroupPhotoModal from '../components/SetGroupPhotoModal.vue'
 
 
 
@@ -21,6 +22,7 @@ export default {
 		RenameGroupModal,
 		ImageSelectionModal,
 		AddToGroupModal,
+		SetGroupPhotoModal
 	},
 
 	data() {
@@ -60,6 +62,12 @@ export default {
 			addToGroupLoading: false,
 			addToGroupError: null,
 
+			// Set Group Photo Modal
+			showSetGroupPhotoModal: false,
+			setGroupPhotoLoading: false,
+			setGroupPhotoError: null,
+
+
 			// Profile modal
 			showProfileModal: false,
 			editUsername: '',
@@ -94,13 +102,6 @@ export default {
 			selectedUsers: [],
 			loadingUsers: false,
 			userSearchQuery: '',
-
-			// Set Group Photo Modal
-			showSetGroupPhotoModal: false,
-			selectedPhotoFile: null,
-			photoPreviewUrl: null,
-			setGroupPhotoLoading: false,
-			setGroupPhotoError: null,
 
 			// User profile image
 			currentUserImageUrl: null,
@@ -863,8 +864,8 @@ export default {
 			}
 		},
 
-		async setGroupPhoto() {
-			if (!this.selectedPhotoFile) {
+		async setGroupPhoto(photoFile) {
+			if (!photoFile) {
 				this.setGroupPhotoError = 'Please select a photo';
 				return;
 			}
@@ -880,7 +881,7 @@ export default {
 
 				// Create FormData for multipart/form-data request
 				const formData = new FormData();
-				formData.append('image', this.selectedPhotoFile);
+				formData.append('image', photoFile);
 
 				// Make the API request
 				const response = await this.$axios.put(`/chats/${this.selectedChatId}/image`, formData, {
@@ -905,8 +906,7 @@ export default {
 				}
 
 				// Close modal and reset form
-				this.showSetGroupPhotoModal = false;
-				this.clearPhotoSelection();
+				this.closeSetGroupPhotoModal();
 
 				// Refresh chats to get the updated image path from server
 				await this.getMyConversations();
@@ -1916,6 +1916,16 @@ export default {
 			this.addToGroupError = null;
 		},
 
+		openSetGroupPhotoModal() {
+			this.setGroupPhotoError = null;
+			this.showSetGroupPhotoModal = true;
+		},
+
+		closeSetGroupPhotoModal() {
+			this.showSetGroupPhotoModal = false;
+			this.setGroupPhotoError = null;
+		},
+
 		// Add method to handle visibility changes (pause polling when tab is hidden)
 		handleVisibilityChange() {
 			if (document.hidden) {
@@ -2046,60 +2056,6 @@ export default {
 			// Clear the file input
 			if (this.$refs.profileImageInput) {
 				this.$refs.profileImageInput.value = '';
-			}
-		},
-
-		openSetGroupPhotoModal() {
-			this.selectedPhotoFile = null;
-			this.photoPreviewUrl = null;
-			this.setGroupPhotoError = null;
-			this.showSetGroupPhotoModal = true;
-		},
-
-		handlePhotoFileSelect(event) {
-			const file = event.target.files[0];
-
-			if (!file) {
-				this.clearPhotoSelection();
-				return;
-			}
-
-			// Validate file type
-			if (!file.type.startsWith('image/')) {
-				this.setGroupPhotoError = 'Please select a valid image file';
-				this.clearPhotoSelection();
-				return;
-			}
-
-			// Validate file size (5MB limit)
-			const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-			if (file.size > maxSize) {
-				this.setGroupPhotoError = 'File size must be less than 5MB';
-				this.clearPhotoSelection();
-				return;
-			}
-
-			this.selectedPhotoFile = file;
-			this.setGroupPhotoError = null;
-
-			// Create preview URL
-			if (this.photoPreviewUrl) {
-				URL.revokeObjectURL(this.photoPreviewUrl);
-			}
-			this.photoPreviewUrl = URL.createObjectURL(file);
-		},
-
-		clearPhotoSelection() {
-			this.selectedPhotoFile = null;
-
-			if (this.photoPreviewUrl) {
-				URL.revokeObjectURL(this.photoPreviewUrl);
-				this.photoPreviewUrl = null;
-			}
-
-			// Clear the file input
-			if (this.$refs.photoFileInput) {
-				this.$refs.photoFileInput.value = '';
 			}
 		},
 
@@ -2480,7 +2436,6 @@ export default {
 			this.chatImageUrls = {};
 			this.messageImageUrls = {};
 			this.memberImageUrls = {};
-			this.photoPreviewUrl = null;
 			this.profileImagePreviewUrl = null;
 			this.currentUserImageUrl = null;
 			this.newChatImagePreviewUrl = null;
