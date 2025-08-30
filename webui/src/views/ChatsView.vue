@@ -7,6 +7,8 @@ import NewChatImageModal from '../components/NewChatImageModal.vue'
 import ForwardMessageModal from '../components/ForwardMessageModal.vue'
 import RenameGroupModal from '../components/RenameGroupModal.vue'
 import ImageSelectionModal from '../components/ImageSelectionModal.vue'
+import AddToGroupModal from '../components/AddToGroupModal.vue'
+
 
 
 export default {
@@ -18,6 +20,7 @@ export default {
 		ForwardMessageModal,
 		RenameGroupModal,
 		ImageSelectionModal,
+		AddToGroupModal,
 	},
 
 	data() {
@@ -54,7 +57,6 @@ export default {
 
 			// Add member modal
 			showAddToGroupModal: false,
-			newMemberUsername: '',
 			addToGroupLoading: false,
 			addToGroupError: null,
 
@@ -861,11 +863,6 @@ export default {
 			}
 		},
 
-		closeRenameGroupModal() {
-			this.showRenameGroupModal = false;
-			this.setGroupNameError = null;
-		},
-
 		async setGroupPhoto() {
 			if (!this.selectedPhotoFile) {
 				this.setGroupPhotoError = 'Please select a photo';
@@ -933,8 +930,9 @@ export default {
 			}
 		},
 
-		async addToGroup() {
-			if (!this.newMemberUsername.trim()) {
+		async addToGroup(username) {
+			// Add proper parameter validation
+			if (!username || typeof username !== 'string' || !username.trim()) {
 				this.addToGroupError = 'Username is required';
 				return;
 			}
@@ -949,21 +947,19 @@ export default {
 				this.addToGroupError = null;
 
 				const response = await this.$axios.post(`/chats/${this.selectedChatId}/members`, {
-					username: this.newMemberUsername.trim()
+					username: username.trim()
 				});
-
 
 				console.log('Member added successfully:', response.data);
 
 				// Close modal and reset form
-				this.showAddToGroupModal = false;
-				this.newMemberUsername = '';
+				this.closeAddToGroupModal();
 
 				// Refresh chats to get latest data
 				await this.getMyConversations();
 
 				// Show success message
-				alert(`${this.newMemberUsername.trim()} has been added to the group!`);
+				alert(`${username.trim()} has been added to the group!`);
 
 			} catch (err) {
 				console.error('Failed to add member', err);
@@ -1873,7 +1869,6 @@ export default {
 		closeNewChatModal() {
 			this.showNewChatModal = false;
 
-			// Reset all form data
 			this.newChatName = '';
 			this.initialMessage = '';
 			this.selectedUsers = [];
@@ -1906,17 +1901,19 @@ export default {
 			this.showRenameGroupModal = true;
 		},
 
+		closeRenameGroupModal() {
+			this.showRenameGroupModal = false;
+			this.setGroupNameError = null;
+		},
+
 		openAddToGroupModal() {
-			this.newMemberUsername = '';
 			this.addToGroupError = null;
 			this.showAddToGroupModal = true;
+		},
 
-			// Focus the input after modal is shown
-			this.$nextTick(() => {
-				if (this.$refs.memberUsernameInput) {
-					this.$refs.memberUsernameInput.focus();
-				}
-			});
+		closeAddToGroupModal() {
+			this.showAddToGroupModal = false;
+			this.addToGroupError = null;
 		},
 
 		// Add method to handle visibility changes (pause polling when tab is hidden)

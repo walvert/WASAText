@@ -786,41 +786,13 @@
 		@rename="setGroupName"
 	/>
 
-	<!-- Add Member Modal -->
-	<div v-if="showAddToGroupModal" class="vue-modal" @click.self="showAddToGroupModal = false">
-		<div class="vue-modal-dialog">
-			<div class="vue-modal-header">
-				<h5 class="vue-modal-title">Add Member to Group</h5>
-				<button class="vue-modal-close" @click="showAddToGroupModal = false">×</button>
-			</div>
-			<div class="vue-modal-body">
-				<div class="mb-3">
-					<label class="form-label">Username</label>
-					<input
-						type="text"
-						class="form-control"
-						v-model="newMemberUsername"
-						placeholder="Enter username to add"
-						@keyup.enter="addToGroup"
-						ref="memberUsernameInput"
-					>
-					<div class="form-text">Enter the username of the person you want to add to this group.</div>
-				</div>
-				<div v-if="addToGroupError" class="error-msg">{{ addToGroupError }}</div>
-			</div>
-			<div class="vue-modal-footer">
-				<button class="btn btn-secondary" @click="showAddToGroupModal = false">Cancel</button>
-				<button
-					class="btn btn-primary"
-					@click="addToGroup"
-					:disabled="addToGroupLoading || !newMemberUsername.trim()"
-				>
-					<div v-if="addToGroupLoading" class="spinner-border"></div>
-					Add Member
-				</button>
-			</div>
-		</div>
-	</div>
+	<AddToGroupModal
+		:show="showAddToGroupModal"
+		:loading="addToGroupLoading"
+		:error="addToGroupError"
+		@close="closeAddToGroupModal"
+		@add-member="addToGroup"
+	/>
 
 	<ImageSelectionModal
 		:show="showImageModal"
