@@ -27,9 +27,9 @@
 					@click="handleAddMember"
 					:disabled="loading || !localUsername.trim()"
 				>
-				  <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status">
-					<span class="visually-hidden">Loading...</span>
-				  </span>
+					  <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status">
+						<span class="visually-hidden">Loading...</span>
+					  </span>
 					Add Member
 				</button>
 			</div>

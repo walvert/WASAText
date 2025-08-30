@@ -75,9 +75,9 @@
 						@click="validateAndSubmit"
 						:disabled="loading"
 					>
-						<div v-if="loading" class="spinner-border spinner-border-sm me-2" role="status">
+						<span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status">
 							<span class="visually-hidden">Updating...</span>
-						</div>
+						</span>
 						Update Profile
 					</button>
 				</div>

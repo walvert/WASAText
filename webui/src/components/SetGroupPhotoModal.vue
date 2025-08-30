@@ -61,9 +61,9 @@
 						@click="handleSetPhoto"
 						:disabled="loading || !selectedPhotoFile"
 					>
-						<div v-if="loading" class="spinner-border spinner-border-sm me-2" role="status">
-							<span class="visually-hidden">Uploading...</span>
-						</div>
+						<span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status">
+							<span class="visually-hidden">Loading...</span>
+						</span>
 						{{ selectedPhotoFile ? 'Update Photo' : 'Select Photo' }}
 					</button>
 				</div>

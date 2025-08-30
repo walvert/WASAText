@@ -170,9 +170,9 @@
 						@click="createNewChat"
 						:disabled="!canCreateNewChat"
 					>
-						<div v-if="newChatLoading" class="spinner-border spinner-border-sm me-2" role="status">
+						<span v-if="newChatLoading" class="spinner-border spinner-border-sm me-2" role="status">
 							<span class="visually-hidden">Creating...</span>
-						</div>
+						</span>
 						Create {{ selectedUsers.length > 1 ? 'Group' : 'Chat' }}
 					</button>
 				</div>
