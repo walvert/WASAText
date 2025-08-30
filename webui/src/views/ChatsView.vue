@@ -10,6 +10,8 @@ import ImageSelectionModal from '../components/ImageSelectionModal.vue'
 import AddToGroupModal from '../components/AddToGroupModal.vue'
 import SetGroupPhotoModal from '../components/SetGroupPhotoModal.vue'
 
+import ChatListItem from '../components/ChatListItem.vue'
+
 
 
 export default {
@@ -22,7 +24,8 @@ export default {
 		RenameGroupModal,
 		ImageSelectionModal,
 		AddToGroupModal,
-		SetGroupPhotoModal
+		SetGroupPhotoModal,
+		ChatListItem
 	},
 
 	data() {
@@ -2202,7 +2205,6 @@ export default {
 			this.imageViewerTitle = null;
 		},
 
-		// Updated getLastMessagePreview method to handle images better
 		getLastMessagePreview(chat) {
 			if (!chat.lastMsgText) {
 				return 'No messages yet';

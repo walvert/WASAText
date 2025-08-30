@@ -57,46 +57,16 @@
 
 				<!-- Modern chat list -->
 				<div v-if="!loading && !error" class="chat-list">
-					<div
+					<ChatListItem
 						v-for="chat in chats"
 						:key="chat.id"
-						class="chat-item"
-						:class="{ active: selectedChatId === chat.id }"
-						@click="selectChat(chat.id)"
-					>
-						<div class="chat-avatar">
-							<div class="avatar-circle" v-if="!chat.image">
-								<span class="avatar-text">{{ getChatInitials(chat) }}</span>
-							</div>
-							<img
-								v-else
-								:src="chatImageUrls[chat.id]"
-								:alt="getChatName(chat)"
-								class="avatar-image"
-								:data-chat-id="chat.id"
-								@error="handleImageError"
-							>
-						</div>
-						<div class="chat-info">
-							<div class="chat-header">
-								<h6 class="chat-name">{{ getChatName(chat) }}</h6>
-								<span class="chat-time">{{ formatMessageTime(chat.lastMsgTime) }}</span>
-							</div>
-							<div class="chat-preview">
-								<p class="last-message">{{ getLastMessagePreview(chat) }}</p>
-								<div class="chat-preview-meta d-flex align-items-center justify-content-between">
-									<div class="message-type-indicator">
-										<span v-if="chat.lastMsgType === 'text'" class="message-type-icon">💬</span>
-										<span v-else-if="chat.lastMsgType === 'image'" class="message-type-icon">📷</span>
-										<span v-else class="message-type-icon">📎</span>
-									</div>
-									<div v-if="chat.unread > 0" class="unread-badge">
-										{{ chat.unread > 99 ? '99+' : chat.unread }}
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
+						:chat="chat"
+						:is-selected="selectedChatId === chat.id"
+						:chat-image-url="chatImageUrls[chat.id]"
+						:current-username="currentUsername"
+						@select="selectChat"
+						@image-error="handleImageError"
+					/>
 
 					<div v-if="chats.length === 0" class="chat-empty-state">
 						<div class="chat-empty-icon">
