@@ -822,61 +822,11 @@
 		</div>
 	</div>
 
-	<!-- Image Selection Modal -->
-	<div v-if="showImageModal" class="vue-modal" @click.self="closeImageModal">
-		<div class="vue-modal-dialog">
-			<div class="vue-modal-content">
-				<div class="vue-modal-header">
-					<h5 class="vue-modal-title">Add Image or GIF</h5>
-					<button type="button" class="vue-modal-close" @click="closeImageModal">×</button>
-				</div>
-				<div class="vue-modal-body">
-					<!-- File Upload Section -->
-					<div class="mb-3">
-						<label class="form-label">Choose Image or GIF</label>
-						<input
-							type="file"
-							class="form-control"
-							ref="messageImageInput"
-							@change="handleMessageImageSelect"
-							accept="image/*,.gif"
-						>
-						<div class="form-text">Supported formats: JPG, PNG, GIF, WebP. Max size: 10MB</div>
-					</div>
-
-					<!-- Image Preview -->
-					<div v-if="tempSelectedImage" class="mb-3 text-center">
-						<label class="form-label">Preview</label>
-						<div class="photo-preview">
-							<img
-								:src="tempImagePreviewUrl"
-								alt="Preview"
-								class="preview-message-image"
-								style="max-width: 300px; max-height: 300px;"
-							>
-						</div>
-						<div class="mt-2">
-							<small class="text-muted">{{ tempSelectedImage.name }} ({{ formatFileSize(tempSelectedImage.size) }})</small>
-						</div>
-					</div>
-
-					<!-- Error Message -->
-					<div v-if="imageModalError" class="error-msg">{{ imageModalError }}</div>
-				</div>
-				<div class="vue-modal-footer">
-					<button type="button" class="btn btn-secondary" @click="closeImageModal">Cancel</button>
-					<button
-						type="button"
-						class="btn btn-primary"
-						@click="selectMessageImage"
-						:disabled="!tempSelectedImage"
-					>
-						Add to Message
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
+	<ImageSelectionModal
+		:show="showImageModal"
+		@close="closeImageModal"
+		@select="handleImageSelect"
+	/>
 
 	<!-- Set Group Photo Modal -->
 	<div v-if="showSetGroupPhotoModal" class="vue-modal" @click.self="showSetGroupPhotoModal = false">

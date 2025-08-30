@@ -6,6 +6,8 @@ import CreateChatModal from '../components/CreateChatModal.vue'
 import NewChatImageModal from '../components/NewChatImageModal.vue'
 import ForwardMessageModal from '../components/ForwardMessageModal.vue'
 import RenameGroupModal from '../components/RenameGroupModal.vue'
+import ImageSelectionModal from '../components/ImageSelectionModal.vue'
+
 
 export default {
 	name: 'ChatsView',
@@ -15,6 +17,7 @@ export default {
 		NewChatImageModal,
 		ForwardMessageModal,
 		RenameGroupModal,
+		ImageSelectionModal,
 	},
 
 	data() {
@@ -106,9 +109,6 @@ export default {
 			showImageModal: false,
 			selectedMessageImage: null,
 			messageImagePreviewUrl: null,
-			tempSelectedImage: null,
-			tempImagePreviewUrl: null,
-			imageModalError: null,
 			messageImageUrls: {},
 
 			// Image viewer
@@ -2129,70 +2129,19 @@ export default {
 			this.clearTempImageSelection();
 		},
 
-		// Handle image file selection in modal
-		handleMessageImageSelect(event) {
-			const file = event.target.files[0];
-
-			if (!file) {
-				this.clearTempImageSelection();
-				return;
-			}
-
-			// Validate file type
-			const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-			if (!validTypes.includes(file.type)) {
-				this.imageModalError = 'Please select a valid image file (JPG, PNG, GIF, WebP)';
-				this.clearTempImageSelection();
-				return;
-			}
-
-			// Validate file size (10MB limit)
-			const maxSize = 10 * 1024 * 1024; // 10MB in bytes
-			if (file.size > maxSize) {
-				this.imageModalError = 'File size must be less than 10MB';
-				this.clearTempImageSelection();
-				return;
-			}
-
-			this.tempSelectedImage = file;
-			this.imageModalError = null;
-
-			// Create preview URL
-			if (this.tempImagePreviewUrl) {
-				URL.revokeObjectURL(this.tempImagePreviewUrl);
-			}
-			this.tempImagePreviewUrl = URL.createObjectURL(file);
-		},
-
-		// Clear temporary image selection in modal
-		clearTempImageSelection() {
-			this.tempSelectedImage = null;
-
-			if (this.tempImagePreviewUrl) {
-				URL.revokeObjectURL(this.tempImagePreviewUrl);
-				this.tempImagePreviewUrl = null;
-			}
-
-			// Clear the file input
-			if (this.$refs.messageImageInput) {
-				this.$refs.messageImageInput.value = '';
-			}
-		},
-
-		// Select image for message
-		selectMessageImage() {
-			if (!this.tempSelectedImage) return;
-
-			this.selectedMessageImage = this.tempSelectedImage;
+		// Handle image selection from modal
+		handleImageSelect(data) {
+			// data contains { file, previewUrl }
+			this.selectedMessageImage = data.file
 
 			// Create preview URL for message input
 			if (this.messageImagePreviewUrl) {
-				URL.revokeObjectURL(this.messageImagePreviewUrl);
+				URL.revokeObjectURL(this.messageImagePreviewUrl)
 			}
-			this.messageImagePreviewUrl = URL.createObjectURL(this.selectedMessageImage);
+			this.messageImagePreviewUrl = data.previewUrl
 
 			// Close modal
-			this.closeImageModal();
+			this.closeImageModal()
 		},
 
 		// Clear selected message image
