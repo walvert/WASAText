@@ -1,87 +1,21 @@
 <div class="container-fluid">
 	<div class="row">
-		<!-- Sidebar with conversation list -->
-		<div class="col-md-4 col-lg-3 chat-sidebar">
-			<div class="sidebar-sticky pt-3">
-				<!-- Header with user image and action icons -->
-				<div class="sidebar-header-bar">
-					<div class="d-flex justify-content-between align-items-center">
-						<!-- User Profile Section -->
-						<div class="d-flex align-items-center">
-							<div class="user-profile-avatar me-3" @click="showProfileModal = true" style="cursor: pointer;" title="Edit Profile">
-								<div class="avatar-circle" v-if="!currentUserImageUrl" style="width: 42px; height: 42px;">
-									<span class="avatar-text" style="font-size: 16px;">{{ getUserInitials(currentUsername || 'User') }}</span>
-								</div>
-								<img
-									v-else
-									:src="currentUserImageUrl"
-									:alt="currentUsername || 'User'"
-									class="avatar-image"
-									style="width: 42px; height: 42px;"
-									@error="handleUserImageError"
-								>
-							</div>
-							<div class="sidebar-user-info">
-								<h5 class="sidebar-title">Chats</h5>
-								<small class="sidebar-username">{{ currentUsername || 'User' }}</small>
-							</div>
-						</div>
-
-						<!-- Action Icons -->
-						<div class="d-flex sidebar-actions-gap">
-							<button
-								class="btn-sidebar-action"
-								@click="openNewChatModal"
-								title="New Chat"
-							>
-								<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-									<path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-								</svg>
-							</button>
-							<button
-								class="btn-sidebar-action btn-sidebar-danger"
-								@click="logout"
-								title="Logout"
-							>
-								<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-									<path fill-rule="evenodd" d="M6 12.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-8a.5.5 0 0 0-.5.5v2a.5.5 0 0 1-1 0v-2A1.5 1.5 0 0 1 6.5 2h8A1.5 1.5 0 0 1 16 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 5 12.5v-2a.5.5 0 0 1 1 0v2z"/>
-									<path fill-rule="evenodd" d="M.146 8.354a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L1.707 7.5H10.5a.5.5 0 0 1 0 1H1.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3z"/>
-								</svg>
-							</button>
-						</div>
-					</div>
-				</div>
-
-				<LoadingSpinner v-if="loading" class="d-flex justify-content-center my-5"/>
-				<ErrorMsg v-if="error" :message="error" class="mx-3"/>
-
-				<!-- Modern chat list -->
-				<div v-if="!loading && !error" class="chat-list">
-					<ChatListItem
-						v-for="chat in chats"
-						:key="chat.id"
-						:chat="chat"
-						:is-selected="selectedChatId === chat.id"
-						:chat-image-url="chatImageUrls[chat.id]"
-						:current-username="currentUsername"
-						@select="selectChat"
-						@image-error="handleImageError"
-					/>
-
-					<div v-if="chats.length === 0" class="chat-empty-state">
-						<div class="chat-empty-icon">
-							<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-								 stroke-width="1.5">
-								<path
-									d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-							</svg>
-						</div>
-						<h6 class="text-muted">No conversations yet</h6>
-						<p class="text-muted small">Start chatting by creating a new conversation</p>
-					</div>
-				</div>
-			</div>
-		</div>
+		<!-- Sidebar -->
+		<Sidebar
+			:current-user-image-url="currentUserImageUrl"
+			:current-username="currentUsername"
+			:chats="chats"
+			:loading="loading"
+			:error="error"
+			:selected-chat-id="selectedChatId"
+			:chat-image-urls="chatImageUrls"
+			@open-profile="showProfileModal = true"
+			@new-chat="openNewChatModal"
+			@logout="logout"
+			@user-image-error="handleUserImageError"
+			@select-chat="selectChat"
+			@image-error="handleImageError"
+		/>
 
 		<!-- Main conversation area -->
 		<main class="col-md-8 col-lg-9 ms-sm-auto px-md-4">
@@ -259,347 +193,72 @@
 				</div>
 
 				<!-- Messages list -->
-				<div class="messages-container flex-grow-1 overflow-auto p-3" ref="messagesContainer">
-					<LoadingSpinner v-if="loadingMessages" class="d-flex justify-content-center my-5"/>
-					<ErrorMsg v-if="messagesError" :message="messagesError"/>
+				<div v-if="!loadingMessages && !messagesError" class="messages-list">
+					<!-- Enhanced message display with components -->
+					<Message
+						v-for="message in messages"
+						:key="message.id"
+						:message="message"
+						:current-username="currentUsername"
+						:selected-chat="selectedChat"
+						:last-read-message-id="lastReadMessageId"
+						:message-image-url="messageImageUrls[message.id]"
+						:message-image-urls="messageImageUrls"
+						:messages="messages"
+						:show-likes-dropdown="showLikesDropdown"
+						:show-reply-dropdown="showReplyDropdown"
+						:show-forward-dropdown="showForwardDropdown"
+						:show-delete-dropdown="showDeleteDropdown"
+						:deleting-message="deletingMessage"
+						@jump-to-message="jumpToMessage"
+						@open-image-viewer="openImageViewer"
+						@image-error="handleMessageImageError"
+						@reply-image-error="handleReplyImageError"
+						@toggle-like="toggleMessageLike"
+						@toggle-likes-dropdown="toggleLikesDropdown"
+						@likes-mouse-leave="handleDropdownMouseLeave('likes')"
+						@likes-mouse-enter="handleDropdownMouseEnter('likes')"
+						@toggle-reply-dropdown="toggleReplyDropdown"
+						@toggle-forward-dropdown="toggleForwardDropdown"
+						@toggle-delete-dropdown="toggleDeleteDropdown"
+						@start-reply="startReply"
+						@open-forward-modal="openForwardModal"
+						@confirm-delete="confirmDeleteMessage"
+						@reply-mouse-leave="handleDropdownMouseLeave('reply')"
+						@reply-mouse-enter="handleDropdownMouseEnter('reply')"
+						@forward-mouse-leave="handleDropdownMouseLeave('forward')"
+						@forward-mouse-enter="handleDropdownMouseEnter('forward')"
+						@delete-mouse-leave="handleDropdownMouseLeave('delete')"
+						@delete-mouse-enter="handleDropdownMouseEnter('delete')"
+					/>
 
-					<div v-if="!loadingMessages && !messagesError" class="messages-list">
-						<!-- Enhanced message display with image support -->
-						<div
-							v-for="message in messages"
-							:key="message.id"
-							class="message-wrapper mb-3"
-							:class="{ 'message-sent': isCurrentUserMessage(message) }"
-							:data-message-id="message.id"
-						>
-							<div class="message-content" style="position: relative;">
-								<!-- Show sender name for group chats and incoming messages -->
-								<div
-									v-if="selectedChat?.isGroup && !isCurrentUserMessage(message)"
-									class="message-sender"
-								>
-									{{ message.username }}
-								</div>
-
-								<div class="message-bubble" :class="{ 'has-likes': message.likes && message.likes.length > 0 }" style="position: relative;">
-									<!-- Forwarded Message Indicator -->
-									<div v-if="message.isForward" class="message-forwarded-indicator">
-										<!-- Forward icon SVG -->
-										<svg class="forwarded-icon" viewBox="0 0 24 24" fill="currentColor">
-											<path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
-											<path d="M2.59 16.59L7.17 12 2.59 7.41 4 6l6 6-6 6-1.41-1.41z"/>
-										</svg>
-										<span class="forwarded-text">Forwarded</span>
-									</div>
-
-									<!-- Reply Section (if this message is a reply) -->
-									<div
-										v-if="message.replyTo && getReplyMessage(message.replyTo)"
-										class="message-reply-section"
-										@click="jumpToMessage(message.replyTo)"
-										style="cursor: pointer;"
-									>
-										<div class="reply-section-header">
-											Reply to {{ getReplyMessage(message.replyTo).username }}
+					<!-- Show loading indicator for pending message -->
+					<div v-if="sendingMessage" class="message-wrapper mb-3 message-sent">
+						<div class="message-content">
+							<div class="message-bubble message-pending">
+								<div class="message-text">{{ pendingMessage }}</div>
+								<div class="message-meta">
+									<span class="message-time">{{ formatMessageTime(new Date()) }}</span>
+									<span class="message-status">
+										<div class="spinner-border spinner-border-sm message-status-pending" role="status">
+											<span class="visually-hidden">Sending...</span>
 										</div>
-										<div class="reply-section-text">
-											{{ getReplyPreviewText(getReplyMessage(message.replyTo)) }}
-										</div>
-									</div>
-
-									<!-- Deleted reply message fallback -->
-									<div
-										v-else-if="message.replyTo"
-										class="message-reply-section"
-										style="cursor: not-allowed; opacity: 0.6;"
-									>
-										<div class="reply-section-header">Reply to message</div>
-										<div class="reply-section-text reply-section-deleted">
-											This message has been deleted
-										</div>
-									</div>
-
-									<!-- Image Message -->
-									<div v-if="message.type === 'image' || message.type === 'gif'">
-										<!-- Loading state -->
-										<div v-if="message.imageLoading" class="image-loading">
-											<div class="spinner-border spinner-border-sm" role="status">
-												<span class="visually-hidden">Loading image...</span>
-											</div>
-											<span class="ms-2">Loading image...</span>
-										</div>
-
-										<!-- Error state -->
-										<div v-else-if="message.imageError" class="image-error">
-											<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-2">
-												<path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"/>
-											</svg>
-											Failed to load image
-										</div>
-
-										<!-- Actual image -->
-										<img
-											v-else-if="messageImageUrls[message.id]"
-											:src="messageImageUrls[message.id]"
-											:alt="message.mediaUrl || 'Image'"
-											class="message-image"
-											@click="openImageViewer(messageImageUrls[message.id], message.mediaUrl)"
-											@error="handleMessageImageError(message)"
-										>
-
-										<!-- Fallback if no image URL -->
-										<div v-else class="image-error">
-											<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-2">
-												<path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
-												<path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
-											</svg>
-											Image unavailable
-										</div>
-
-										<!-- Caption/text if present -->
-										<div v-if="message.text && message.text.trim()" class="message-text image-caption">
-											{{ message.text }}
-										</div>
-									</div>
-
-									<!-- Text Message (original) -->
-									<div v-else class="message-text">{{ message.text }}</div>
-
-									<div class="message-meta">
-										<span class="message-time">{{ formatMessageTime(message.createdAt) }}</span>
-										<span v-if="isCurrentUserMessage(message)" class="message-status">
-											<!-- Double checkmark for read messages -->
-											<svg
-												v-if="isMessageRead(message)"
-												class="message-status-read"
-												viewBox="0 0 18 12"
-												fill="none"
-												xmlns="http://www.w3.org/2000/svg"
-											>
-												<path
-													d="M1 6L4 9L10 3"
-													stroke="currentColor"
-													stroke-width="1.5"
-													stroke-linecap="round"
-													stroke-linejoin="round"
-												/>
-												<path
-													d="M7 6L10 9L16 3"
-													stroke="currentColor"
-													stroke-width="1.5"
-													stroke-linecap="round"
-													stroke-linejoin="round"
-												/>
-											</svg>
-
-											<!-- Single checkmark for sent but not read messages -->
-											<svg
-												v-else
-												class="message-status-sent"
-												viewBox="0 0 12 12"
-												fill="none"
-												xmlns="http://www.w3.org/2000/svg"
-											>
-												<path
-													d="M1 6L4 9L10 3"
-													stroke="currentColor"
-													stroke-width="1.5"
-													stroke-linecap="round"
-													stroke-linejoin="round"
-												/>
-											</svg>
-										</span>
-									</div>
-
-									<!-- Like Count Display -->
-									<div
-										v-if="message.likes && message.likes.length > 0"
-										class="message-likes"
-										@click="toggleLikesDropdown(message.id)"
-										@click.stop
-									>
-										<svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
-											<path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.011L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
-										</svg>
-										{{ message.likes.length }}
-
-										<!-- Likes Dropdown with mouse leave behavior -->
-										<div
-											v-if="showLikesDropdown === message.id"
-											class="likes-dropdown"
-											@click.stop
-											@mouseleave="handleDropdownMouseLeave('likes')"
-											@mouseenter="handleDropdownMouseEnter('likes')"
-										>
-											<div class="likes-list">
-												<div
-													v-for="username in message.likes"
-													:key="username"
-													class="like-user"
-												>
-													{{ username }}
-												</div>
-											</div>
-										</div>
-									</div>
-								</div>
-
-								<!-- Hover Like, Reply and Delete Buttons -->
-								<div class="message-hover-actions">
-									<!-- Like Button -->
-									<button
-										class="like-btn"
-										:class="{ liked: isMessageLikedByUser(message) }"
-										@click="toggleMessageLike(message)"
-									>
-										<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-											<path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.011L8 2.748zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143c.06.055.119.112.176.171a3.12 3.12 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15z"/>
-										</svg>
-									</button>
-
-									<!-- Reply Button -->
-									<button
-										class="message-reply-btn"
-										@click="toggleReplyDropdown(message.id)"
-										@click.stop
-									>
-										<!-- Correct backward arrow icon for reply -->
-										<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-											<path d="M9.5 13a.5.5 0 0 1-.5-.5V10H2.5a.5.5 0 0 1 0-1H9V6.5a.5.5 0 0 1 .854-.354l3 3a.5.5 0 0 1 0 .708l-3 3A.5.5 0 0 1 9.5 13z" transform="scale(-1,1) translate(-16,0)"/>
-										</svg>
-
-										<!-- Reply Dropdown with mouse leave behavior -->
-										<div
-											v-if="showReplyDropdown === message.id"
-											class="reply-dropdown"
-											@click.stop
-											@mouseleave="handleDropdownMouseLeave('reply')"
-											@mouseenter="handleDropdownMouseEnter('reply')"
-										>
-											<div
-												class="reply-option"
-												@click="startReply(message)"
-											>
-												<!-- Same icon in dropdown -->
-												<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-													<path d="M9.5 13a.5.5 0 0 1-.5-.5V10H2.5a.5.5 0 0 1 0-1H9V6.5a.5.5 0 0 1 .854-.354l3 3a.5.5 0 0 1 0 .708l-3 3A.5.5 0 0 1 9.5 13z" transform="scale(-1,1) translate(-16,0)"/>
-												</svg>
-												Reply
-											</div>
-										</div>
-									</button>
-
-									<!-- Forward Button -->
-									<button
-										class="message-forward-btn"
-										@click="toggleForwardDropdown(message.id)"
-										@click.stop
-									>
-										<!-- Forward arrow icon -->
-										<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-											<path d="M9.5 13a.5.5 0 0 1-.5-.5V10H2.5a.5.5 0 0 1 0-1H9V6.5a.5.5 0 0 1 .854-.354l3 3a.5.5 0 0 1 0 .708l-3 3A.5.5 0 0 1 9.5 13z"/>
-										</svg>
-
-										<!-- Forward Dropdown with mouse leave behavior -->
-										<div
-											v-if="showForwardDropdown === message.id"
-											class="forward-dropdown"
-											@click.stop
-											@mouseleave="handleDropdownMouseLeave('forward')"
-											@mouseenter="handleDropdownMouseEnter('forward')"
-										>
-											<div
-												class="forward-option"
-												@click="openForwardModal(message)"
-											>
-												<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-													<path d="M9.5 13a.5.5 0 0 1-.5-.5V10H2.5a.5.5 0 0 1 0-1H9V6.5a.5.5 0 0 1 .854-.354l3 3a.5.5 0 0 1 0 .708l-3 3A.5.5 0 0 1 9.5 13z"/>
-												</svg>
-												Forward
-											</div>
-										</div>
-									</button>
-
-									<!-- Delete Button -->
-									<button
-										class="delete-btn"
-										:class="{ loading: deletingMessage === message.id }"
-										@click="toggleDeleteDropdown(message.id)"
-										@click.stop
-										:disabled="deletingMessage === message.id"
-										v-if="isCurrentUserMessage(message)"
-									>
-										<div v-if="deletingMessage === message.id" class="spinner-border spinner-border-sm" role="status">
-											<span class="visually-hidden">Deleting...</span>
-										</div>
-										<svg v-else width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-											<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
-										</svg>
-
-										<!-- Delete Dropdown with mouse leave behavior -->
-										<div
-											v-if="showDeleteDropdown === message.id"
-											class="delete-dropdown"
-											@click.stop
-											@mouseleave="handleDropdownMouseLeave('delete')"
-											@mouseenter="handleDropdownMouseEnter('delete')"
-										>
-											<div
-												class="delete-option"
-												@click="confirmDeleteMessage(message)"
-											>
-												<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-													<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
-												</svg>
-												Delete Message
-											</div>
-										</div>
-									</button>
+									</span>
 								</div>
 							</div>
-						</div>
-
-						<!-- Show loading indicator for pending message -->
-						<div v-if="sendingMessage" class="message-wrapper mb-3 message-sent">
-							<div class="message-content">
-								<div class="message-bubble message-pending">
-									<div class="message-text">{{ pendingMessage }}</div>
-									<div class="message-meta">
-										<span class="message-time">{{ formatMessageTime(new Date()) }}</span>
-										<span class="message-status">
-											<div class="spinner-border spinner-border-sm message-status-pending" role="status">
-												<span class="visually-hidden">Sending...</span>
-											</div>
-										</span>
-									</div>
-								</div>
-							</div>
-						</div>
-						<div v-if="messages.length === 0" class="text-center p-4 text-muted">
-							<div class="mb-3">
-								<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-									 stroke-width="1.5">
-									<path
-										d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-								</svg>
-							</div>
-							<h6>No messages yet</h6>
-							<p class="text-muted small">Start the conversation by sending a message</p>
 						</div>
 					</div>
 
-					<!-- New Message Indicator -->
-					<div
-						v-if="hasNewMessages && newMessageCount > 0"
-						class="new-message-indicator"
-						@click="scrollToNewMessages"
-					>
-						<div class="new-message-content">
-							<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-								<path d="M8 4a.5.5 0 0 1 .5.5v5.793l2.146-2.147a.5.5 0 0 1 .708.708l-3 3a.5.5 0 0 1-.708 0l-3-3a.5.5 0 1 1 .708-.708L7.5 10.293V4.5A.5.5 0 0 1 8 4z"/>
+					<div v-if="messages.length === 0" class="text-center p-4 text-muted">
+						<div class="mb-3">
+							<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+								 stroke-width="1.5">
+								<path
+									d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
 							</svg>
-							<span>{{ newMessageCount }} new message{{ newMessageCount > 1 ? 's' : '' }}</span>
 						</div>
+						<h6>No messages yet</h6>
+						<p class="text-muted small">Start the conversation by sending a message</p>
 					</div>
 				</div>
 

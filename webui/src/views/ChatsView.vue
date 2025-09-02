@@ -10,7 +10,8 @@ import ImageSelectionModal from '../components/ImageSelectionModal.vue'
 import AddToGroupModal from '../components/AddToGroupModal.vue'
 import SetGroupPhotoModal from '../components/SetGroupPhotoModal.vue'
 
-import ChatListItem from '../components/ChatListItem.vue'
+import Sidebar from '../components/Sidebar.vue'
+import Message from '../components/Message.vue'
 
 
 
@@ -25,7 +26,9 @@ export default {
 		ImageSelectionModal,
 		AddToGroupModal,
 		SetGroupPhotoModal,
-		ChatListItem
+
+		Sidebar,
+		Message
 	},
 
 	data() {
@@ -1547,9 +1550,9 @@ export default {
 			if (!message) return '';
 
 			if (message.type === 'image') {
-				return message.text ? message.text : '📷 Photo';
+				return message.text ? '📷 ' + message.text : '📷 Photo';
 			} else if (message.type === 'gif') {
-				return message.text ? message.text : '🎞️ GIF';
+				return message.text ? '🎞️ GIF ' + message.text : '🎞️ GIF';
 			}
 
 			return message.text || '';
@@ -1791,6 +1794,13 @@ export default {
 			// Show confirmation dialog
 			if (confirm('Are you sure you want to delete this message? This action cannot be undone.')) {
 				this.deleteMessage(message);
+			}
+		},
+
+		handleReplyImageError(replyMessageId) {
+			if (this.messageImageUrls[replyMessageId]) {
+				URL.revokeObjectURL(this.messageImageUrls[replyMessageId]);
+				delete this.messageImageUrls[replyMessageId];
 			}
 		},
 
