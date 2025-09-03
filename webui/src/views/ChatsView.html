@@ -19,335 +19,55 @@
 
 		<!-- Main conversation area -->
 		<main class="col-md-8 col-lg-9 ms-sm-auto px-md-4">
-			<div v-if="!selectedChatId" class="d-flex justify-content-center align-items-center h-100">
-				<div class="text-center text-muted">
-					<div class="mb-3">
-						<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-							 stroke-width="1.5">
-							<path
-								d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-						</svg>
-					</div>
-					<h5>Select a conversation to start chatting</h5>
-					<p class="mb-4">Or create a new chat to get started</p>
-					<button class="btn btn-primary" @click="openNewChatModal">New Chat</button>
-				</div>
-			</div>
-
-			<div v-else class="chat-container h-100 d-flex flex-column">
-				<!-- Chat header -->
-				<div class="chat-header-bar p-3 border-bottom bg-white shadow-sm">
-					<div class="d-flex justify-content-between align-items-center">
-						<div class="d-flex align-items-center">
-							<!-- Chat Image -->
-							<div class="chat-header-avatar me-3">
-								<div class="avatar-circle" v-if="!chatImageUrls[selectedChat.id]" style="width: 40px; height: 40px;">
-									<span class="avatar-text" style="font-size: 16px;">{{ getChatInitials(selectedChat) }}</span>
-								</div>
-								<img
-									v-else
-									:src="chatImageUrls[selectedChat.id]"
-									:alt="getChatName(selectedChat)"
-									class="avatar-image"
-									style="width: 40px; height: 40px;"
-									@error="handleImageError"
-								>
-							</div>
-
-							<!-- Chat Name -->
-							<div class="chat-header-info">
-								<h5 class="chat-header-name mb-0">{{ selectedChat ? getChatName(selectedChat) : '' }}</h5>
-								<small v-if="selectedChat && selectedChat.isGroup" class="text-muted">
-									{{ chatMembers.length > 0 ? `${chatMembers.length} members` : 'Group chat' }}
-								</small>
-							</div>
-
-							<!-- Info Icon -->
-							<div class="chat-info-dropdown ms-2" style="position: relative;">
-								<button
-									class="btn btn-sm btn-ghost chat-info-btn"
-									@click="toggleChatInfoDropdown"
-									@click.stop
-									title="Chat info"
-								>
-									<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-										<path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-										<path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-									</svg>
-								</button>
-
-								<!-- Chat Info Dropdown -->
-								<div
-									v-if="showChatInfoDropdown"
-									class="chat-info-dropdown-menu"
-									@click.stop
-									@mouseleave="handleChatInfoDropdownMouseLeave"
-									@mouseenter="handleChatInfoDropdownMouseEnter"
-								>
-									<div class="dropdown-header">
-										<strong>{{ selectedChat.isGroup ? 'Group Members' : 'Chat Info' }}</strong>
-									</div>
-
-									<!-- Loading state -->
-									<div v-if="loadingChatMembers" class="dropdown-item-loading">
-										<div class="spinner-border spinner-border-sm me-2" role="status">
-											<span class="visually-hidden">Loading...</span>
-										</div>
-										Loading members...
-									</div>
-
-									<!-- Members list -->
-									<div v-else-if="chatMembers.length > 0">
-										<div
-											v-for="member in chatMembers"
-											:key="member.id"
-											class="chat-member-item"
-										>
-											<div class="member-avatar me-2">
-												<div class="avatar-circle" v-if="!memberImageUrls[member.id]" style="width: 28px; height: 28px;">
-													<span class="avatar-text" style="font-size: 11px;">{{ getUserInitials(member.username) }}</span>
-												</div>
-												<img
-													v-else
-													:src="memberImageUrls[member.id]"
-													:alt="member.username"
-													class="avatar-image"
-													style="width: 28px; height: 28px;"
-													@error="() => handleMemberImageError(member.id)"
-												>
-											</div>
-											<div class="member-info">
-												<span class="member-name">{{ member.username }}</span>
-												<span v-if="member.username === currentUsername" class="member-badge">You</span>
-											</div>
-										</div>
-									</div>
-
-									<!-- Private chat info -->
-									<div v-else-if="!selectedChat.isGroup" class="dropdown-item-text">
-										<small class="text-muted">Private conversation</small>
-									</div>
-
-									<!-- Error state -->
-									<div v-else class="dropdown-item-text">
-										<small class="text-muted">Unable to load members</small>
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<!-- Actions Dropdown (Groups only) -->
-						<div v-if="selectedChat && selectedChat.isGroup" class="dropdown">
-							<button class="btn btn-sm btn-ghost chat-actions-btn" data-bs-toggle="dropdown">
-								<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-									<path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/>
-								</svg>
-							</button>
-							<ul class="dropdown-menu dropdown-menu-end">
-								<li>
-									<button class="dropdown-item" @click="openRenameGroupModal">
-										<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" class="me-2">
-											<path d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
-											<path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
-											<path d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
-										</svg>
-										Rename Group
-									</button>
-								</li>
-								<li>
-									<button class="dropdown-item" @click="openAddToGroupModal">
-										<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" class="me-2">
-											<path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/>
-											<path fill-rule="evenodd" d="M13.5 5a.5.5 0 0 1 .5.5V7h1.5a.5.5 0 0 1 0 1H14v1.5a.5.5 0 0 1-1 0V8h-1.5a.5.5 0 0 1 0-1H13V5.5a.5.5 0 0 1 .5-.5z"/>
-										</svg>
-										Add Member
-									</button>
-								</li>
-								<li>
-									<button class="dropdown-item" @click="openSetGroupPhotoModal">
-										<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" class="me-2">
-											<path d="M10.5 8.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
-											<path d="M2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586L9.828 1.828A2 2 0 0 0 8.414 1H7.586a2 2 0 0 0-1.414.586L4.586 3.414A2 2 0 0 1 3.172 4H2zm.5 2a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1zm9 2.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0z"/>
-											<path d="M13.5 1a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h1.5V1.5a.5.5 0 0 1 .5-.5z"/>
-											<path d="M13 0a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1V1a1 1 0 0 1 1-1h2zm0 1h-2v2h2V1z"/>
-											<circle cx="15" cy="2" r="1" fill="currentColor"/>
-										</svg>
-										Set Group Photo
-									</button>
-								</li>
-								<li>
-									<hr class="dropdown-divider">
-								</li>
-								<li>
-									<button class="dropdown-item text-danger" @click="leaveGroup">
-										<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16" class="me-2">
-											<path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
-											<path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
-										</svg>
-										Leave Group
-									</button>
-								</li>
-							</ul>
-						</div>
-					</div>
-				</div>
-
-				<!-- Messages list -->
-				<div v-if="!loadingMessages && !messagesError" class="messages-list">
-					<!-- Enhanced message display with components -->
-					<Message
-						v-for="message in messages"
-						:key="message.id"
-						:message="message"
-						:current-username="currentUsername"
-						:selected-chat="selectedChat"
-						:last-read-message-id="lastReadMessageId"
-						:message-image-url="messageImageUrls[message.id]"
-						:message-image-urls="messageImageUrls"
-						:messages="messages"
-						:show-likes-dropdown="showLikesDropdown"
-						:show-reply-dropdown="showReplyDropdown"
-						:show-forward-dropdown="showForwardDropdown"
-						:show-delete-dropdown="showDeleteDropdown"
-						:deleting-message="deletingMessage"
-						@jump-to-message="jumpToMessage"
-						@open-image-viewer="openImageViewer"
-						@image-error="handleMessageImageError"
-						@reply-image-error="handleReplyImageError"
-						@toggle-like="toggleMessageLike"
-						@toggle-likes-dropdown="toggleLikesDropdown"
-						@likes-mouse-leave="handleDropdownMouseLeave('likes')"
-						@likes-mouse-enter="handleDropdownMouseEnter('likes')"
-						@toggle-reply-dropdown="toggleReplyDropdown"
-						@toggle-forward-dropdown="toggleForwardDropdown"
-						@toggle-delete-dropdown="toggleDeleteDropdown"
-						@start-reply="startReply"
-						@open-forward-modal="openForwardModal"
-						@confirm-delete="confirmDeleteMessage"
-						@reply-mouse-leave="handleDropdownMouseLeave('reply')"
-						@reply-mouse-enter="handleDropdownMouseEnter('reply')"
-						@forward-mouse-leave="handleDropdownMouseLeave('forward')"
-						@forward-mouse-enter="handleDropdownMouseEnter('forward')"
-						@delete-mouse-leave="handleDropdownMouseLeave('delete')"
-						@delete-mouse-enter="handleDropdownMouseEnter('delete')"
-					/>
-
-					<!-- Show loading indicator for pending message -->
-					<div v-if="sendingMessage" class="message-wrapper mb-3 message-sent">
-						<div class="message-content">
-							<div class="message-bubble message-pending">
-								<div class="message-text">{{ pendingMessage }}</div>
-								<div class="message-meta">
-									<span class="message-time">{{ formatMessageTime(new Date()) }}</span>
-									<span class="message-status">
-										<div class="spinner-border spinner-border-sm message-status-pending" role="status">
-											<span class="visually-hidden">Sending...</span>
-										</div>
-									</span>
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<div v-if="messages.length === 0" class="text-center p-4 text-muted">
-						<div class="mb-3">
-							<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-								 stroke-width="1.5">
-								<path
-									d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-							</svg>
-						</div>
-						<h6>No messages yet</h6>
-						<p class="text-muted small">Start the conversation by sending a message</p>
-					</div>
-				</div>
-
-				<!-- Message input -->
-				<div class="message-input-container p-3 border-top bg-light">
-					<form @submit.prevent="sendMessage">
-						<!-- Reply Preview -->
-						<div v-if="replyingToMessage" class="reply-preview">
-							<div class="reply-preview-header">
-								<h6 class="reply-preview-title">
-									Replying to {{ replyingToMessage.username }}
-								</h6>
-								<button
-									type="button"
-									class="reply-preview-close"
-									@click="clearReply"
-									title="Cancel reply"
-								>
-									<svg width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
-										<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
-									</svg>
-								</button>
-							</div>
-							<p class="reply-preview-text">{{ getReplyPreviewText(replyingToMessage) }}</p>
-						</div>
-
-						<!-- Show selected image preview if any -->
-						<div v-if="selectedMessageImage" class="selected-image-preview mb-3">
-							<div class="image-preview-container">
-								<img
-									:src="messageImagePreviewUrl"
-									:alt="selectedMessageImage.name"
-									class="preview-message-image"
-								>
-								<button
-									type="button"
-									class="btn btn-sm btn-danger remove-image-btn"
-									@click="clearMessageImageSelection"
-									title="Remove image"
-								>
-									<svg width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
-										<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
-									</svg>
-								</button>
-							</div>
-							<div class="image-info">
-								<small class="text-muted">{{ selectedMessageImage.name }} ({{ formatFileSize(selectedMessageImage.size) }})</small>
-							</div>
-						</div>
-
-						<div class="input-group">
-							<!-- Add Media Button -->
-							<button
-								type="button"
-								class="btn-add-media"
-								@click="openImageModal"
-								title="Add image or GIF"
-								:disabled="sendingMessage"
-							>
-								<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-									<path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/>
-								</svg>
-							</button>
-
-							<input
-								type="text"
-								class="form-control message-input"
-								:placeholder="replyingToMessage ? 'Reply to this message...' : (selectedMessageImage ? 'Add a caption...' : 'Type a message...')"
-								v-model="newMessage"
-								:disabled="sendingMessage"
-								@keypress.enter="sendMessage"
-								ref="messageInput"
-							>
-							<button
-								class="btn btn-primary send-btn"
-								type="submit"
-								:disabled="sendingMessage || (!newMessage.trim() && !selectedMessageImage)"
-							>
-								<svg v-if="!sendingMessage" width="16" height="16" fill="currentColor"
-									 viewBox="0 0 16 16">
-									<path
-										d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576 6.636 10.07Zm6.787-8.201L1.591 6.602l4.339 2.76 7.494-7.493Z"/>
-								</svg>
-								<LoadingSpinner v-else style="width: 16px; height: 16px;"/>
-							</button>
-						</div>
-					</form>
-				</div>
-			</div>
+			<ConversationSection
+				:selected-chat-id="selectedChatId"
+				:selected-chat="selectedChat"
+				:current-username="currentUsername"
+				:messages="messages"
+				:loading-messages="loadingMessages"
+				:messages-error="messagesError"
+				:last-read-message-id="lastReadMessageId"
+				:new-message="newMessage"
+				:sending-message="sendingMessage"
+				:pending-message="pendingMessage"
+				:replying-to-message="replyingToMessage"
+				:selected-message-image="selectedMessageImage"
+				:message-image-preview-url="messageImagePreviewUrl"
+				:deleting-message="deletingMessage"
+				:chat-image-urls="chatImageUrls"
+				:message-image-urls="messageImageUrls"
+				:member-image-urls="memberImageUrls"
+				:chat-members="chatMembers"
+				:loading-chat-members="loadingChatMembers"
+				:has-new-messages="hasNewMessages"
+				:new-message-count="newMessageCount"
+				:scroll-threshold="scrollThreshold"
+				ref="conversationSection"
+				@open-new-chat-modal="openNewChatModal"
+				@send-message="sendMessage"
+				@toggle-message-like="toggleMessageLike"
+				@start-reply="startReply"
+				@clear-reply="clearReply"
+				@open-forward-modal="openForwardModal"
+				@confirm-delete-message="confirmDeleteMessage"
+				@jump-to-message="jumpToMessage"
+				@retry-load-messages="retryLoadMessages"
+				@update:new-message="newMessage = $event"
+				@open-image-modal="openImageModal"
+				@clear-message-image-selection="clearMessageImageSelection"
+				@open-rename-group-modal="openRenameGroupModal"
+				@open-add-to-group-modal="openAddToGroupModal"
+				@open-set-group-photo-modal="openSetGroupPhotoModal"
+				@leave-group="leaveGroup"
+				@get-group-members="getGroupMembers"
+				@open-image-viewer="openImageViewer"
+				@handle-image-error="handleImageError"
+				@handle-message-image-error="handleMessageImageError"
+				@handle-reply-image-error="handleReplyImageError"
+				@handle-member-image-error="handleMemberImageError"
+				@scroll-position-changed="handleScrollPositionChanged"
+				@scroll-to-new-messages="scrollToNewMessages"
+			/>
 		</main>
 	</div>
 
@@ -404,7 +124,6 @@
 		:forwardMessage="forwardMessage"
 		@close="closeForwardModal"
 	/>
-
 
 	<RenameGroupModal
 		:show="showRenameGroupModal"

@@ -11,7 +11,7 @@ import AddToGroupModal from '../components/AddToGroupModal.vue'
 import SetGroupPhotoModal from '../components/SetGroupPhotoModal.vue'
 
 import Sidebar from '../components/Sidebar.vue'
-import Message from '../components/Message.vue'
+import ConversationSection from '../components/ConversationSection.vue'
 
 
 
@@ -28,7 +28,7 @@ export default {
 		SetGroupPhotoModal,
 
 		Sidebar,
-		Message
+		ConversationSection
 	},
 
 	data() {
@@ -1804,23 +1804,49 @@ export default {
 			}
 		},
 
-		scrollToBottom() {
-			this.$nextTick(() => {
-				const messagesContainer = this.$refs.messagesContainer;
-				if (messagesContainer) {
-					messagesContainer.scrollTop = messagesContainer.scrollHeight;
-					this.isUserAtBottom = true;
-					this.hasNewMessages = false;
-					this.newMessageCount = 0;
-				}
-			});
+		retryLoadMessages() {
+			if (this.selectedChatId) {
+				this.getConversation(this.selectedChatId, false);
+			}
 		},
 
-		// Method to handle clicking the new message indicator
+		// Helper method to handle scroll position changes
+		handleScrollPositionChanged(scrollData) {
+			this.isUserAtBottom = scrollData.isUserAtBottom;
+			this.lastScrollTop = scrollData.scrollTop;
+
+			// Hide indicator if user scrolls to bottom
+			if (scrollData.isUserAtBottom && this.hasNewMessages) {
+				this.hasNewMessages = false;
+				this.newMessageCount = 0;
+			}
+		},
+
+		// Helper method to handle scroll to new messages
 		scrollToNewMessages() {
-			this.scrollToBottom();
 			this.hasNewMessages = false;
 			this.newMessageCount = 0;
+		},
+
+		// Enhanced focus method that works with the new component structure
+		focusMessageInput() {
+			if (this.$refs.conversationSection) {
+				this.$refs.conversationSection.focusMessageInput();
+			}
+		},
+
+		// Enhanced scroll to bottom method
+		scrollToBottom() {
+			if (this.$refs.conversationSection) {
+				this.$refs.conversationSection.scrollToBottom();
+			}
+		},
+
+		// Enhanced restore scroll position method
+		restoreScrollPosition(savedScrollTop, heightDifference = 0) {
+			if (this.$refs.conversationSection) {
+				this.$refs.conversationSection.restoreScrollPosition(savedScrollTop, heightDifference);
+			}
 		},
 
 		filterUsers() {
@@ -1978,20 +2004,6 @@ export default {
 			// Focus message input after chat is loaded
 			this.$nextTick(() => {
 				this.focusMessageInput();
-			});
-		},
-
-		focusMessageInput() {
-			this.$nextTick(() => {
-				const messageInput = this.$refs.messageInput;
-				if (messageInput && this.selectedChatId) {
-					try {
-						messageInput.focus();
-						console.log('Message input focused');
-					} catch (error) {
-						console.error('Failed to focus message input:', error);
-					}
-				}
 			});
 		},
 

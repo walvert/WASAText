@@ -70,4 +70,18 @@ export default {
 
 <style scoped>
 @import "../views/ChatsView.css";
+
+.chat-sidebar {
+	height: 100vh;
+	border-right: 1px solid #dee2e6;
+	overflow-y: auto;
+	background-color: #f8f9fa;
+}
+
+@media (max-width: 768px) {
+	.chat-sidebar {
+		height: 100vh;
+	}
+}
+
 </style>
