@@ -321,6 +321,7 @@ export default {
 </script>
 
 <style scoped>
+@import url('../assets/message.css');
 @import "../views/ChatsView.css";
 
 .chat-container {
@@ -329,13 +330,6 @@ export default {
 	flex-direction: column;
 	min-height: 0;
 	overflow: hidden;
-}
-
-@media (max-width: 768px) {
-	.chat-container {
-		height: 100vh;
-		overflow: hidden;
-	}
 }
 
 .messages-section {

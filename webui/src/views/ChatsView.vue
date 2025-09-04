@@ -368,13 +368,6 @@ export default {
 
 			console.log('Image update response:', response.data)
 
-			// Clear old cached image URL
-			// if (this.currentUserImageUrl) {
-			// 	URL.revokeObjectURL(this.currentUserImageUrl)
-			// 	this.currentUserImageUrl = null
-			// }
-
-			// If server returns the new image URL, use it to load the image
 			if (response.data && response.data.imageUrl) {
 				console.log('Loading new image from:', response.data.imageUrl)
 				this.currentUserImageUrl = await this.getImageUrl(response.data.imageUrl)
@@ -2473,5 +2466,6 @@ export default {
 <style scoped>
 @import url('../assets/main.css');
 @import url('../assets/modals.css');
+@import url('../assets/message.css');
 @import "ChatsView.css";
 </style>

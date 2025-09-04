@@ -78,10 +78,4 @@ export default {
 	background-color: #f8f9fa;
 }
 
-@media (max-width: 768px) {
-	.chat-sidebar {
-		height: 100vh;
-	}
-}
-
 </style>

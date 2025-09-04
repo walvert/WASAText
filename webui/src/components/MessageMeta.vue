@@ -118,5 +118,6 @@ export default {
 </script>
 
 <style scoped>
+@import url('../assets/message.css');
 @import "../views/ChatsView.css";
 </style>

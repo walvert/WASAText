@@ -205,5 +205,44 @@ export default {
 </script>
 
 <style scoped>
+@import url('../assets/message.css');
 @import "../views/ChatsView.css";
+
+.message-input-container {
+	flex-shrink: 0;
+	border-top: 1px solid #dee2e6;
+	background-color: #fff;
+	padding: 1rem;
+}
+
+.message-input-container .input-group {
+	display: flex;
+	align-items: center;
+	width: 100%;
+}
+
+.message-input-container .form-control {
+	flex: 1;
+	border-radius: 1.5rem;
+	padding: 0.5rem 1rem;
+	border: 1px solid #dee2e6;
+	margin-right: 0.5rem;
+}
+
+.message-input-container .form-control:focus {
+	box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+	border-color: #007bff;
+}
+
+.message-input-container .btn {
+	flex-shrink: 0;
+	border-radius: 50%;
+	width: 40px;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+}
+
 </style>

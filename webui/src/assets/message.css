@@ -1,0 +1,98 @@
+.message-bubble.message-pending {
+	opacity: 0.7;
+}
+
+.message-text {
+	margin: 0;
+	line-height: 1.4;
+	font-size: 0.9rem;
+}
+
+.message-meta {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.25rem;
+	margin-top: 0.25rem;
+	min-height: 16px;
+}
+
+.message-time {
+	font-size: 0.7rem;
+	color: #6c757d;
+	line-height: 1;
+}
+
+.message-sent .message-time {
+	color: rgba(255, 255, 255, 0.7);
+}
+
+.message-status {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: 4px;
+	min-width: 16px;
+	height: 12px;
+	color: #6c757d;
+}
+
+.message-sent .message-status {
+	color: rgba(255, 255, 255, 0.7);
+}
+
+.message-status-sent {
+	width: 12px;
+	height: 12px;
+	opacity: 0.8;
+	transition: opacity 0.2s ease;
+}
+
+.message-status-read {
+	width: 16px;
+	height: 12px;
+	opacity: 0.9;
+	transition: opacity 0.2s ease;
+}
+
+.message-wrapper:not(.message-sent) .message-status-read {
+	color: #007bff;
+}
+
+.message-sent .message-status-read {
+	color: rgba(135, 206, 250, 0.9);
+}
+
+.message-status-pending {
+	width: 12px;
+	height: 12px;
+	border-width: 1.5px;
+}
+
+.message-bubble:hover .message-status {
+	opacity: 1;
+}
+
+.message-status svg {
+	transition: all 0.3s ease;
+	display: block;
+	flex-shrink: 0;
+}
+
+.message-status-sent path {
+	stroke: currentColor;
+}
+
+.message-status-read path {
+	stroke: currentColor;
+}
+
+.message-pending .message-status-pending {
+	border-color: rgba(255, 255, 255, 0.6);
+}
+
+.message-status span {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}

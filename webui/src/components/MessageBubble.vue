@@ -104,5 +104,26 @@ export default {
 </script>
 
 <style scoped>
+@import url('../assets/message.css');
 @import "../views/ChatsView.css";
+
+.message-bubble {
+	background-color: #e9ecef;
+	border-radius: 1rem;
+	padding: 0.5rem 0.75rem;
+	position: relative;
+	word-wrap: break-word;
+	max-width: 100%;
+}
+
+.message-bubble.has-likes {
+	padding-bottom: 2rem;
+}
+
+.message-sent .message-bubble {
+	background-color: #007bff;
+	color: white;
+}
+
+
 </style>

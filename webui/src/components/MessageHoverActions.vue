@@ -21,7 +21,7 @@
 				<path d="M9.5 13a.5.5 0 0 1-.5-.5V10H2.5a.5.5 0 0 1 0-1H9V6.5a.5.5 0 0 1 .854-.354l3 3a.5.5 0 0 1 0 .708l-3 3A.5.5 0 0 1 9.5 13z" transform="scale(-1,1) translate(-16,0)"/>
 			</svg>
 
-			<!-- Reply Dropdown -->
+			<!-- Dropdown -->
 			<div
 				v-if="showReplyDropdown"
 				class="reply-dropdown"
@@ -51,7 +51,7 @@
 				<path d="M9.5 13a.5.5 0 0 1-.5-.5V10H2.5a.5.5 0 0 1 0-1H9V6.5a.5.5 0 0 1 .854-.354l3 3a.5.5 0 0 1 0 .708l-3 3A.5.5 0 0 1 9.5 13z"/>
 			</svg>
 
-			<!-- Forward Dropdown -->
+			<!-- Dropdown -->
 			<div
 				v-if="showForwardDropdown"
 				class="forward-dropdown"
@@ -71,7 +71,7 @@
 			</div>
 		</button>
 
-		<!-- Delete Button (only show for current user messages) -->
+		<!-- Delete Button -->
 		<button
 			v-if="isCurrentUser"
 			class="delete-btn"
@@ -86,7 +86,7 @@
 				<path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
 			</svg>
 
-			<!-- Delete Dropdown -->
+			<!-- Dropdown -->
 			<div
 				v-if="showDeleteDropdown"
 				class="delete-dropdown"
@@ -160,5 +160,6 @@ export default {
 </script>
 
 <style scoped>
+@import url('../assets/message.css');
 @import "../views/ChatsView.css";
 </style>

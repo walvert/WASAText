@@ -183,5 +183,44 @@ export default {
 </script>
 
 <style scoped>
+@import url('../assets/message.css');
 @import "../views/ChatsView.css";
+
+.message-wrapper {
+	display: flex;
+	width: 100%;
+	margin-bottom: 0.5rem;
+	flex-shrink: 0;
+}
+
+.message-wrapper.message-sent {
+	justify-content: flex-end;
+}
+
+.message-wrapper:not(.message-sent) {
+	justify-content: flex-start;
+}
+
+.message-content {
+	max-width: 70%;
+	display: flex;
+	flex-direction: column;
+}
+
+.message-sent .message-content {
+	align-items: flex-end;
+}
+
+.message-wrapper:not(.message-sent) .message-content {
+	align-items: flex-start;
+}
+
+.message-sender {
+	font-size: 0.75rem;
+	color: #6c757d;
+	margin-bottom: 0.25rem;
+	padding-left: 0.75rem;
+	font-weight: 500;
+}
+
 </style>
