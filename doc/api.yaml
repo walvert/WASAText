@@ -103,6 +103,8 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFoundError'
+        "409":
+          $ref: '#/components/responses/ConflictError'
         "500":
           $ref: '#/components/responses/InternalServerError'
 

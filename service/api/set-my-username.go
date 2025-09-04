@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"net/http"
+
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/database"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 	"github.com/julienschmidt/httprouter"
-	"net/http"
 )
 
 func (rt *_router) setMyUsername(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -46,6 +48,9 @@ func (rt *_router) setMyUsername(w http.ResponseWriter, r *http.Request, ps http
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		} else if errors.Is(err, database.ErrUsernameAlreadyExists) {
+			http.Error(w, "Username already exists", http.StatusConflict)
 			return
 		} else {
 			rt.baseLogger.WithError(err).Error("Internal Server Error")

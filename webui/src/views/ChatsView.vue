@@ -321,6 +321,8 @@ export default {
 					this.profileError = 'File is too large. Please choose a smaller image.'
 				} else if (err.response?.status === 400) {
 					this.profileError = 'Invalid file format. Please choose a valid image.'
+				} else if (err.response?.status === 409) {
+					this.profileError = 'Username already exists. Please choose a different username.'
 				} else {
 					this.profileError = err.response?.data?.message || 'Failed to update profile. Please try again.'
 				}
