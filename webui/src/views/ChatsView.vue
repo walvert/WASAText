@@ -691,6 +691,21 @@ export default {
 			this.filterUsers();
 		},
 
+		async loadUserImagesForForward(users) {
+			for (const user of users) {
+				if (user.imageUrl && !this.userImageUrls[user.id]) {
+					try {
+						const imageUrl = await this.getImageUrl(user.imageUrl);
+						if (imageUrl) {
+							this.userImageUrls[user.id] = imageUrl;
+						}
+					} catch (error) {
+						console.error(`Failed to load image for user ${user.id}:`, error);
+					}
+				}
+			}
+		},
+
 		async sendMessage() {
 			if ((!this.newMessage.trim() && !this.selectedMessageImage) || !this.selectedChatId) return;
 

@@ -122,7 +122,7 @@ paths:
             application/json:
               schema:
                 type: object
-                description: url or oath where the image is stored in the server
+                description: url or path where the image is stored in the server
                 properties:
                   imageUrl:
                     description: image url

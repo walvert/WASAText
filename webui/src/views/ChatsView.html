@@ -85,17 +85,19 @@
 		:newChatLoading="newChatLoading"
 		:userImageUrls="userImageUrls"
 		:canCreateNewChat="canCreateNewChat"
+		v-model:userSearchQuery="userSearchQuery"
 		@close="closeNewChatModal"
-		@get-users="getUsers"
 		@filter-users="handleFilterUsers"
+		@update:userSearchQuery="userSearchQuery = $event"
+		@get-users="getUsers"
 		@toggle-user-selection="toggleUserSelection"
 		@remove-user-selection="removeUserSelection"
-		@open-image-modal="openNewChatImageModal"
-		@clear-new-chat-image-selection="clearNewChatImageSelection"
-		@create-new-chat="createNewChat"
 		@handle-users-image-error="handleUsersImageError"
+		@clear-new-chat-image-selection="clearNewChatImageSelection"
+		@open-image-modal="openNewChatImageModal"
 		@update:newChatName="newChatName = $event"
 		@update:initialMessage="initialMessage = $event"
+		@create-new-chat="createNewChat"
 	/>
 
 	<NewChatImageModal
@@ -120,9 +122,12 @@
 		:messageImageUrls="messageImageUrls"
 		:chatImageUrls="chatImageUrls"
 		:groupChats="forwardGroupChats"
+		:userImageUrls="userImageUrls"
 		:loadUsers="loadForwardUsers"
 		:forwardMessage="forwardMessage"
 		@close="closeForwardModal"
+		@handle-users-image-error="handleUsersImageError"
+		@load-user-images="loadUserImagesForForward"
 	/>
 
 	<RenameGroupModal

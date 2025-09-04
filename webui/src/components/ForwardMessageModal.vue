@@ -109,9 +109,17 @@
 										@click.stop="toggleUserSelection(user)"
 									>
 									<div class="user-avatar me-3">
-										<div class="avatar-circle" style="width: 32px; height: 32px; font-size: 12px;">
+										<div class="avatar-circle" v-if="!userImageUrls[user.id]" style="width: 32px; height: 32px; font-size: 12px;">
 											<span class="avatar-text">{{ getUserInitials(user.username) }}</span>
 										</div>
+										<img
+											v-else
+											:src="userImageUrls[user.id]"
+											:alt="user.username"
+											class="avatar-image"
+											style="width: 32px; height: 32px;"
+											@error="() => handleUsersImageError(user.id)"
+										>
 									</div>
 									<div class="user-info">
 										<div class="fw-medium">{{ user.username }}</div>
@@ -240,6 +248,10 @@ export default {
 		forwardMessage: {
 			type: Function,
 			required: true
+		},
+		userImageUrls: {
+			type: Object,
+			default: () => ({})
 		}
 	},
 	emits: ['close'],
@@ -286,6 +298,9 @@ export default {
 					this.users = result.data
 					this.filteredUsers = result.data
 					console.log('Forward users fetched successfully:', this.users)
+
+					// Emit event to load user images
+					this.$emit('load-user-images', result.data)
 				} else {
 					this.error = result.error
 				}
@@ -295,6 +310,10 @@ export default {
 			} finally {
 				this.loadingUsers = false
 			}
+		},
+
+		handleUsersImageError(userId) {
+			this.$emit('handle-users-image-error', userId);
 		},
 
 		async submitForward() {

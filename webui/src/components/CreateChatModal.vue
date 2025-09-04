@@ -16,8 +16,8 @@
 									type="text"
 									class="form-control"
 									placeholder="Search users..."
-									v-model="userSearchQuery"
-									@input="filterUsers"
+									:value="userSearchQuery"
+									@input="handleSearchInput"
 								>
 							</div>
 						</div>
@@ -249,7 +249,7 @@ export default {
 	},
 	data() {
 		return {
-			userSearchQuery: ''
+			// userSearchQuery: ''
 		}
 	},
 
@@ -258,6 +258,13 @@ export default {
 			this.$emit('close');
 		},
 
+		handleSearchInput(event) {
+			const searchQuery = event.target.value;
+			this.$emit('update:userSearchQuery', searchQuery);
+			this.$emit('filter-users', searchQuery);
+		},
+
+		// Keep other existing methods...
 		filterUsers() {
 			this.$emit('filter-users', this.userSearchQuery);
 		},
@@ -303,13 +310,11 @@ export default {
 	watch: {
 		show(newVal) {
 			if (newVal) {
-				// Load users when modal opens if not already loaded
 				if (this.users.length === 0) {
 					this.$emit('get-users');
 				}
 			} else {
-				// Reset search query when modal closes
-				this.userSearchQuery = '';
+				this.$emit('update:userSearchQuery', '');
 			}
 		}
 	}
