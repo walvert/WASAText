@@ -54,10 +54,6 @@ export default {
 			currentUserId: null,
 			currentUsername: null,
 
-			// Modals
-			newChatType: 'private',
-			newChatUsername: '',
-
 			// Rename Group Modal
 			showRenameGroupModal: false,
 			setGroupNameLoading: false,
@@ -73,10 +69,8 @@ export default {
 			setGroupPhotoLoading: false,
 			setGroupPhotoError: null,
 
-
 			// Profile modal
 			showProfileModal: false,
-			editUsername: '',
 			profileLoading: false,
 			profileError: null,
 
@@ -457,45 +451,15 @@ export default {
 				this.messagesError = null;
 				this.activeRequests.add(requestId);
 
-				// Store scroll position before updating messages
-				let savedScrollTop = 0;
-				let savedScrollHeight = 0;
-				const messagesContainer = this.$refs.messagesContainer;
-
-				if (messagesContainer && !isFirstLoad && !this.shouldScrollAfterSend) {
-					savedScrollTop = messagesContainer.scrollTop;
-					savedScrollHeight = messagesContainer.scrollHeight;
-
-					// Calculate distance from bottom to determine user position
-					const distanceFromBottom = savedScrollHeight - (savedScrollTop + messagesContainer.clientHeight);
-					this.isUserAtBottom = distanceFromBottom <= this.scrollThreshold;
-
-					console.log('Saving scroll position:', {
-						scrollTop: savedScrollTop,
-						scrollHeight: savedScrollHeight,
-						distanceFromBottom,
-						isUserAtBottom: this.isUserAtBottom
-					});
-				}
-
 				const response = await this.$axios.get(`/chats/${chatId}`, {
 					signal: controller.signal,
 					timeout: 10000
 				});
 
-				// Store previous message IDs to detect new messages
-				const previousMessageIds = new Set(this.messages.map(m => m.id));
-
 				// Sort messages by timestamp (oldest first)
 				const newMessages = response.data.sort((a, b) => {
 					return new Date(a.createdAt) - new Date(b.createdAt);
 				});
-
-				// Detect new messages from other users
-				const newIncomingMessages = newMessages.filter(msg =>
-					!previousMessageIds.has(msg.id) &&
-					msg.username !== this.currentUsername
-				);
 
 				// Update messages
 				this.messages = newMessages;
@@ -509,85 +473,11 @@ export default {
 				// Fetch last read message ID
 				await this.getLastReadMessageId(chatId);
 
-				// Handle scrolling after DOM update
-				await this.$nextTick();
-
-				const container = this.$refs.messagesContainer;
-				if (!container) return;
-
+				// Focus message input after loading (only for first load)
 				if (isFirstLoad) {
-					// First load - ensure we scroll to bottom after DOM is fully rendered
-					console.log('First load - scrolling to bottom');
-
-					// Use requestAnimationFrame to ensure DOM is fully updated
-					requestAnimationFrame(() => {
-						if (this.$refs.messagesContainer) {
-							this.$refs.messagesContainer.scrollTop = this.$refs.messagesContainer.scrollHeight;
-							this.isUserAtBottom = true;
-							this.hasNewMessages = false;
-							this.newMessageCount = 0;
-
-							console.log('First load scroll complete:', {
-								scrollHeight: this.$refs.messagesContainer.scrollHeight,
-								scrollTop: this.$refs.messagesContainer.scrollTop
-							});
-						}
-
-						// Focus input after ensuring scroll is complete
-						setTimeout(() => {
-							this.focusMessageInput();
-						}, 100);
-					});
-
-				} else if (this.shouldScrollAfterSend) {
-					// Message sent - scroll to bottom with requestAnimationFrame for reliability
-					console.log('Message sent - scrolling to bottom');
-
-					requestAnimationFrame(() => {
-						if (this.$refs.messagesContainer) {
-							this.$refs.messagesContainer.scrollTop = this.$refs.messagesContainer.scrollHeight;
-							this.isUserAtBottom = true;
-							this.hasNewMessages = false;
-							this.newMessageCount = 0;
-
-							console.log('Scroll to bottom after send complete:', {
-								scrollHeight: this.$refs.messagesContainer.scrollHeight,
-								scrollTop: this.$refs.messagesContainer.scrollTop
-							});
-						}
-					});
-
-					this.shouldScrollAfterSend = false;
-
-				} else {
-					// Polling refresh - restore position
-					console.log('Polling refresh - restoring position');
-
-					// IMPORTANT: Use requestAnimationFrame to ensure DOM has fully updated
-					requestAnimationFrame(() => {
-						if (!container) return;
-
-						const newScrollHeight = container.scrollHeight;
-						const heightDifference = newScrollHeight - savedScrollHeight;
-
-						// Restore the exact scroll position accounting for any height changes
-						container.scrollTop = savedScrollTop + heightDifference;
-
-						console.log('Restored scroll position:', {
-							oldHeight: savedScrollHeight,
-							newHeight: newScrollHeight,
-							heightDiff: heightDifference,
-							oldScrollTop: savedScrollTop,
-							newScrollTop: container.scrollTop
-						});
-
-						// Show new message indicator if user is not at bottom and there are new messages
-						if (newIncomingMessages.length > 0 && !this.isUserAtBottom) {
-							console.log('New messages detected, showing indicator');
-							this.hasNewMessages = true;
-							this.newMessageCount += newIncomingMessages.length;
-						}
-					});
+					setTimeout(() => {
+						this.focusMessageInput();
+					}, 100);
 				}
 
 			} catch (err) {
@@ -693,9 +583,6 @@ export default {
 				this.sendingMessage = true;
 				this.pendingMessage = this.newMessage.trim();
 
-				// Set flag to scroll to bottom after sending
-				this.shouldScrollAfterSend = true;
-
 				let requestData;
 				let requestConfig = {};
 				const messageText = this.newMessage.trim();
@@ -749,7 +636,7 @@ export default {
 					};
 				}
 
-				console.log('Sending message - will scroll to bottom after');
+				console.log('Sending message...');
 
 				const response = await this.$axios.post(
 					`/chats/${this.selectedChatId}/messages`,
@@ -774,26 +661,8 @@ export default {
 					lastMsgUsername: this.currentUsername
 				});
 
-				// Refresh messages - shouldScrollAfterSend flag will make it scroll to bottom
+				// Refresh messages - auto-scroll will happen via watcher
 				await this.getConversation(this.selectedChatId, false);
-
-				// Force scroll to bottom after conversation loads (as a backup)
-				this.$nextTick(() => {
-					requestAnimationFrame(() => {
-						if (this.$refs.messagesContainer) {
-							const container = this.$refs.messagesContainer;
-							container.scrollTop = container.scrollHeight;
-							this.isUserAtBottom = true;
-							this.hasNewMessages = false;
-							this.newMessageCount = 0;
-
-							console.log('Forced scroll to bottom after send:', {
-								scrollHeight: container.scrollHeight,
-								scrollTop: container.scrollTop
-							});
-						}
-					});
-				});
 
 				// Maintain focus on message input after sending
 				setTimeout(() => {
@@ -802,7 +671,6 @@ export default {
 
 			} catch (err) {
 				console.error('Failed to send message', err);
-				this.shouldScrollAfterSend = false; // Reset flag on error
 
 				if (err.response?.status === 400) {
 					alert('Invalid message format. Please try again.');

@@ -336,6 +336,8 @@ export default {
 	flex: 1;
 	overflow: hidden;
 	min-height: 0;
+	display: flex;
+	flex-direction: column;
 }
 
 </style>

@@ -1,5 +1,5 @@
 <template>
-	<div class="messages-list" ref="messagesContainer" @scroll="handleScroll">
+	<div class="messages-list" ref="messagesContainer">
 		<!-- Enhanced message display with components -->
 		<Message
 			v-for="message in messages"
@@ -67,20 +67,6 @@
 			<h6>No messages yet</h6>
 			<p class="text-muted small">Start the conversation by sending a message</p>
 		</div>
-
-		<!-- New messages indicator -->
-		<div
-			v-if="hasNewMessages"
-			class="new-messages-indicator"
-			@click="scrollToNewMessages"
-		>
-			<div class="indicator-content">
-				<span>{{ newMessageCount }} new message{{ newMessageCount !== 1 ? 's' : '' }}</span>
-				<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-					<path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
-				</svg>
-			</div>
-		</div>
 	</div>
 </template>
 
@@ -127,18 +113,6 @@ export default {
 		deletingMessage: {
 			type: [Number, String],
 			default: null
-		},
-		hasNewMessages: {
-			type: Boolean,
-			default: false
-		},
-		newMessageCount: {
-			type: Number,
-			default: 0
-		},
-		scrollThreshold: {
-			type: Number,
-			default: 100
 		}
 	},
 
@@ -150,9 +124,7 @@ export default {
 		'toggle-message-like',
 		'start-reply',
 		'open-forward-modal',
-		'confirm-delete',
-		'scroll-position-changed',
-		'scroll-to-new-messages'
+		'confirm-delete'
 	],
 
 	data() {
@@ -160,9 +132,7 @@ export default {
 			showLikesDropdown: null,
 			showReplyDropdown: null,
 			showForwardDropdown: null,
-			showDeleteDropdown: null,
-			isUserAtBottom: true,
-			lastScrollTop: 0
+			showDeleteDropdown: null
 		}
 	},
 
@@ -219,45 +189,12 @@ export default {
 			// Prevents dropdown from closing when hovering
 		},
 
-		handleScroll() {
-			const messagesContainer = this.$refs.messagesContainer;
-			if (!messagesContainer) return;
-
-			const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
-			const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
-
-			this.isUserAtBottom = distanceFromBottom <= this.scrollThreshold;
-			this.lastScrollTop = scrollTop;
-
-			this.$emit('scroll-position-changed', {
-				scrollTop,
-				scrollHeight,
-				clientHeight,
-				distanceFromBottom,
-				isUserAtBottom: this.isUserAtBottom
-			});
-		},
-
+		// Simple scroll to bottom method
 		scrollToBottom() {
 			this.$nextTick(() => {
 				const messagesContainer = this.$refs.messagesContainer;
 				if (messagesContainer) {
 					messagesContainer.scrollTop = messagesContainer.scrollHeight;
-					this.isUserAtBottom = true;
-				}
-			});
-		},
-
-		scrollToNewMessages() {
-			this.scrollToBottom();
-			this.$emit('scroll-to-new-messages');
-		},
-
-		restoreScrollPosition(savedScrollTop, heightDifference = 0) {
-			this.$nextTick(() => {
-				const container = this.$refs.messagesContainer;
-				if (container) {
-					container.scrollTop = savedScrollTop + heightDifference;
 				}
 			});
 		},
@@ -303,6 +240,32 @@ export default {
 		}
 	},
 
+	// Watch for message changes and auto-scroll
+	watch: {
+		messages: {
+			handler(newMessages, oldMessages) {
+				// Scroll to bottom when messages change
+				if (newMessages && newMessages.length > 0) {
+					// Check if this is a new message (length increased)
+					if (!oldMessages || newMessages.length > oldMessages.length) {
+						this.scrollToBottom();
+					}
+				}
+			},
+			deep: true
+		},
+
+		// Also scroll when sending message (pending state)
+		sendingMessage(newVal) {
+			if (newVal) {
+				// Scroll when a message starts sending
+				this.$nextTick(() => {
+					this.scrollToBottom();
+				});
+			}
+		}
+	},
+
 	mounted() {
 		// Close dropdowns when clicking outside
 		document.addEventListener('click', () => {
@@ -311,6 +274,9 @@ export default {
 			this.showReplyDropdown = null;
 			this.showForwardDropdown = null;
 		});
+
+		// Scroll to bottom on initial load
+		this.scrollToBottom();
 	}
 }
 </script>
@@ -324,6 +290,27 @@ export default {
 	display: flex;
 	flex-direction: column;
 	min-height: min-content;
+	overflow-y: auto;
+	height: 100%;
+	flex: 1;
+	padding: 1rem;
 }
 
+/* Webkit Scrollbar Styling */
+.messages-list::-webkit-scrollbar {
+	width: 6px;
+}
+
+.messages-list::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.messages-list::-webkit-scrollbar-thumb {
+	background: rgba(0, 0, 0, 0.2);
+	border-radius: 3px;
+}
+
+.messages-list::-webkit-scrollbar-thumb:hover {
+	background: rgba(0, 0, 0, 0.3);
+}
 </style>
