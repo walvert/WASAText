@@ -2,15 +2,21 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+	"strconv"
+
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 	"github.com/julienschmidt/httprouter"
-	"net/http"
-	"strconv"
 )
 
 func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	w.Header().Set("Content-Type", "application/json")
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
+		return
+	}
 
 	id, err := strconv.Atoi(ps.ByName("messageId"))
 	if err != nil {

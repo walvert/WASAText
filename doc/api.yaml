@@ -32,16 +32,7 @@ paths:
         content:
           application/json:
             schema:
-              description: username for login
-              type: object
-              properties:
-                name:
-                  description: Username
-                  type: string
-                  example: Maria
-                  pattern: "^[a-zA-Z0-9_-]+$"
-                  minLength: 3
-                  maxLength: 16
+              $ref: "#/components/schemas/LoginRequest"
         required: true
       responses:
         '201':
@@ -57,8 +48,8 @@ paths:
                     type: string
                     minLength: 20
                     maxLength: 2048
-                    pattern: '^Bearer\s[A-Za-z0-9\-._~+/]+=*$'
-                    example: "974a17f2-d346-48f3-8100-1e055ca991b4"
+                    pattern: '^[A-Za-z0-9\-._~+/]+=*$'
+                    example: "974a172-d346-48f3-8100-1e055ca991b4"
   /users:
     get:
       tags:
@@ -177,10 +168,10 @@ paths:
                   message:
                     description: Response message
                     type: string
-                    example: Profile picture updated successfully.
-                    minLength: 36
-                    maxLength: 36
-                    pattern: '^Profile picture updated successfully\.$'
+                    example: Profile picture updated success.
+                    minLength: 32
+                    maxLength: 32
+                    pattern: '^Profile picture updated success\.$'
                   imageUrl:
                     description: image url
                     type: string
@@ -288,16 +279,6 @@ paths:
   /chats/{chatId}:
     parameters:
       - $ref: "#/components/parameters/ChatID"
-      - name: chatName
-        in: query
-        description: New group name
-        schema:
-          type: string
-          description: Group name
-          example: "Study group"
-          pattern: "^[a-zA-Z0-9_ -]+$"
-          minLength: 3
-          maxLength: 24
     get:
       tags:
         - chats
@@ -338,12 +319,12 @@ paths:
               description: new name of the group chat set by the user
               properties:
                 chatName:
+                  description: Chat title, user name or group name
                   type: string
-                  description: Name of the chat to create if new.
-                  example: "Project X"
-                  minLength: 1
-                  maxLength: 255
-                  pattern: '^.{1,255}$'
+                  example: "Study group"
+                  pattern: "^[a-zA-Z0-9_ -]+$"
+                  minLength: 3
+                  maxLength: 24
 
       responses:
         "200":
@@ -442,6 +423,38 @@ paths:
                   $ref: "#/components/schemas/User"
                 minItems: 1
                 maxItems: 9999
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
+  /chats/{chatId}/last-read:
+    parameters:
+      - $ref: "#/components/parameters/ChatID"
+    get:
+      tags:
+        - chats
+      operationId: getLastRead
+      summary: get the last read message id
+      description: "Return the ID of the last message read by every member of the chat"
+      responses:
+        200:
+          description: Last Read message ID fetched successfully
+          content:
+            application/json:
+              schema:
+                description: last read message ID
+                type: object
+                properties:
+                  lasReadId:
+                    description: identifier for the message
+                    type: number
+                    format: integer
+                    example: 134
         "400":
           $ref: '#/components/responses/BadRequestError'
         "401":
@@ -625,25 +638,9 @@ paths:
         "500":
           $ref: '#/components/responses/InternalServerError'
 
-  /chats/{chatId}/messages/{messageId}:
+  /messages/{messageId}:
     parameters:
-      - $ref: "#/components/parameters/ChatID"
       - $ref: "#/components/parameters/MessageID"
-    post:
-      tags:
-        - messages
-      summary: Forward a message
-      description: "Get a message to forward it"
-      operationId: forwardMessage
-      responses:
-        "200":
-          description: Message found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Message'
-        "404":
-          $ref: "#/components/responses/NotFoundError"
     delete:
       tags:
         - messages
@@ -663,6 +660,31 @@ paths:
                     type: boolean
                     description: flag to communicate if the chat is being deleted by cascade after the message deletion
                     example: false
+        "400":
+          $ref: '#/components/responses/BadRequestError'
+        "401":
+          $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
+  /messages/{messageId}/forwards:
+    parameters:
+      - $ref: "#/components/parameters/MessageID"
+    post:
+      tags:
+        - messages
+      summary: Forward a message
+      description: "Forward a message retrieving message data from the database"
+      operationId: forwardMessage
+      responses:
+        "201":
+          description: Message forwarded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
         "400":
           $ref: '#/components/responses/BadRequestError'
         "401":
@@ -816,7 +838,7 @@ components:
           enum: ["text", "image", "gif"]
           minLength: 3
           maxLength: 5
-          pattern: '^(gif|image|gif)$'
+          pattern: '^(text|image|gif)$'
           example: "text"
         unread:
           description: unread messages count for the chat
@@ -834,12 +856,12 @@ components:
           example: 223
           readOnly: True
         type:
-          description: type of the message, either text or image
+          description: type of the message, either text, image or gif
           type: string
           enum: [ "text", "image", "gif" ]
           minLength: 3
           maxLength: 5
-          pattern: '^(gif|image|gif)$'
+          pattern: '^(text|image|gif)$'
           example: "text"
         text:
           description: message text
@@ -847,7 +869,7 @@ components:
           example: "hello world"
           pattern: "^[a-zA-Z0-9_ -]+$"
           minLength: 1
-          maxLength: 250
+          maxLength: 255
         chatId:
           description: Identifier for the chat
           type: integer
@@ -923,18 +945,22 @@ components:
 
     MessageRequest:
       type: object
+      description: message data
       properties:
         text:
+          description: message text
           type: string
-          description: The text content of the message (optional if no initial message)
-          example: "Hello team!"
+          example: "hello world"
+          pattern: "^[a-zA-Z0-9_ -]+$"
           minLength: 1
           maxLength: 255
-          pattern: '^.{1,255}$'
         type:
+          description: type of the message, either text, image or gif
           type: string
-          description: The type of message
           enum: [ "text", "image", "gif" ]
+          minLength: 3
+          maxLength: 5
+          pattern: '^(text|image|gif)$'
           example: "text"
         isForward:
           type: boolean
@@ -949,22 +975,28 @@ components:
 
     MessageFormData:
       type: object
+      description: message input form data, used when image url is present
       properties:
         type:
+          description: type of the message, either text, image or gif
           type: string
-          description: The type of message (required for media uploads)
-          enum: [ "image", "gif" ]
-          example: "image"
+          enum: [ "text", "image", "gif" ]
+          minLength: 3
+          maxLength: 5
+          pattern: '^(text|image|gif)$'
+          example: "text"
         text:
+          description: message text
           type: string
-          description: Optional caption/text content for the media
-          example: "Check out this photo!"
+          example: "hello world"
+          pattern: "^[a-zA-Z0-9_ -]+$"
+          minLength: 1
+          maxLength: 255
         isForward:
-          type: string
-          description: Whether this message is forwarded (string representation of boolean)
-          enum: [ "true", "false" ]
-          default: "false"
-          example: "false"
+          type: boolean
+          description: Whether this message is forwarded from another chat
+          default: false
+          example: false
         replyTo:
           type: integer
           description: message id of the message of which this one is replying
@@ -981,15 +1013,22 @@ components:
 
     FirstMessageRequest:
       type: object
+      description: message input form data for creating new chat
       properties:
         text:
+          description: message text
           type: string
-          description: The text content of the message (optional if no initial message)
-          example: "Hello World!"
+          example: "hello world"
+          pattern: "^[a-zA-Z0-9_ -]+$"
+          minLength: 1
+          maxLength: 255
         type:
+          description: type of the message, either text, image or gif
           type: string
-          description: The type of message
           enum: [ "text", "image", "gif" ]
+          minLength: 3
+          maxLength: 5
+          pattern: '^(text|image|gif)$'
           example: "text"
         chatName:
           type: string
@@ -1014,16 +1053,23 @@ components:
 
     FirstMessageFormData:
       type: object
+      description: message input form data for creating new chat, used when image url is present
       properties:
         type:
+          description: type of the message, either text, image or gif
           type: string
-          description: The type of message (required for media uploads)
-          enum: [ "image", "gif" ]
-          example: "image"
+          enum: [ "text", "image", "gif" ]
+          minLength: 3
+          maxLength: 5
+          pattern: '^(text|image|gif)$'
+          example: "text"
         text:
+          description: message text
           type: string
-          description: Optional caption/text content for the media
-          example: "Check out this photo!"
+          example: "hello world"
+          pattern: "^[a-zA-Z0-9_ -]+$"
+          minLength: 1
+          maxLength: 255
         chatName:
           type: string
           description: Name of the chat to create (required for group chats with multiple receivers)
@@ -1033,11 +1079,10 @@ components:
           description: JSON string array of usernames to receive the message
           example: '["alice", "bob", "mark"]'
         isForward:
-          type: string
-          description: Whether this message is forwarded (string representation of boolean)
-          enum: [ "true", "false" ]
-          default: "false"
-          example: "false"
+          type: boolean
+          description: Whether this message is forwarded from another chat
+          default: false
+          example: false
         image:
           type: string
           format: binary
@@ -1053,6 +1098,7 @@ components:
 
     Error:
       type: object
+      description: error object
       properties:
         error:
           type: string
@@ -1089,17 +1135,6 @@ components:
       in: path
       required: true
       description: Message identifier
-
-    CommentID:
-      schema:
-        description: identifier for the comment
-        type: number
-        format: integer
-        example: 134
-      name: commentId
-      in: path
-      required: true
-      description: Comment identifier
 
   responses:
     UnauthorizedError:

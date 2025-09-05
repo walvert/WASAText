@@ -96,7 +96,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 
 	response := types.SetImageResponse{
 		Success:  true,
-		Message:  "Successfully updated your image",
+		Message:  "Profile picture updated success.",
 		ImageURL: outFile.Name(),
 	}
 

@@ -1,10 +1,13 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
-	"github.com/julienschmidt/httprouter"
+	"errors"
 	"net/http"
 	"strconv"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 func (rt *_router) getLastRead(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -25,9 +28,15 @@ func (rt *_router) getLastRead(w http.ResponseWriter, r *http.Request, ps httpro
 
 	lastReadId, err := rt.db.GetLastRead(chatId)
 	if err != nil {
-		rt.baseLogger.WithError(err).Warn("get last read failed")
-		http.Error(w, "get last read failed", http.StatusInternalServerError)
-		return
+		if errors.Is(err, sql.ErrNoRows) {
+			rt.baseLogger.WithError(err).Warn("message id not found")
+			http.Error(w, "Message not found", http.StatusNotFound)
+			return
+		} else {
+			rt.baseLogger.WithError(err).Warn("get last read failed")
+			http.Error(w, "get last read failed", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	response := map[string]interface{}{
