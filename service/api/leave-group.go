@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
-	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
-	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"strconv"
+
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
+	"github.com/julienschmidt/httprouter"
 )
 
 func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
@@ -40,17 +40,28 @@ func (rt *_router) leaveGroup(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	chatDeleted, err := rt.db.LeaveGroup(chatId, userId)
+	err = rt.db.LeaveGroup(chatId, userId)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Internal Server Error: Leave group")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	members, err := rt.db.GetGroupMembers(chatId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.Logger.WithError(err).Error("Chat not found")
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		} else {
+			ctx.Logger.WithError(err).Error("Error getting group members")
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+	}
+
 	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(types.ChatDeleted{
-		ChatDeleted: chatDeleted,
-	})
+	err = json.NewEncoder(w).Encode(members)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Error encoding response")
 		http.Error(w, err.Error(), http.StatusInternalServerError)

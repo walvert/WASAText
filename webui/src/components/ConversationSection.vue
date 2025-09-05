@@ -14,11 +14,11 @@
 		</div>
 	</div>
 
-	<div v-else class="chat-container h-100 d-flex flex-column">
+	<div v-else-if="selectedChat" class="chat-container h-100 d-flex flex-column">
 		<!-- Chat Header Component -->
 		<ChatHeader
 			:selected-chat="selectedChat"
-			:chat-image-url="chatImageUrls[selectedChat.id]"
+			:chat-image-url="selectedChat && selectedChat.id ? chatImageUrls[selectedChat.id] : null"
 			:current-username="currentUsername"
 			:chat-members="chatMembers"
 			:loading-chat-members="loadingChatMembers"
@@ -103,6 +103,16 @@
 			@update:new-message="$emit('update:new-message', $event)"
 			@focus-input="handleFocusInput"
 		/>
+	</div>
+
+	<!-- Fallback loading state if selectedChat is still loading -->
+	<div v-else class="d-flex justify-content-center align-items-center h-100">
+		<div class="text-center text-muted">
+			<div class="spinner-border mb-3" role="status">
+				<span class="visually-hidden">Loading...</span>
+			</div>
+			<p>Loading chat...</p>
+		</div>
 	</div>
 </template>
 
@@ -300,7 +310,7 @@ export default {
 
 	mounted() {
 		// Focus input when component is mounted and chat is selected
-		if (this.selectedChatId) {
+		if (this.selectedChatId && this.selectedChat) {
 			this.$nextTick(() => {
 				this.focusMessageInput()
 			})
@@ -309,8 +319,8 @@ export default {
 
 	watch: {
 		selectedChatId(newChatId) {
-			// Focus input when chat changes
-			if (newChatId) {
+			// Focus input when chat changes (only if we have a valid selectedChat)
+			if (newChatId && this.selectedChat) {
 				this.$nextTick(() => {
 					this.focusMessageInput()
 				})
@@ -339,5 +349,4 @@ export default {
 	display: flex;
 	flex-direction: column;
 }
-
 </style>

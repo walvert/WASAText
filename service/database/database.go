@@ -61,7 +61,7 @@ type AppDatabase interface {
 	DeleteComment(messageID int, userID int) error
 	AddToGroup(chatID int, userID int) error
 	SetGroupPhoto(chatId int, imagePath string) error
-	LeaveGroup(chatId int, userId int) (bool, error)
+	LeaveGroup(chatId int, userId int) error
 	SetGroupName(chatId int, chatName string) error
 	GetLastRead(chatID int) (int, error)
 	SetLastRead(userId int, chatId int, lastRead int) error

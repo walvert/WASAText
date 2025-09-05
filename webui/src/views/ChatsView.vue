@@ -844,40 +844,34 @@ export default {
 		async leaveGroup() {
 			if (!confirm('Are you sure you want to leave this group?')) return;
 
-			try {
-				console.log('Leaving group:', this.selectedChatId);
+			// Store the current chat ID before we start the async operation
+			const leavingChatId = this.selectedChatId;
 
-				const response = await this.$axios.delete(`/chats/${this.selectedChatId}/members`);
+			if (!leavingChatId) {
+				console.error('No chat selected to leave');
+				return;
+			}
+
+			try {
+				console.log('Leaving group:', leavingChatId);
+
+				const response = await this.$axios.delete(`/chats/${leavingChatId}/members`);
 
 				console.log('Leave group response:', response.data);
 
-				// Check if chat was deleted (user was the last member)
-				if (response.data && response.data.chatDeleted) {
-					console.log('Chat was deleted, removing from chat list');
+				this.selectedChatId = null;
+				this.messages = [];
+				this.lastReadMessageId = null;
+				this.hasNewMessages = false;
+				this.newMessageCount = 0;
+				this.chatMembers = [];
 
-					// Remove chat from the chats list
-					this.chats = this.chats.filter(chat => chat.id !== this.selectedChatId);
+				this.chats = this.chats.filter(chat => chat.id !== leavingChatId);
 
-					// Clear selected chat and reset state
-					this.selectedChatId = null;
-					this.messages = [];
-					this.lastReadMessageId = null;
+				await this.getMyConversations();
 
-					// Reset indicators
-					this.hasNewMessages = false;
-					this.newMessageCount = 0;
-
-					// Show success message
-					alert('You have left the group. The group has been deleted since you were the last member.');
-				} else {
-					// Group still exists, just refresh chats and clear selection
-					await this.getMyConversations();
-					this.selectedChatId = null;
-
-					// Show success message
-					alert('You have successfully left the group.');
-				}
-
+				// Show success message
+				alert('You have successfully left the group.');
 			} catch (err) {
 				console.error('Failed to leave group', err);
 
