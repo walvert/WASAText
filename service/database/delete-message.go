@@ -25,10 +25,6 @@ func (db *appdbimpl) DeleteMessage(messageId int) (chatDeleted bool, err error) 
 
 	err = db.DeleteAllComments(messageId)
 	if err != nil {
-		if errors.Is(err, errors.New("comment not found")) {
-		} else {
-			return false, err
-		}
 	}
 
 	var count int

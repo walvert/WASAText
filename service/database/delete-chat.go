@@ -24,7 +24,9 @@ func (db *appdbimpl) DeleteChat(chatId int) error {
 		filePath := filepath.Join("..", "..", imageUrl.String)
 
 		err := os.Remove(filePath)
-		if err != nil && !os.IsNotExist(err) {
+		if err != nil {
+			if !os.IsNotExist(err) {
+			}
 		}
 	}
 

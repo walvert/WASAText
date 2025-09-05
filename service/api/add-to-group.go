@@ -4,14 +4,16 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"strconv"
+
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/database"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 	"github.com/julienschmidt/httprouter"
-	"net/http"
-	"strconv"
 )
 
-func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	w.Header().Set("Content-Type", "application/json")
 	var userId int
 	var username types.UsernameRequest
@@ -31,11 +33,11 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 	userId, err = rt.db.GetUserByUsername(username.Username)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			rt.baseLogger.WithError(err).Warn("user not found")
+			ctx.Logger.WithError(err).Warn("user not found")
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		} else {
-			rt.baseLogger.WithError(err).Warn("error getting user")
+			ctx.Logger.WithError(err).Warn("error getting user")
 			http.Error(w, "Error getting user", http.StatusInternalServerError)
 			return
 		}
@@ -43,7 +45,7 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 
 	lastRead, err := rt.db.GetLastRead(chatId)
 	if err != nil {
-		rt.baseLogger.WithError(err).Warn("get last read failed")
+		ctx.Logger.WithError(err).Warn("get last read failed")
 		http.Error(w, "get last read failed", http.StatusInternalServerError)
 		return
 	}
@@ -57,17 +59,17 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 				"message": "User is already a member of this group.",
 			})
 			if err != nil {
-				rt.baseLogger.WithError(err).Warn("error encoding response")
+				ctx.Logger.WithError(err).Warn("error encoding response")
 				http.Error(w, "Error encoding response", http.StatusInternalServerError)
 				return
 			}
 			return
 		} else if errors.Is(err, sql.ErrNoRows) {
-			rt.baseLogger.WithError(err).Warn("user not found")
+			ctx.Logger.WithError(err).Warn("user not found")
 			http.Error(w, "Chat not found", http.StatusNotFound)
 			return
 		} else {
-			rt.baseLogger.WithError(err).Warn("error adding to group")
+			ctx.Logger.WithError(err).Warn("error adding to group")
 			http.Error(w, "Error adding to group", http.StatusInternalServerError)
 			return
 		}
@@ -75,14 +77,14 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 
 	err = rt.db.SetLastRead(userId, chatId, lastRead)
 	if err != nil {
-		rt.baseLogger.WithError(err).Warn("set last read failed")
+		ctx.Logger.WithError(err).Warn("set last read failed")
 		http.Error(w, "set last read failed", http.StatusInternalServerError)
 		return
 	}
 
 	members, err := rt.db.GetGroupMembers(chatId)
 	if err != nil {
-		rt.baseLogger.WithError(err).Warn("get group members failed")
+		ctx.Logger.WithError(err).Warn("get group members failed")
 		http.Error(w, "get group members failed", http.StatusInternalServerError)
 		return
 	}
@@ -90,7 +92,7 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 	w.WriteHeader(http.StatusCreated)
 	err = json.NewEncoder(w).Encode(members)
 	if err != nil {
-		rt.baseLogger.WithError(err).Error("error encoding response")
+		ctx.Logger.WithError(err).Error("error encoding response")
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 		return
 	}

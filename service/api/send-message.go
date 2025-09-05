@@ -5,9 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
-	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
-	"github.com/julienschmidt/httprouter"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -16,6 +13,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
+	"github.com/julienschmidt/httprouter"
 )
 
 func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
@@ -51,7 +52,6 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	// Parse chat ID
 	idParam := ps.ByName("chatId")
 	chatId, err := strconv.Atoi(idParam)
 	if err != nil {
@@ -60,14 +60,12 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	// Check content type to determine how to parse the request
 	contentType := r.Header.Get("Content-Type")
 
 	var messageRequest types.MessageRequest
 	var uploadedFileName string
 
 	if strings.HasPrefix(contentType, "multipart/form-data") {
-		// Handle file upload
 		messageRequest, uploadedFileName, err = rt.handleFileUpload(r, ctx)
 		if err != nil {
 			ctx.Logger.WithError(err).Error("Failed to handle file upload")
@@ -75,7 +73,6 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 			return
 		}
 	} else {
-		// Handle JSON request (text messages)
 		err = json.NewDecoder(r.Body).Decode(&messageRequest)
 		if err != nil {
 			ctx.Logger.WithError(err).Error("Error decoding request body")
@@ -84,14 +81,13 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		}
 	}
 
-	// Send message to database
 	messageId, err := rt.db.SendMessage(
 		chatId,
 		userId,
 		username,
 		messageRequest.Type,
 		messageRequest.Text,
-		uploadedFileName, // Use the uploaded filename, empty for text messages
+		uploadedFileName,
 		messageRequest.IsForward,
 		messageRequest.ReplyTo,
 	)
@@ -101,7 +97,6 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	// Get the complete message response
 	response, err := rt.db.GetMessage(messageId)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Internal Server Error: get message response")
@@ -109,7 +104,6 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		return
 	}
 
-	// Send response
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Internal Server Error: encode response")
@@ -121,17 +115,14 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 func (rt *_router) handleFileUpload(r *http.Request, ctx reqcontext.RequestContext) (types.MessageRequest, string, error) {
 	var messageRequest types.MessageRequest
 
-	// Parse multipart form (32MB max memory)
 	err := r.ParseMultipartForm(32 << 20) // 32 MB
 	if err != nil {
 		return messageRequest, "", fmt.Errorf("failed to parse multipart form: %w", err)
 	}
 
-	// Get form values
 	messageRequest.Type = r.FormValue("type")
 	messageRequest.Text = r.FormValue("text")
 
-	// Parse optional fields
 	if isForward := r.FormValue("isForward"); isForward == "true" {
 		messageRequest.IsForward = true
 	}
@@ -142,7 +133,6 @@ func (rt *_router) handleFileUpload(r *http.Request, ctx reqcontext.RequestConte
 		}
 	}
 
-	// Validate message type
 	if messageRequest.Type != "image" && messageRequest.Type != "gif" {
 		return messageRequest, "", fmt.Errorf("error: %w. invalid message type for file upload: %s", err, messageRequest.Type)
 	}

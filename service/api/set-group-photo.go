@@ -3,17 +3,19 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
-	"github.com/julienschmidt/httprouter"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
+	"github.com/julienschmidt/httprouter"
 )
 
-func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	w.Header().Set("Content-Type", "image/png")
 
 	idParam := ps.ByName("chatId")
@@ -87,7 +89,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		rt.baseLogger.WithError(err).Error("Failed to encode response")
+		ctx.Logger.WithError(err).Error("Failed to encode response")
 		http.Error(w, "Failed to return user", http.StatusInternalServerError)
 		return
 	}

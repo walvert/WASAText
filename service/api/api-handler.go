@@ -10,26 +10,26 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.POST("/session", rt.wrap(rt.doLogin))
 
 	rt.router.GET("/users", rt.wrap(rt.getUsers))
-	rt.router.PUT("/users", rt.setMyUserName)
+	rt.router.PUT("/users", rt.wrap(rt.setMyUserName))
 
-	rt.router.PUT("/users/image", rt.setMyPhoto)
+	rt.router.PUT("/users/image", rt.wrap(rt.setMyPhoto))
 	rt.router.GET("/users/image", rt.wrap(rt.getMyPhoto))
 
 	rt.router.GET("/uploads/:folder/images/:filename", rt.wrap(rt.getImage))
 
 	rt.router.POST("/chats", rt.wrap(rt.createChat))
-	rt.router.GET("/chats", rt.getMyConversations)
+	rt.router.GET("/chats", rt.wrap(rt.getMyConversations))
 
-	rt.router.GET("/chats/:chatId", rt.getConversation)
-	rt.router.PUT("/chats/:chatId", rt.setGroupName)
+	rt.router.GET("/chats/:chatId", rt.wrap(rt.getConversation))
+	rt.router.PUT("/chats/:chatId", rt.wrap(rt.setGroupName))
 
-	rt.router.PUT("/chats/:chatId/image", rt.setGroupPhoto)
+	rt.router.PUT("/chats/:chatId/image", rt.wrap(rt.setGroupPhoto))
 
 	rt.router.GET("/chats/:chatId/members", rt.wrap(rt.getGroupMembers))
-	rt.router.POST("/chats/:chatId/members", rt.addToGroup)
+	rt.router.POST("/chats/:chatId/members", rt.wrap(rt.addToGroup))
 	rt.router.DELETE("/chats/:chatId/members", rt.wrap(rt.leaveGroup))
 
-	rt.router.GET("/chats/:chatId/last-read", rt.getLastRead)
+	rt.router.GET("/chats/:chatId/last-read", rt.wrap(rt.getLastRead))
 
 	rt.router.POST("/chats/:chatId/messages", rt.wrap(rt.sendMessage))
 

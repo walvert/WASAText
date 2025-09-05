@@ -222,7 +222,6 @@ export default {
 		this.startPolling();
 	},
 	beforeUnmount() {
-		// Remove scroll listener
 		const messagesContainer = this.$refs.messagesContainer;
 		if (messagesContainer) {
 			messagesContainer.removeEventListener('scroll', this.handleScroll);
@@ -264,9 +263,7 @@ export default {
 			this.showChatInfoDropdown = false;
 		});
 
-		// Re-focus input when clicking in the chat area (but not on other interactive elements)
 		document.addEventListener('click', (event) => {
-			// Check if click is within the main chat area but not on buttons, inputs, etc.
 			const chatContainer = document.querySelector('.chat-container');
 			const isClickInChatArea = chatContainer && chatContainer.contains(event.target);
 			const isInteractiveElement = event.target.closest('button, input, textarea, select, a, [role="button"]');
@@ -990,25 +987,6 @@ export default {
 			}
 		},
 
-		async getForwardUsers() {
-			try {
-				this.loadingForwardUsers = true;
-				this.forwardError = null;
-
-				const response = await this.$axios.get('/users');
-				this.forwardUsers = response.data;
-				this.filteredForwardUsers = response.data;
-
-				console.log('Forward users fetched successfully:', this.forwardUsers);
-
-			} catch (err) {
-				console.error('Failed to fetch forward users', err);
-				this.forwardError = 'Failed to load users. Please try again.';
-			} finally {
-				this.loadingForwardUsers = false;
-			}
-		},
-
 		async getGroupMembers() {
 			if (!this.selectedChatId) return;
 
@@ -1176,37 +1154,6 @@ export default {
 			}
 		},
 
-		// Toggle chat info dropdown
-		toggleChatInfoDropdown() {
-			if (this.showChatInfoDropdown) {
-				this.showChatInfoDropdown = false;
-			} else {
-				this.showChatInfoDropdown = true;
-				this.getGroupMembers();
-			}
-
-			// Clear timeout if it exists
-			if (this.chatInfoDropdownTimeout) {
-				clearTimeout(this.chatInfoDropdownTimeout);
-				this.chatInfoDropdownTimeout = null;
-			}
-		},
-
-		// Handle dropdown mouse leave with delay
-		handleChatInfoDropdownMouseLeave() {
-			this.chatInfoDropdownTimeout = setTimeout(() => {
-				this.showChatInfoDropdown = false;
-			}, 300);
-		},
-
-		// Handle dropdown mouse enter (cancel close)
-		handleChatInfoDropdownMouseEnter() {
-			if (this.chatInfoDropdownTimeout) {
-				clearTimeout(this.chatInfoDropdownTimeout);
-				this.chatInfoDropdownTimeout = null;
-			}
-		},
-
 		handleUsersImageError(userId) {
 			if (this.userImageUrls[userId]) {
 				URL.revokeObjectURL(this.userImageUrls[userId]);
@@ -1236,27 +1183,6 @@ export default {
 			return message.likes && message.likes.includes(this.currentUsername);
 		},
 
-		toggleLikesDropdown(messageId) {
-			this.showLikesDropdown = this.showLikesDropdown === messageId ? null : messageId;
-			// Close other dropdowns when opening likes dropdown
-			if (this.showLikesDropdown === messageId) {
-				this.showReplyDropdown = null;
-				this.showDeleteDropdown = null;
-				this.showForwardDropdown = null;
-			}
-		},
-
-		// Forward dropdown toggle
-		toggleForwardDropdown(messageId) {
-			this.showForwardDropdown = this.showForwardDropdown === messageId ? null : messageId;
-			// Close other dropdowns when opening forward dropdown
-			if (this.showForwardDropdown === messageId) {
-				this.showLikesDropdown = null;
-				this.showReplyDropdown = null;
-				this.showDeleteDropdown = null;
-			}
-		},
-
 		// Add this new method to track user scroll position
 		handleScroll() {
 			const messagesContainer = this.$refs.messagesContainer;
@@ -1278,14 +1204,6 @@ export default {
 				this.hasNewMessages = false;
 				this.newMessageCount = 0;
 			}
-
-			console.log('Scroll position:', {
-				scrollTop,
-				scrollHeight,
-				clientHeight,
-				distanceFromBottom,
-				isUserAtBottom: this.isUserAtBottom
-			});
 		},
 
 
@@ -1301,16 +1219,7 @@ export default {
 					timeout: 5000
 				});
 
-				// Store the previous value to detect changes
-				const previousLastRead = this.lastReadMessageId;
 				this.lastReadMessageId = response.data.lastReadId;
-
-				// Debug logging
-				console.log('Last read message ID updated:', {
-					chatId,
-					previousLastRead,
-					newLastRead: this.lastReadMessageId
-				});
 
 				// Force reactivity update if needed (Vue 2)
 				this.$forceUpdate();
@@ -1322,39 +1231,8 @@ export default {
 				}
 
 				console.error('Failed to fetch last read message ID', err);
-				// Don't show error to user for this non-critical feature
 			} finally {
 				this.activeRequests.delete(requestId);
-			}
-		},
-
-		isMessageRead(message) {
-			// Only show read status for messages sent by current user
-			if (!this.isCurrentUserMessage(message)) {
-				return false;
-			}
-
-			// If we don't have lastReadMessageId yet, assume not read
-			if (this.lastReadMessageId === null || this.lastReadMessageId === undefined) {
-				return false;
-			}
-
-			// Ensure both values are numbers for proper comparison
-			const messageId = parseInt(message.id);
-			const lastReadId = parseInt(this.lastReadMessageId);
-
-			// Message is read if its ID is less than or equal to lastReadMessageId
-			return messageId <= lastReadId;
-		},
-
-		// Reply functionality
-		toggleReplyDropdown(messageId) {
-			this.showReplyDropdown = this.showReplyDropdown === messageId ? null : messageId;
-			// Close other dropdowns when opening reply dropdown
-			if (this.showReplyDropdown === messageId) {
-				this.showLikesDropdown = null;
-				this.showDeleteDropdown = null;
-				this.showForwardDropdown = null;
 			}
 		},
 
@@ -1370,22 +1248,6 @@ export default {
 			this.replyingToMessage = null;
 			// Maintain focus when clearing reply
 			this.focusMessageInput();
-		},
-
-		getReplyMessage(messageId) {
-			return this.messages.find(msg => msg.id === messageId);
-		},
-
-		getReplyPreviewText(message) {
-			if (!message) return '';
-
-			if (message.type === 'image') {
-				return message.text ? '📷 ' + message.text : '📷 Photo';
-			} else if (message.type === 'gif') {
-				return message.text ? '🎞️ GIF ' + message.text : '🎞️ GIF';
-			}
-
-			return message.text || '';
 		},
 
 		jumpToMessage(messageId) {
@@ -1588,34 +1450,6 @@ export default {
 			}
 		},
 
-		// Toggle delete dropdown
-		toggleDeleteDropdown(messageId) {
-			this.showDeleteDropdown = this.showDeleteDropdown === messageId ? null : messageId;
-			// Close other dropdowns when opening delete dropdown
-			if (this.showDeleteDropdown === messageId) {
-				this.showLikesDropdown = null;
-				this.showReplyDropdown = null;
-				this.showForwardDropdown = null;
-			}
-		},
-
-		handleDropdownMouseLeave(dropdownType) {
-			if (dropdownType === 'likes') {
-				this.showLikesDropdown = null;
-			} else if (dropdownType === 'reply') {
-				this.showReplyDropdown = null;
-			} else if (dropdownType === 'delete') {
-				this.showDeleteDropdown = null;
-			} else if (dropdownType === 'forward') {
-				this.showForwardDropdown = null;
-			}
-		},
-
-		handleDropdownMouseEnter(dropdownType) {
-			// This prevents the dropdown from closing when hovering over it
-			// The dropdown stays open as long as mouse is over it
-		},
-
 		// Confirm message deletion
 		confirmDeleteMessage(message) {
 			// Close dropdown first
@@ -1662,13 +1496,6 @@ export default {
 		focusMessageInput() {
 			if (this.$refs.conversationSection) {
 				this.$refs.conversationSection.focusMessageInput();
-			}
-		},
-
-		// Enhanced scroll to bottom method
-		scrollToBottom() {
-			if (this.$refs.conversationSection) {
-				this.$refs.conversationSection.scrollToBottom();
 			}
 		},
 
@@ -2019,7 +1846,6 @@ export default {
 			}
 		},
 
-		// Fixed loadMessageImages method for Vue 3
 		async loadMessageImages() {
 			const imageMessages = this.messages.filter(msg =>
 				(msg.type === 'image' || msg.type === 'gif') && msg.mediaUrl

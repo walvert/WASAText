@@ -4,12 +4,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"net/http"
+
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 	"github.com/julienschmidt/httprouter"
-	"net/http"
 )
 
-func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	w.Header().Set("content-type", "application/json")
 	token := r.Header.Get("Authorization")
 	if token == "" {
@@ -20,11 +22,11 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 	userId, err := rt.db.GetIdWithToken(token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			rt.baseLogger.WithError(err).Error("User not found")
+			ctx.Logger.WithError(err).Error("User not found")
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		} else {
-			rt.baseLogger.WithError(err).Error("Internal Server Error")
+			ctx.Logger.WithError(err).Error("Internal Server Error")
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -32,7 +34,7 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 
 	chats, err := rt.db.GetMyConversations(userId)
 	if err != nil {
-		rt.baseLogger.WithError(err).Error("Internal Server Error")
+		ctx.Logger.WithError(err).Error("Internal Server Error")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
@@ -43,7 +45,7 @@ func (rt *_router) getMyConversations(w http.ResponseWriter, r *http.Request, ps
 
 	err = json.NewEncoder(w).Encode(chats)
 	if err != nil {
-		rt.baseLogger.WithError(err).Error("Failed to encode and return chats")
+		ctx.Logger.WithError(err).Error("Failed to encode and return chats")
 		http.Error(w, "Failed to return chats", http.StatusInternalServerError)
 		return
 	}

@@ -254,7 +254,7 @@ export default {
 			default: () => ({})
 		}
 	},
-	emits: ['close'],
+	emits: ['close', "load-user-images"],
 	data() {
 		return {
 			activeTab: 'users',
@@ -297,7 +297,6 @@ export default {
 				if (result.success) {
 					this.users = result.data
 					this.filteredUsers = result.data
-					console.log('Forward users fetched successfully:', this.users)
 
 					// Emit event to load user images
 					this.$emit('load-user-images', result.data)
@@ -305,7 +304,6 @@ export default {
 					this.error = result.error
 				}
 			} catch (err) {
-				console.error('Error loading users:', err)
 				this.error = 'Failed to load users. Please try again.'
 			} finally {
 				this.loadingUsers = false

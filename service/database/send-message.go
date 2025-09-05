@@ -13,16 +13,13 @@ func (db *appdbimpl) SendMessage(chatID int, userID int, username string, msgTyp
 		return 0, err
 	}
 
-	// Determine what to store as last_msg_text
 	var lastMsgText string
 	if msgType == "text" {
 		lastMsgText = text
 	} else {
-		// For media messages, use caption if available, otherwise use type indicator
 		if text != "" {
-			lastMsgText = text // Use caption
+			lastMsgText = text
 		} else {
-			// Use type-specific indicators
 			switch msgType {
 			case "image":
 				lastMsgText = "📷 Photo"

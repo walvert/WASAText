@@ -11,11 +11,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 	"github.com/julienschmidt/httprouter"
 )
 
-func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	w.Header().Set("Content-Type", "image/png")
 
 	token := r.Header.Get("Authorization")
@@ -26,11 +27,11 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 	userId, err := rt.db.GetIdWithToken(token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			rt.baseLogger.WithError(err).Error("User not found")
+			ctx.Logger.WithError(err).Error("User not found")
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
 		} else {
-			rt.baseLogger.WithError(err).Error("Internal Server Error")
+			ctx.Logger.WithError(err).Error("Internal Server Error")
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
@@ -39,7 +40,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 	// Parse the form data
 	err = r.ParseMultipartForm(10 << 20)
 	if err != nil {
-		rt.baseLogger.WithError(err).Error("Error parsing multipart form")
+		ctx.Logger.WithError(err).Error("Error parsing multipart form")
 		http.Error(w, "Error parsing the image", http.StatusInternalServerError)
 		return
 	} // Max file size: 10MB
@@ -90,7 +91,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 
 	err = rt.db.SetMyPhoto(userId, imagePath)
 	if err != nil {
-		rt.baseLogger.WithError(err).Error("Failed to save image")
+		ctx.Logger.WithError(err).Error("Failed to save image")
 		http.Error(w, "Failed to save image", http.StatusInternalServerError)
 		return
 	}
@@ -103,7 +104,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		rt.baseLogger.WithError(err).Error("Failed to encode response")
+		ctx.Logger.WithError(err).Error("Failed to encode response")
 		http.Error(w, "Failed to return user", http.StatusInternalServerError)
 		return
 	}
