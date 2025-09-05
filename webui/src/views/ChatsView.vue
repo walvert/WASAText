@@ -1,6 +1,9 @@
 <template src="./ChatsView.html"></template>
 
 <script>
+import Sidebar from '../components/Sidebar.vue'
+import ConversationSection from '../components/ConversationSection.vue'
+
 import ProfileModal from '../components/ProfileModal.vue'
 import CreateChatModal from '../components/CreateChatModal.vue'
 import NewChatImageModal from '../components/NewChatImageModal.vue'
@@ -10,14 +13,14 @@ import ImageSelectionModal from '../components/ImageSelectionModal.vue'
 import AddToGroupModal from '../components/AddToGroupModal.vue'
 import SetGroupPhotoModal from '../components/SetGroupPhotoModal.vue'
 
-import Sidebar from '../components/Sidebar.vue'
-import ConversationSection from '../components/ConversationSection.vue'
-
 
 
 export default {
 	name: 'ChatsView',
 	components: {
+		Sidebar,
+		ConversationSection,
+
 		ProfileModal,
 		CreateChatModal,
 		NewChatImageModal,
@@ -26,9 +29,6 @@ export default {
 		ImageSelectionModal,
 		AddToGroupModal,
 		SetGroupPhotoModal,
-
-		Sidebar,
-		ConversationSection
 	},
 
 	data() {
@@ -182,7 +182,7 @@ export default {
 		forwardGroupChats() {
 			return this.chats.filter(chat => chat.isGroup);
 		},
-		canCreateNewChat() {
+		canCreateChat() {
 			const hasRecipients = this.selectedUsers.length > 0;
 			const hasGroupNameIfNeeded = this.selectedUsers.length <= 1 || (this.selectedUsers.length > 1 && !!this.newChatName.trim());
 			const hasInitialContent = !!(this.initialMessage.trim() || this.selectedNewChatImage);
@@ -219,7 +219,7 @@ export default {
 		this.$axios.defaults.headers.common['Authorization'] = `${token}`;
 		console.log('Set Authorization header');
 
-		await this.loadCurrentUserImage();
+		await this.getMyPhoto();
 
 		// Fetch user chats
 		await this.getMyConversations();
@@ -294,7 +294,7 @@ export default {
 
 				// Update username if provided
 				if (username) {
-					await this.setMyUsername(username)
+					await this.setMyUserName(username)
 				}
 
 				// Update profile image if provided
@@ -331,7 +331,7 @@ export default {
 			}
 		},
 
-		async setMyUsername(username) {
+		async setMyUserName(username) {
 			console.log('Updating username to:', username)
 
 			const response = await this.$axios.put('/users', {
@@ -372,10 +372,10 @@ export default {
 
 			if (response.data && response.data.imageUrl) {
 				console.log('Loading new image from:', response.data.imageUrl)
-				this.currentUserImageUrl = await this.getImageUrl(response.data.imageUrl)
+				this.currentUserImageUrl = await this.getImage(response.data.imageUrl)
 			} else {
 				// Fallback: reload user image from server
-				await this.loadCurrentUserImage()
+				await this.getMyPhoto()
 			}
 		},
 
@@ -604,8 +604,8 @@ export default {
 			}
 		},
 
-		async createNewChat() {
-			if (!this.canCreateNewChat) {
+		async createChat() {
+			if (!this.canCreateChat) {
 				console.warn('Attempted to create chat when conditions not met');
 				return;
 			}
@@ -683,26 +683,6 @@ export default {
 				}
 			} finally {
 				this.newChatLoading = false;
-			}
-		},
-
-		handleFilterUsers(searchQuery) {
-			this.userSearchQuery = searchQuery;
-			this.filterUsers();
-		},
-
-		async loadUserImagesForForward(users) {
-			for (const user of users) {
-				if (user.imageUrl && !this.userImageUrls[user.id]) {
-					try {
-						const imageUrl = await this.getImageUrl(user.imageUrl);
-						if (imageUrl) {
-							this.userImageUrls[user.id] = imageUrl;
-						}
-					} catch (error) {
-						console.error(`Failed to load image for user ${user.id}:`, error);
-					}
-				}
 			}
 		},
 
@@ -1198,7 +1178,7 @@ export default {
 			for (const member of this.chatMembers) {
 				if (member.imageUrl && !this.memberImageUrls[member.id]) {
 					try {
-						const imageUrl = await this.getImageUrl(member.imageUrl);
+						const imageUrl = await this.getImage(member.imageUrl);
 						if (imageUrl) {
 							this.memberImageUrls[member.id] = imageUrl;
 						}
@@ -1233,7 +1213,7 @@ export default {
 			}
 		},
 
-		async deleteComment(message) {
+		async uncommentMessage(message) {
 			try {
 				const response = await this.$axios.delete(`/messages/${message.id}/comments`);
 				message.likes = response.data || [];
@@ -1243,37 +1223,23 @@ export default {
 			}
 		},
 
-		async getImageUrl(imagePath) {
+		async getImage(imagePath) {
 			if (!imagePath) return null;
 
-			// Check if we already have a blob URL cached for this image
+			// Check cache
 			if (this.imageCache[imagePath]) {
 				return this.imageCache[imagePath];
 			}
 
 			try {
 				const baseURL = this.$axios.defaults.baseURL;
-
-				// Example imagePath "uploads/chats/image.jpg"
 				let imageUrl;
+				imageUrl = `${baseURL}/${imagePath}`;
 
-				// Remove leading slash if present and ensure it starts with uploads/
-				const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
+				console.log('Fetching image from:', imageUrl);
 
-				if (cleanPath.startsWith('uploads/')) {
-					// Path already includes uploads/, use as is
-					imageUrl = `${baseURL}/${cleanPath}`;
-				} else {
-					// Path doesn't include uploads/, add it
-					imageUrl = `${baseURL}/uploads/${cleanPath}`;
-				}
-
-				console.log('Fetching image from:', imageUrl); // Debug log
-
-				// Get the token from localStorage
 				const token = localStorage.getItem('token');
 
-				// Fetch the image with authorization header
 				const response = await this.$axios.get(imageUrl, {
 					responseType: 'blob',
 					headers: {
@@ -1300,7 +1266,7 @@ export default {
 			for (const chat of this.chats) {
 				if (chat.image && !this.chatImageUrls[chat.id]) {
 					try {
-						const imageUrl = await this.getImageUrl(chat.image);
+						const imageUrl = await this.getImage(chat.image);
 						if (imageUrl) {
 							this.chatImageUrls[chat.id] = imageUrl;
 						}
@@ -1315,7 +1281,7 @@ export default {
 			for (const user of this.users) {
 				if (user.imageUrl && !this.userImageUrls[user.id]) {
 					try {
-						const imageUrl = await this.getImageUrl(user.imageUrl);
+						const imageUrl = await this.getImage(user.imageUrl);
 						if (imageUrl) {
 							this.userImageUrls[user.id] = imageUrl;
 						}
@@ -1326,32 +1292,24 @@ export default {
 			}
 		},
 
-		async loadCurrentUserImage() {
+		async getMyPhoto() {
 			try {
 				console.log('Loading current user image...');
 
 				const response = await this.$axios.get('/users/image');
-				console.log('User image response:', response.data);
 
 				if (response.data && response.data.imageUrl) {
-					console.log('Loading image from URL:', response.data.imageUrl);
-					this.currentUserImageUrl = await this.getImageUrl(response.data.imageUrl);
-					console.log('User image loaded successfully');
-				} else {
-					console.log('No image URL in response, using initials');
+					this.currentUserImageUrl = await this.getImage(response.data.imageUrl);
 				}
 			} catch (error) {
 				console.error('Failed to load user image:', error);
 
-				// Check if it's a 404 (no image set) vs other errors
 				if (error.response?.status === 404) {
 					console.log('User has no profile image set');
 				} else if (error.response?.status === 401) {
 					console.log('Authentication error loading user image');
-					// Don't emit logout here as this is called during initialization
 				}
 
-				// Don't show error to user, just use initials
 				this.currentUserImageUrl = null;
 			}
 		},
@@ -1406,7 +1364,7 @@ export default {
 			const isLiked = this.isMessageLikedByUser(message);
 
 			if (isLiked) {
-				await this.deleteComment(message);
+				await this.uncommentMessage(message);
 			} else {
 				await this.commentMessage(message);
 			}
@@ -2044,6 +2002,26 @@ export default {
 		// Handle user image load error
 		handleUserImageError() {
 			this.currentUserImageUrl = null;
+		},
+
+		handleFilterUsers(searchQuery) {
+			this.userSearchQuery = searchQuery;
+			this.filterUsers();
+		},
+
+		async loadUserImagesForForward(users) {
+			for (const user of users) {
+				if (user.imageUrl && !this.userImageUrls[user.id]) {
+					try {
+						const imageUrl = await this.getImage(user.imageUrl);
+						if (imageUrl) {
+							this.userImageUrls[user.id] = imageUrl;
+						}
+					} catch (error) {
+						console.error(`Failed to load image for user ${user.id}:`, error);
+					}
+				}
+			}
 		},
 
 		// Handle profile image selection

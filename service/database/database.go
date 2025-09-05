@@ -34,6 +34,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 )
 
@@ -43,7 +44,7 @@ type AppDatabase interface {
 	GetUserById(id int) (types.User, error)
 	GetUserByUsername(username string) (int, error)
 	CreateUser(username string) (int, error)
-	SetMyUsername(user types.User) error
+	SetMyUserName(user types.User) error
 	CreateChat(chatName string, isGroup bool) (int, error)
 	SendMessage(chatID int, userID int, username string, msgType string, text string, mediaUrl string, isForward bool, replyTo int) (int, error)
 	ValidateToken(token types.BearerToken) (bool, error)

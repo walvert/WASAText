@@ -10,7 +10,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.POST("/session", rt.wrap(rt.doLogin))
 
 	rt.router.GET("/users", rt.wrap(rt.getUsers))
-	rt.router.PUT("/users", rt.setMyUsername)
+	rt.router.PUT("/users", rt.setMyUserName)
 
 	rt.router.PUT("/users/image", rt.setMyPhoto)
 	rt.router.GET("/users/image", rt.wrap(rt.getMyPhoto))
@@ -39,7 +39,7 @@ func (rt *_router) Handler() http.Handler {
 
 	rt.router.GET("/messages/:messageId/comments", rt.wrap(rt.getComments))
 	rt.router.PUT("/messages/:messageId/comments", rt.wrap(rt.commentMessage))
-	rt.router.DELETE("/messages/:messageId/comments", rt.wrap(rt.deleteComment))
+	rt.router.DELETE("/messages/:messageId/comments", rt.wrap(rt.uncommentMessage))
 
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)

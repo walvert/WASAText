@@ -84,7 +84,7 @@
 		:newChatError="newChatError"
 		:newChatLoading="newChatLoading"
 		:userImageUrls="userImageUrls"
-		:canCreateNewChat="canCreateNewChat"
+		:canCreateChat="canCreateChat"
 		v-model:userSearchQuery="userSearchQuery"
 		@close="closeNewChatModal"
 		@filter-users="handleFilterUsers"
@@ -97,7 +97,7 @@
 		@open-image-modal="openNewChatImageModal"
 		@update:newChatName="newChatName = $event"
 		@update:initialMessage="initialMessage = $event"
-		@create-new-chat="createNewChat"
+		@create-new-chat="createChat"
 	/>
 
 	<NewChatImageModal

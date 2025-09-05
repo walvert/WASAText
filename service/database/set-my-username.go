@@ -7,7 +7,7 @@ import (
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 )
 
-func (db *appdbimpl) SetMyUsername(user types.User) error {
+func (db *appdbimpl) SetMyUserName(user types.User) error {
 	var existingUserId int
 	err := db.c.QueryRow("SELECT id FROM users WHERE username = ? AND id != ?",
 		user.Username, user.ID).Scan(&existingUserId)

@@ -345,7 +345,6 @@ paths:
                   maxLength: 255
                   pattern: '^.{1,255}$'
 
-
       responses:
         "200":
           description: Chat name updated successfully
@@ -353,23 +352,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Chat"
-        "400":
-          $ref: '#/components/responses/BadRequestError'
-        "401":
-          $ref: '#/components/responses/UnauthorizedError'
-        "404":
-          $ref: '#/components/responses/NotFoundError'
-        "500":
-          $ref: '#/components/responses/InternalServerError'
-    delete:
-      tags:
-        - chats
-      summary: Delete chat
-      description: "Delete a chat"
-      operationId: deleteChat
-      responses:
-        "204":
-          description: Chat successfully deleted
         "400":
           $ref: '#/components/responses/BadRequestError'
         "401":

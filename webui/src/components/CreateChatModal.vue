@@ -167,8 +167,8 @@
 					<button
 						type="button"
 						class="btn btn-primary"
-						@click="createNewChat"
-						:disabled="!canCreateNewChat"
+						@click="createChat"
+						:disabled="!canCreateChat"
 					>
 						<span v-if="newChatLoading" class="spinner-border spinner-border-sm me-2" role="status">
 							<span class="visually-hidden">Creating...</span>
@@ -238,7 +238,7 @@ export default {
 			type: Object,
 			default: () => ({})
 		},
-		canCreateNewChat: {
+		canCreateChat: {
 			type: Boolean,
 			default: false
 		},
@@ -302,7 +302,7 @@ export default {
 			return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 		},
 
-		createNewChat() {
+		createChat() {
 			this.$emit('create-new-chat');
 		}
 	},
