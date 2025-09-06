@@ -47,7 +47,6 @@ type AppDatabase interface {
 	SetMyUserName(user types.User) error
 	CreateChat(chatName string, isGroup bool) (int, error)
 	SendMessage(chatID int, userID int, username string, msgType string, text string, mediaUrl string, isForward bool, replyTo int) (int, error)
-	ValidateToken(token types.BearerToken) (bool, error)
 	UpsertToken(token types.BearerToken) error
 	GetPrivateChatID(user1ID int, user2ID int) (int, error)
 	AddChatToUser(userID int, chatID int) error

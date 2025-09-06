@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
-	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -37,15 +36,13 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		}
 	}
 
-	// Parse the form data
 	err = r.ParseMultipartForm(10 << 20)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Error parsing multipart form")
 		http.Error(w, "Error parsing the image", http.StatusInternalServerError)
 		return
-	} // Max file size: 10MB
+	}
 
-	// Get the uploaded file
 	file, header, err := r.FormFile("image")
 	if err != nil {
 		http.Error(w, "Invalid file upload", http.StatusBadRequest)
@@ -58,18 +55,15 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		}
 	}(file)
 
-	// Ensure upload directory exists
 	uploadDir := "uploads/user/images/"
 	err = os.MkdirAll(uploadDir, os.ModePerm)
 	if err != nil {
 		return
 	}
 
-	// Generate unique filename
 	ext := filepath.Ext(header.Filename)
 	imagePath := fmt.Sprintf("%s%d%s", uploadDir, userId, ext)
 
-	// Create the new file
 	outFile, err := os.Create(imagePath)
 	if err != nil {
 		http.Error(w, "Failed to save image", http.StatusInternalServerError)
@@ -82,7 +76,6 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		}
 	}(outFile)
 
-	// Copy file content
 	_, err = io.Copy(outFile, file)
 	if err != nil {
 		http.Error(w, "Failed to save image", http.StatusInternalServerError)
@@ -96,13 +89,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	response := types.SetImageResponse{
-		Success:  true,
-		Message:  "Profile picture updated success.",
-		ImageURL: outFile.Name(),
-	}
-
-	err = json.NewEncoder(w).Encode(response)
+	err = json.NewEncoder(w).Encode(map[string]string{"imageUrl": imagePath})
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Failed to encode response")
 		http.Error(w, "Failed to return user", http.StatusInternalServerError)

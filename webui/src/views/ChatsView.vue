@@ -187,7 +187,6 @@ export default {
 
 	async created() {
 		document.addEventListener('visibilitychange', this.handleVisibilityChange);
-		// Check if user is authenticated
 		const token = localStorage.getItem('token');
 		if (!token) {
 			console.log('No token found, emitting logout');
@@ -197,7 +196,6 @@ export default {
 
 		console.log('Token found, setting up ChatsView');
 
-		// Get user data from localStorage
 		const userData = localStorage.getItem('user');
 		if (userData) {
 			try {
@@ -209,16 +207,13 @@ export default {
 			}
 		}
 
-		// Set default auth header
 		this.$axios.defaults.headers.common['Authorization'] = `${token}`;
 		console.log('Set Authorization header');
 
 		await this.getMyPhoto();
 
-		// Fetch user chats
 		await this.getMyConversations();
 
-		// Start polling for new messages
 		this.startPolling();
 	},
 	beforeUnmount() {

@@ -161,17 +161,6 @@ paths:
                 type: object
                 description: successful response when updating the profile picture
                 properties:
-                  success:
-                    description: successful operation
-                    type: boolean
-                    example: true
-                  message:
-                    description: Response message
-                    type: string
-                    example: Profile picture updated success.
-                    minLength: 32
-                    maxLength: 32
-                    pattern: '^Profile picture updated success\.$'
                   imageUrl:
                     description: image url
                     type: string
