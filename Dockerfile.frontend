@@ -1,0 +1,11 @@
+FROM node:lts as builder
+
+WORKDIR /app
+
+COPY. .
+
+RUN npm run build-prod
+
+FROM nginx:stable
+
+COPY --from=builder /app/dist /usr/share/nginx/html
