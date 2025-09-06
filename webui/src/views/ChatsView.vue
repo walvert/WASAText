@@ -468,7 +468,7 @@ export default {
 				await this.getComments();
 
 				// Fetch last read message ID
-				await this.getLastReadMessageId(chatId);
+				await this.getLastRead(chatId);
 
 				// Focus message input after loading (only for first load)
 				if (isFirstLoad) {
@@ -1207,7 +1207,7 @@ export default {
 		},
 
 
-		async getLastReadMessageId(chatId) {
+		async getLastRead(chatId) {
 			const controller = new AbortController();
 			const requestId = 'getLastRead-' + chatId + '-' + Date.now();
 
@@ -2040,7 +2040,7 @@ export default {
 
 							await Promise.all([
 								this.getConversation(this.selectedChatId, false), // false = preserve position
-								this.getLastReadMessageId(this.selectedChatId),
+								this.getLastRead(this.selectedChatId),
 								this.getMyConversations()
 							]);
 						}

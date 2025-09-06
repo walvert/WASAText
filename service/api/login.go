@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"net/http"
+
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
 	"github.com/julienschmidt/httprouter"
-	"net/http"
 )
 
 func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
