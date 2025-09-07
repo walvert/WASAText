@@ -63,7 +63,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
+                description: registered users of the app
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+                minItems: 1
+                maxItems: 99999
         "400":
           $ref: '#/components/responses/BadRequestError'
         "401":
@@ -72,6 +77,8 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         "500":
           $ref: '#/components/responses/InternalServerError'
+
+  /users/username:
     put:
       tags:
         - user
@@ -933,7 +940,7 @@ components:
           type: string
           example: 'mario'
           pattern: "^[a-zA-Z0-9_-]+$"
-          minLength: 3
+          minLength: 2
           maxLength: 16
 
     MessageRequest:

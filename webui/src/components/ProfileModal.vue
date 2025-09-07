@@ -185,7 +185,7 @@ export default {
 			this.validationError = ''
 
 			// Check if at least one field has changes
-			const hasUsernameChange = this.username.trim() && this.username.trim() !== this.currentUsername
+			const hasUsernameChange = this.username.trim() !== this.currentUsername
 			const hasImageChange = this.selectedProfileImage !== null
 
 			if (!hasUsernameChange && !hasImageChange) {
@@ -193,7 +193,7 @@ export default {
 				return
 			}
 
-			if (this.username.trim().length > 0 && this.username.trim().length < 2) {
+			if (this.username.trim().length < 2) {
 				this.validationError = 'Username must be at least 2 characters'
 				return
 			}

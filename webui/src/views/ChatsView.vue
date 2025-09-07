@@ -320,7 +320,7 @@ export default {
 		async setMyUserName(username) {
 			console.log('Updating username to:', username)
 
-			const response = await this.$axios.put('/users', {
+			const response = await this.$axios.put('/users/username', {
 				username: username,
 			}, {
 				headers: {

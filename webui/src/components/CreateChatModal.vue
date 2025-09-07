@@ -154,6 +154,7 @@
 								class="form-control"
 								:placeholder="selectedNewChatImage ? 'Add a caption...' : 'Type your first message...'"
 								:value="initialMessage"
+								@keyup.enter="createChat"
 								@input="$emit('update:initialMessage', $event.target.value)"
 							>
 						</div>
