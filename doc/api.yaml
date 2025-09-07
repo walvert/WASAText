@@ -59,13 +59,17 @@ paths:
       operationId: getUsers
       responses:
         "200":
-          description: Username updated successfully
+          description: users found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/User"
+        "400":
+          $ref: '#/components/responses/BadRequestError'
         "401":
           $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          $ref: '#/components/responses/NotFoundError'
         "500":
           $ref: '#/components/responses/InternalServerError'
     put:

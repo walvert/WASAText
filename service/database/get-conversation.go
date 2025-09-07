@@ -31,6 +31,11 @@ func (db *appdbimpl) GetConversation(userId int, chatID int) ([]types.Message, e
 			mostRecentID = message.ID
 		}
 
+		message.Username, err = db.GetUsernameById(message.SenderID)
+		if err != nil {
+			return nil, err
+		}
+
 		messages = append(messages, message)
 	}
 	if err := rows.Err(); err != nil {
