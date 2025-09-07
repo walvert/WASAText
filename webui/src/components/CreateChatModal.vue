@@ -248,11 +248,6 @@ export default {
 			default: ''
 		}
 	},
-	data() {
-		return {
-			// userSearchQuery: ''
-		}
-	},
 
 	methods: {
 		closeModal() {

@@ -5,7 +5,6 @@
 		:data-message-id="message.id"
 	>
 		<div class="message-content" style="position: relative;">
-			<!-- Show sender name for group chats and incoming messages -->
 			<div
 				v-if="selectedChat?.isGroup && !isCurrentUser"
 				class="message-sender"
@@ -13,7 +12,6 @@
 				{{ message.username }}
 			</div>
 
-			<!-- Message Bubble -->
 			<MessageBubble
 				:message="message"
 				:is-current-user="isCurrentUser"
@@ -32,7 +30,6 @@
 				@likes-mouse-enter="$emit('likes-mouse-enter')"
 			/>
 
-			<!-- Hover Actions -->
 			<MessageHoverActions
 				:message="message"
 				:is-current-user="isCurrentUser"

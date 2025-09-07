@@ -38,7 +38,7 @@
 			</div>
 
 			<!-- Caption/text if present -->
-			<div v-if="message.text && message.text.trim()" class="message-text image-caption">
+			<div v-if="message.text && message.text.trim()" class="message-text">
 				{{ message.text }}
 			</div>
 		</div>

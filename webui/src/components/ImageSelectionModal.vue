@@ -82,7 +82,6 @@ export default {
 	},
 
 	methods: {
-		// Handle image file selection in modal
 		handleMessageImageSelect(event) {
 			const file = event.target.files[0]
 
@@ -91,7 +90,6 @@ export default {
 				return
 			}
 
-			// Validate file type
 			const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
 			if (!validTypes.includes(file.type)) {
 				this.error = 'Please select a valid image file (JPG, PNG, GIF, WebP)'
@@ -99,8 +97,7 @@ export default {
 				return
 			}
 
-			// Validate file size (10MB limit)
-			const maxSize = 10 * 1024 * 1024 // 10MB in bytes
+			const maxSize = 10 * 1024 * 1024
 			if (file.size > maxSize) {
 				this.error = 'File size must be less than 10MB'
 				this.clearTempImageSelection()
@@ -110,14 +107,12 @@ export default {
 			this.tempSelectedImage = file
 			this.error = null
 
-			// Create preview URL
 			if (this.tempImagePreviewUrl) {
 				URL.revokeObjectURL(this.tempImagePreviewUrl)
 			}
 			this.tempImagePreviewUrl = URL.createObjectURL(file)
 		},
 
-		// Clear temporary image selection in modal
 		clearTempImageSelection() {
 			this.tempSelectedImage = null
 
@@ -126,34 +121,28 @@ export default {
 				this.tempImagePreviewUrl = null
 			}
 
-			// Clear the file input
 			if (this.$refs.messageImageInput) {
 				this.$refs.messageImageInput.value = ''
 			}
 		},
 
-		// Select image for message
 		selectImage() {
 			if (!this.tempSelectedImage) return
 
-			// Emit the selected image data to parent
 			this.$emit('select', {
 				file: this.tempSelectedImage,
 				previewUrl: this.tempImagePreviewUrl
 			})
 
-			// Reset modal state but don't revoke URL (parent will handle it)
 			this.tempSelectedImage = null
 			this.tempImagePreviewUrl = null
 			this.error = null
 
-			// Clear file input
 			if (this.$refs.messageImageInput) {
 				this.$refs.messageImageInput.value = ''
 			}
 		},
 
-		// Format file size for display
 		formatFileSize(bytes) {
 			if (bytes === 0) return '0 Bytes'
 			const k = 1024
@@ -166,7 +155,6 @@ export default {
 	watch: {
 		show(newValue) {
 			if (!newValue) {
-				// Clear selection when modal is hidden
 				this.clearTempImageSelection()
 				this.error = null
 			}

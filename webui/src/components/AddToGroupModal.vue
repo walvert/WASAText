@@ -65,10 +65,8 @@ export default {
 	watch: {
 		show(newVal) {
 			if (newVal) {
-				// Reset form when modal opens
 				this.localUsername = ''
 
-				// Focus input after modal is shown
 				this.$nextTick(() => {
 					if (this.$refs.memberUsernameInput) {
 						this.$refs.memberUsernameInput.focus()

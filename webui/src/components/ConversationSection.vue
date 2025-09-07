@@ -15,7 +15,6 @@
 	</div>
 
 	<div v-else-if="selectedChat" class="chat-container h-100 d-flex flex-column">
-		<!-- Chat Header Component -->
 		<ChatHeader
 			:selected-chat="selectedChat"
 			:chat-image-url="selectedChat && selectedChat.id ? chatImageUrls[selectedChat.id] : null"
@@ -32,7 +31,6 @@
 			@get-group-members="$emit('get-group-members')"
 		/>
 
-		<!-- Messages Section Component -->
 		<MessagesSection
 			v-if="!loadingMessages && !messagesError"
 			class="messages-section"
@@ -88,7 +86,6 @@
 			</div>
 		</div>
 
-		<!-- Message Input Component -->
 		<MessageInput
 			:new-message="newMessage"
 			:sending-message="sendingMessage"
@@ -216,7 +213,6 @@ export default {
 			default: false
 		},
 
-		// Scroll management
 		hasNewMessages: {
 			type: Boolean,
 			default: false

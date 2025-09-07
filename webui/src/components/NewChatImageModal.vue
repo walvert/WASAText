@@ -104,7 +104,6 @@ export default {
 				return
 			}
 
-			// Validate file type
 			const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
 			if (!validTypes.includes(file.type)) {
 				this.error = 'Please select a valid image file (JPG, PNG, GIF, WebP)'
@@ -112,7 +111,6 @@ export default {
 				return
 			}
 
-			// Validate file size (10MB limit)
 			const maxSize = 10 * 1024 * 1024 // 10MB in bytes
 			if (file.size > maxSize) {
 				this.error = 'File size must be less than 10MB'
@@ -136,7 +134,6 @@ export default {
 				previewUrl: this.previewUrl
 			})
 
-			// Don't cleanup here - let parent handle the preview URL
 			this.selectedFile = null
 			this.previewUrl = null
 		},
@@ -145,7 +142,6 @@ export default {
 			this.selectedFile = null
 			this.cleanupPreviewUrl()
 
-			// Clear the file input
 			if (this.$refs.fileInput) {
 				this.$refs.fileInput.value = ''
 			}

@@ -99,7 +99,7 @@
 				</div>
 			</div>
 
-			<!-- Actions Dropdown (Groups only) -->
+			<!-- Actions Dropdown for groups -->
 			<div v-if="selectedChat && selectedChat.isGroup" class="dropdown">
 				<button class="btn btn-sm btn-ghost chat-actions-btn" data-bs-toggle="dropdown">
 					<svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">

@@ -64,7 +64,6 @@ export default {
 			if (chat.isGroup) {
 				return chat.name || 'Unnamed Group';
 			} else {
-				// For private chats, use the name field (which should contain the other user's name)
 				return chat.name || 'Private Chat';
 			}
 		},
@@ -72,10 +71,8 @@ export default {
 		getChatInitials(chat) {
 			const name = this.getChatName(chat);
 			if (chat.isGroup) {
-				// For groups, use first letter of group name
 				return name.charAt(0).toUpperCase();
 			} else {
-				// For private chats, use first letter of each word (up to 2 letters)
 				const words = name.split(' ');
 				if (words.length >= 2) {
 					return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
@@ -132,22 +129,17 @@ export default {
 			let preview = chat.lastMsgText;
 
 			if (chat.lastMsgType === 'image') {
-				// If lastMsgText is a caption, show it; otherwise show image indicator
 				if (preview && !preview.includes('📷')) {
-					// It's a caption, use as is
 				} else {
 					preview = '📷 Photo';
 				}
 			} else if (chat.lastMsgType === 'gif') {
-				// If lastMsgText is a caption, show it; otherwise show GIF indicator
 				if (preview && !preview.includes('🎞️')) {
-					// It's a caption, use as is
 				} else {
 					preview = '🎞️ GIF';
 				}
 			}
 
-			// For group chats, prepend the username (but not for media indicators)
 			if (chat.isGroup && chat.lastMsgUsername) {
 				if (preview === '📷 Photo' || preview === '🎞️ GIF') {
 					preview = `${chat.lastMsgUsername}: ${preview}`;
@@ -156,7 +148,6 @@ export default {
 				}
 			}
 
-			// Truncate long messages
 			const maxLength = 40;
 			if (preview.length > maxLength) {
 				return preview.substring(0, maxLength) + '...';

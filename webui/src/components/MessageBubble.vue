@@ -1,9 +1,7 @@
 <template>
 	<div class="message-bubble" :class="{ 'has-likes': message.likes && message.likes.length > 0 }">
-		<!-- Forwarded Message Indicator -->
 		<MessageForwardIndicator v-if="message.isForward" />
 
-		<!-- Reply Section -->
 		<MessageReplySection
 			v-if="message.replyTo"
 			:reply-message="replyMessage"
@@ -13,7 +11,6 @@
 			@image-error="$emit('reply-image-error', message.replyTo)"
 		/>
 
-		<!-- Message Content -->
 		<MessageContent
 			:message="message"
 			:message-image-url="messageImageUrl"
@@ -21,14 +18,12 @@
 			@image-error="$emit('image-error', message)"
 		/>
 
-		<!-- Message Meta Info -->
 		<MessageMeta
 			:message="message"
 			:is-current-user="isCurrentUser"
 			:is-read="isRead"
 		/>
 
-		<!-- Like Count Display -->
 		<MessageLikes
 			v-if="message.likes && message.likes.length > 0"
 			:likes="message.likes"
@@ -73,7 +68,6 @@ export default {
 			type: String,
 			default: null
 		},
-		// Props passed from parent for reply handling
 		replyMessage: {
 			type: Object,
 			default: null
