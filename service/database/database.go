@@ -146,15 +146,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 					chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
 					message_id INTEGER NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
 					PRIMARY KEY (user_id, chat_id)
-				);
-				CREATE TRIGGER IF NOT EXISTS update_messages_username_on_user_delete
-				BEFORE DELETE ON users
-				FOR EACH ROW
-				BEGIN
-					UPDATE messages
-					SET username = 'deleted account'
-					WHERE sender_id = OLD.id;
-				END`
+				);`
 
 	_, err := db.Exec(sqlStmt)
 	if err != nil {
