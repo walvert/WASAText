@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
@@ -53,7 +54,9 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 
 	// Generate unique filename
 	ext := filepath.Ext(header.Filename)
-	imagePath := fmt.Sprintf("%s%d%s", uploadDir, id, ext)
+	timestamp := time.Now().UnixNano()
+	filename := fmt.Sprintf("%d_%d%s", timestamp, timestamp%10000, ext)
+	imagePath := fmt.Sprintf("%s%s", uploadDir, filename)
 
 	// Create the new file
 	outFile, err := os.Create(imagePath)

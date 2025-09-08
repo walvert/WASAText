@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
 	"github.com/julienschmidt/httprouter"
@@ -62,7 +63,10 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 	}
 
 	ext := filepath.Ext(header.Filename)
-	imagePath := fmt.Sprintf("%s%d%s", uploadDir, userId, ext)
+	timestamp := time.Now().UnixNano()
+	filename := fmt.Sprintf("%d_%d%s", timestamp, timestamp%10000, ext)
+
+	imagePath := fmt.Sprintf("%s%s", uploadDir, filename)
 
 	outFile, err := os.Create(imagePath)
 	if err != nil {

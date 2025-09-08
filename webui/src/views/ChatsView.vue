@@ -1069,7 +1069,7 @@ export default {
 			try {
 				const baseURL = this.$axios.defaults.baseURL;
 				let imageUrl;
-				imageUrl = `${baseURL}/${imagePath}`;
+				imageUrl = `/${imagePath}`;
 
 				console.log('Fetching image from:', imageUrl);
 
