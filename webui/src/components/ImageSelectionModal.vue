@@ -16,7 +16,7 @@
 							class="form-control"
 							ref="messageImageInput"
 							@change="handleMessageImageSelect"
-							accept="image/*,.gif"
+							accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
 						>
 						<div class="form-text">Supported formats: JPG, PNG, GIF, WebP. Max size: 10MB</div>
 					</div>
