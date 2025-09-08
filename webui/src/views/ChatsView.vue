@@ -1061,15 +1061,28 @@ export default {
 		async getImage(imagePath) {
 			if (!imagePath) return null;
 
-			// Check cache
 			if (this.imageCache[imagePath]) {
 				return this.imageCache[imagePath];
 			}
 
 			try {
-				const baseURL = this.$axios.defaults.baseURL;
-				let imageUrl;
-				imageUrl = `/${imagePath}`;
+				const pathParts = imagePath.split('/');
+
+				if (pathParts.length < 4 || pathParts[0] !== 'uploads' || pathParts[2] !== 'images') {
+					console.error('Invalid image path format:', imagePath);
+					return null;
+				}
+
+				const folder = pathParts[1];
+				const filename = pathParts[3];
+
+				const validFolders = ['user', 'chats', 'messages'];
+				if (!validFolders.includes(folder)) {
+					console.error('Invalid folder in image path:', folder);
+					return null;
+				}
+
+				const imageUrl = `/uploads/${folder}/images/${filename}`;
 
 				console.log('Fetching image from:', imageUrl);
 
@@ -1082,10 +1095,8 @@ export default {
 					}
 				});
 
-				// Convert blob to object URL
 				const blobUrl = URL.createObjectURL(response.data);
 
-				// Cache the blob URL
 				this.imageCache[imagePath] = blobUrl;
 
 				return blobUrl;
