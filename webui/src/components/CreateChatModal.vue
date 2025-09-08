@@ -174,7 +174,7 @@
 						<span v-if="newChatLoading" class="spinner-border spinner-border-sm me-2" role="status">
 							<span class="visually-hidden">Creating...</span>
 						</span>
-						Create {{ selectedUsers.length > 1 ? 'Group' : 'Chat' }}
+						{{ selectedUsers.length > 1 ? 'Create Group' : 'Send Message' }}
 					</button>
 				</div>
 			</div>
