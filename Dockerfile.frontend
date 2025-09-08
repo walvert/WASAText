@@ -1,11 +1,11 @@
 FROM node:lts as builder
 
-WORKDIR /app
+WORKDIR /app/webui
 
-COPY. .
+COPY webui/ .
 
 RUN npm run build-prod
 
 FROM nginx:stable
 
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/webui/dist /usr/share/nginx/html
