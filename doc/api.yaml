@@ -233,28 +233,9 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/FirstMessageRequest"
-            examples:
-              textMessage:
-                summary: Text message example
-                value:
-                  text: "Hello, team!"
-                  type: "text"
-                  chatName: "Project X"
-                  receivers: [ "alice", "bob", "mark" ]
-                  isForward: false
           multipart/form-data:
             schema:
               $ref: "#/components/schemas/FirstMessageFormData"
-            examples:
-              imageMessage:
-                summary: Image message example
-                value:
-                  type: "image"
-                  text: "Check out this photo!"
-                  chatName: "Project X"
-                  receivers: '["alice", "bob", "mark"]'
-                  isForward: "false"
-                  image: "(binary image data)"
       responses:
         '201':
           description: New chat created successfully
@@ -437,7 +418,7 @@ paths:
       summary: get the last read message id
       description: "Return the ID of the last message read by every member of the chat"
       responses:
-        200:
+        "200":
           description: Last Read message ID fetched successfully
           content:
             application/json:
@@ -1124,12 +1105,14 @@ components:
           minLength: 1
           maxLength: 9999
           example: "Invalid request"
+          pattern: "^[a-zA-Z0-9_ -]+$"
         message:
           type: string
           description: error message
           minLength: 1
           maxLength: 9999
           example: "The request could not be processed"
+          pattern: "^[a-zA-Z0-9_ -]+$"
         code:
           description: error code
           type: integer
