@@ -17,20 +17,4 @@ func (db *appdbimpl) LeaveGroup(chatId int, userId int) error {
 	}
 
 	return nil
-
-	//var memberCount int
-	//err = db.c.QueryRow(`SELECT COUNT(*) FROM user_chats WHERE chat_id = ?`, chatId).Scan(&memberCount)
-	//if err != nil {
-	//	return false, err
-	//}
-	//
-	//if memberCount == 0 {
-	//	err = db.DeleteChat(chatId)
-	//	if err != nil {
-	//		return false, err
-	//	}
-	//	return true, nil
-	//}
-	//
-	//return false, nil
 }

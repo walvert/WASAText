@@ -53,7 +53,6 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	// Check content type to determine how to parse the request
 	contentType := r.Header.Get("Content-Type")
 
 	var messageRequest types.FirstMessageRequest
@@ -202,7 +201,7 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 			username,
 			messageRequest.Type,
 			messageRequest.Text,
-			uploadedFileName, // Use the uploaded filename
+			uploadedFileName,
 			messageRequest.IsForward,
 			0,
 		)
@@ -316,7 +315,7 @@ func (rt *_router) validateCreateChatUploadedFile(file multipart.File, fileHeade
 	// Read first 512 bytes to detect content type
 	buffer := make([]byte, 512)
 	_, err = file.Read(buffer)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return fmt.Errorf("failed to read file content: %w", err)
 	}
 
@@ -338,7 +337,7 @@ func (rt *_router) validateCreateChatUploadedFile(file multipart.File, fileHeade
 	if allowedTypes, exists := validTypes[messageType]; exists {
 		for _, allowed := range allowedTypes {
 			if contentType == allowed {
-				return nil // Valid type
+				return nil
 			}
 		}
 	}

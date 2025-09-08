@@ -185,7 +185,7 @@ func (rt *_router) validateUploadedFile(file multipart.File, fileHeader *multipa
 	// Read first 512 bytes to detect content type
 	buffer := make([]byte, 512)
 	_, err = file.Read(buffer)
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		return fmt.Errorf("failed to read file content: %w", err)
 	}
 
