@@ -30,7 +30,7 @@
 							class="btn btn-primary"
 							:disabled="loading || !username.trim()"
 						>
-							<LoadingSpinner v-if="loading" class="me-2"/>
+							<LoadingSpinner :loading="loading" class="me-2"/>
 							<span>Enter</span>
 						</button>
 					</div>
