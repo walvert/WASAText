@@ -46,9 +46,9 @@
 					<div class="message-meta">
 						<span class="message-time">{{ formatMessageTime(new Date()) }}</span>
 						<span class="message-status">
-              <div class="spinner-border spinner-border-sm message-status-pending" role="status">
+              <span class="spinner-border spinner-border-sm message-status-pending" role="status">
                 <span class="visually-hidden">Sending...</span>
-              </div>
+              </span>
             </span>
 					</div>
 				</div>

@@ -88,8 +88,8 @@
 
 							<!-- Loading state for users -->
 							<div v-if="loadingUsers" class="forward-loading">
-								<div class="spinner-border" role="status">
-									<span class="visually-hidden">Loading users...</span>
+								<div class="forward-loading">
+									<LoadingSpinner :loading="loadingUsers" />
 								</div>
 							</div>
 

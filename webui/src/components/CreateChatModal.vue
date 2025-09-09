@@ -24,8 +24,8 @@
 
 						<!-- Loading state for users -->
 						<div v-if="loadingUsers" class="text-center py-3">
-							<div class="spinner-border" role="status">
-								<span class="visually-hidden">Loading users...</span>
+							<div class="py-3">
+								<LoadingSpinner :loading="loadingUsers" />
 							</div>
 						</div>
 

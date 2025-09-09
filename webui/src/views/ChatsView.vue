@@ -653,7 +653,6 @@ export default {
 					lastMsgUsername: this.currentUsername
 				});
 
-				// Refresh messages - auto-scroll will happen via watcher
 				await this.getConversation(this.selectedChatId, false);
 
 				// Maintain focus on message input after sending
