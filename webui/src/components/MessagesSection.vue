@@ -1,6 +1,5 @@
 <template>
 	<div class="messages-list" ref="messagesContainer">
-		<!-- Enhanced message display with components -->
 		<Message
 			v-for="message in messages"
 			:key="message.id"
@@ -72,13 +71,11 @@
 
 <script>
 import Message from './Message.vue'
-import LoadingSpinner from './LoadingSpinner.vue'
 
 export default {
 	name: 'MessagesSection',
 	components: {
 		Message,
-		LoadingSpinner
 	},
 
 	props: {

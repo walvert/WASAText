@@ -233,7 +233,6 @@ export default {
 		});
 	},
 
-	// Enhanced scroll monitoring method
 	mounted() {
 		this.$nextTick(() => {
 			const messagesContainer = this.$refs.messagesContainer;
@@ -1494,14 +1493,12 @@ export default {
 			this.newMessageCount = 0;
 		},
 
-		// Enhanced focus method that works with the new component structure
 		focusMessageInput() {
 			if (this.$refs.conversationSection) {
 				this.$refs.conversationSection.focusMessageInput();
 			}
 		},
 
-		// Enhanced restore scroll position method
 		restoreScrollPosition(savedScrollTop, heightDifference = 0) {
 			if (this.$refs.conversationSection) {
 				this.$refs.conversationSection.restoreScrollPosition(savedScrollTop, heightDifference);
@@ -1633,7 +1630,6 @@ export default {
 			}
 		},
 
-		// Enhanced selectChat method
 		selectChat(chatId) {
 			console.log('Selecting chat:', chatId);
 
