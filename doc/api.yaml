@@ -240,11 +240,16 @@ paths:
               $ref: "#/components/schemas/FirstMessageFormData"
       responses:
         '201':
-          description: New chat created successfully
+          description: Chat created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Chat'
+                description: chats
+                type: array
+                items:
+                  $ref: "#/components/schemas/Chat"
+                minItems: 1
+                maxItems: 999
         "400":
           $ref: '#/components/responses/BadRequestError'
         "401":

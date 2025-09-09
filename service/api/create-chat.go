@@ -190,7 +190,6 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 		}
 	}
 
-	// Send initial message if provided
 	if messageRequest.Type != "" {
 		_, err = rt.db.SendMessage(
 			chatId,
@@ -209,21 +208,15 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 		}
 	}
 
-	chatInfo, err := rt.db.GetChatInfo(chatId)
+	chats, err := rt.db.GetMyConversations(userId)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			ctx.Logger.WithError(err).Error("Chat not found")
-			http.Error(w, "Chat not found", http.StatusNotFound)
-			return
-		} else {
-			ctx.Logger.WithError(err).Error("Internal Server Error: GetChatInfo")
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
+		ctx.Logger.WithError(err).Error("Internal Server Error")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	err = json.NewEncoder(w).Encode(chatInfo)
+	err = json.NewEncoder(w).Encode(chats)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Error encoding chatInfo")
 		http.Error(w, "Error encoding chatInfo", http.StatusInternalServerError)

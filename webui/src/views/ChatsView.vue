@@ -544,12 +544,14 @@ export default {
 				// Close modal and reset form
 				this.closeNewChatModal();
 
-				// Refresh chats and select the new one
 				await this.getMyConversations();
 
-				// Select the new chat if we have an ID from the response
-				if (response.data && response.data.id) {
-					this.selectChat(response.data.id);
+				if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+					const newlyCreatedChat = response.data.reduce((latest, current) => {
+						return (current.lastMsgId > latest.lastMsgId) ? current : latest;
+					});
+
+					this.selectChat(newlyCreatedChat.id);
 				}
 
 			} catch (err) {
