@@ -134,6 +134,8 @@ paths:
                     maxLength: 255
                     pattern: '^uploads\/user\/images\/[a-zA-Z0-9_\-]+\.(jpg|jpeg|png|gif)$'
                     example: uploads/user/images/profile.jpg
+        "400":
+          $ref: "#/components/responses/BadRequestError"
         "401":
           $ref: '#/components/responses/UnauthorizedError'
         "404":
@@ -281,6 +283,8 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         "500":
           $ref: '#/components/responses/InternalServerError'
+
+  /chats/{chatId}/chat-name:
     put:
       tags:
         - chats
@@ -301,7 +305,6 @@ paths:
                   pattern: "^[a-zA-Z0-9_ -]+$"
                   minLength: 3
                   maxLength: 24
-
       responses:
         "200":
           description: Chat name updated successfully

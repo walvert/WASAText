@@ -21,14 +21,12 @@ import (
 func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	w.Header().Set("Content-Type", "application/json")
 
-	// Authorization check
 	token := r.Header.Get("Authorization")
 	if token == "" {
 		http.Error(w, "Authorization header required", http.StatusUnauthorized)
 		return
 	}
 
-	// Get user info
 	userId, err := rt.db.GetIdWithToken(token)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -67,7 +65,6 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 			return
 		}
 	} else {
-		// Handle JSON request (text messages)
 		err = json.NewDecoder(r.Body).Decode(&messageRequest)
 		if err != nil {
 			ctx.Logger.WithError(err).Error("Error decoding request body")

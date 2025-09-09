@@ -686,13 +686,12 @@ export default {
 				this.setGroupNameLoading = true;
 				this.setGroupNameError = null;
 
-				const response = await this.$axios.put(`/chats/${this.selectedChatId}`, {
+				const response = await this.$axios.put(`/chats/${this.selectedChatId}/chat-name`, {
 					chatName: newName.trim()
 				});
 
 				console.log('Group renamed successfully:', response.data);
 
-				// Update the local chat name immediately for better UX
 				const chatIndex = this.chats.findIndex(chat => chat.id === this.selectedChatId);
 				if (chatIndex !== -1) {
 					this.chats[chatIndex].name = newName.trim();
