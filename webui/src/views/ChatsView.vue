@@ -616,7 +616,6 @@ export default {
 						text: messageText
 					};
 
-					// Add reply information
 					if (this.replyingToMessage) {
 						requestData.replyTo = this.replyingToMessage.id;
 					}
@@ -645,7 +644,6 @@ export default {
 					this.clearMessageImageSelection();
 				}
 
-				// Update chat preview
 				this.updateChatPreview(this.selectedChatId, {
 					lastMsgText: previewText,
 					lastMsgTime: messageTime,
@@ -653,10 +651,8 @@ export default {
 					lastMsgUsername: this.currentUsername
 				});
 
-				// Refresh messages - auto-scroll will happen via watcher
 				await this.getConversation(this.selectedChatId, false);
 
-				// Maintain focus on message input after sending
 				setTimeout(() => {
 					this.focusMessageInput();
 				}, 100);

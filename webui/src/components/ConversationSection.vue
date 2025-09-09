@@ -64,7 +64,6 @@
 				<div class="spinner-border mb-3" role="status">
 					<span class="visually-hidden">Loading messages...</span>
 				</div>
-				<p>Loading messages...</p>
 			</div>
 		</div>
 
