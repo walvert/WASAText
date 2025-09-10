@@ -546,12 +546,8 @@ export default {
 
 				await this.getMyConversations();
 
-				if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-					const newlyCreatedChat = response.data.reduce((latest, current) => {
-						return (current.lastMsgId > latest.lastMsgId) ? current : latest;
-					});
-
-					this.selectChat(newlyCreatedChat.id);
+				if (response.data && response.data.id) {
+					this.selectChat(response.data.id);
 				}
 
 			} catch (err) {

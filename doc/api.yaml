@@ -244,12 +244,7 @@ paths:
           content:
             application/json:
               schema:
-                description: chats
-                type: array
-                items:
-                  $ref: "#/components/schemas/Chat"
-                minItems: 1
-                maxItems: 999
+                $ref: "#/components/schemas/Chat"
         "400":
           $ref: '#/components/responses/BadRequestError'
         "401":

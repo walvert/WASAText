@@ -208,15 +208,21 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 		}
 	}
 
-	chats, err := rt.db.GetMyConversations(userId)
+	chatInfo, err := rt.db.GetChatInfo(chatId)
 	if err != nil {
-		ctx.Logger.WithError(err).Error("Internal Server Error")
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.Logger.WithError(err).Error("Chat not found")
+			http.Error(w, "Chat not found", http.StatusNotFound)
+			return
+		} else {
+			ctx.Logger.WithError(err).Error("Internal Server Error: GetChatInfo")
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	err = json.NewEncoder(w).Encode(chats)
+	err = json.NewEncoder(w).Encode(chatInfo)
 	if err != nil {
 		ctx.Logger.WithError(err).Error("Error encoding chatInfo")
 		http.Error(w, "Error encoding chatInfo", http.StatusInternalServerError)
