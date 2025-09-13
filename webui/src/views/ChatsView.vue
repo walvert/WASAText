@@ -119,7 +119,7 @@ export default {
 			imageViewerUrl: null,
 			imageViewerTitle: null,
 
-			// New scroll management properties
+			// Scroll management properties
 			lastMessageCount: 0,
 			shouldScrollToBottom: false,
 			lastScrollTop: 0,

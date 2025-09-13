@@ -610,7 +610,6 @@ export default {
 	color: #6c757d;
 }
 
-/* Message Preview in Forward Modal */
 .forward-message-preview {
 	background-color: #f8f9fa;
 	border: 1px solid #dee2e6;
@@ -664,6 +663,6 @@ export default {
 .forward-loading .spinner-border {
 	width: 2rem;
 	height: 2rem;
-}
+} 
 
 </style>
