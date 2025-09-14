@@ -8,11 +8,14 @@ import (
 
 func (db *appdbimpl) DeleteMessage(messageId int) (chatDeleted bool, err error) {
 	var chatId int
+
+	// get chat id
 	err = db.c.QueryRow(`SELECT chat_id FROM messages WHERE id = ?`, messageId).Scan(&chatId)
 	if err != nil {
 		return false, fmt.Errorf("message not found: %w", err)
 	}
 
+	// delete message
 	result, err := db.c.Exec(`DELETE FROM messages WHERE id = ?`, messageId)
 	if err != nil {
 		return false, err
@@ -23,10 +26,12 @@ func (db *appdbimpl) DeleteMessage(messageId int) (chatDeleted bool, err error) 
 		return false, fmt.Errorf("message not found or unauthorized")
 	}
 
+	// delete comments if any
 	err = db.DeleteAllComments(messageId)
 	if err != nil {
 	}
 
+	// check if the message deleted was the only one in the chat
 	var count int
 	err = db.c.QueryRow(`SELECT COUNT(*) FROM messages WHERE chat_id = ?`, chatId).Scan(&count)
 	if err != nil {
@@ -58,6 +63,16 @@ func (db *appdbimpl) DeleteMessage(messageId int) (chatDeleted bool, err error) 
 		}
 
 		return true, nil
+	}
+
+	// check if the message deleted was the most recent in the chat
+	var chatLastMessageId int
+	err = db.c.QueryRow(`SELECT last_msg_id FROM chats WHERE id = ?`, chatId).Scan(&chatLastMessageId)
+	if err != nil {
+		return false, err
+	}
+	if chatLastMessageId == messageId {
+		err = db.UpdateLastMessage(chatId)
 	}
 
 	return false, nil

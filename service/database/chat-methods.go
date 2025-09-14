@@ -1,6 +1,10 @@
 package database
 
-import "fmt"
+import (
+	"fmt"
+
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/types"
+)
 
 func (db *appdbimpl) AddChatToUser(userID int, chatID int) error {
 	_, err := db.c.Exec("INSERT INTO user_chats (user_id, chat_id) VALUES (?, ?)", userID, chatID)
@@ -62,4 +66,39 @@ func (db *appdbimpl) DeleteUserChat(chatId int) error {
 	}
 
 	return nil
+}
+
+func (db *appdbimpl) UpdateLastMessage(chatId int) error {
+	// get last message id
+	var highestMessageId int
+	err := db.c.QueryRow(`SELECT MAX(id) FROM messages WHERE chat_id = ?`, chatId).Scan(&highestMessageId)
+	if err != nil {
+		return err
+	}
+
+	// get last message info
+	var lastMessage types.Message
+	lastMessage.ID = highestMessageId
+	err = db.c.QueryRow(`
+		SELECT sender_id, text, created_at, type
+		FROM messages WHERE id = ?`,
+		highestMessageId).Scan(&lastMessage.SenderID, &lastMessage.Text, &lastMessage.CreatedAt, &lastMessage.Type)
+	if err != nil {
+		return err
+	}
+
+	// get updated username
+	lastMessage.Username, err = db.GetUsernameById(lastMessage.SenderID)
+	if err != nil {
+		return err
+	}
+
+	// update last message info on chat table
+	_, err = db.c.Exec(`
+		UPDATE chats
+		SET last_msg_id = ?, last_msg_username = ?, last_msg_text = ?, last_msg_time = ?, last_msg_type = ?
+		WHERE id = ?`,
+		lastMessage.ID, lastMessage.Username, lastMessage.Text, lastMessage.CreatedAt, lastMessage.Type, chatId)
+
+	return err
 }

@@ -880,42 +880,33 @@ export default {
 			}
 
 			try {
-				// Set loading state
 				this.deletingMessage = message.id;
 
 				console.log('Deleting message:', message.id);
 
-				// Make DELETE request to the backend
 				const response = await this.$axios.delete(`/messages/${message.id}`);
 
 				console.log('Delete response:', response.data);
 
-				// Check if chat was deleted
 				if (response.data && response.data.chatDeleted) {
 					console.log('Chat was deleted, removing from chat list');
 
-					// Remove chat from the chats list
 					this.chats = this.chats.filter(chat => chat.id !== this.selectedChatId);
 
-					// Clear selected chat
 					this.selectedChatId = null;
 					this.messages = [];
 					this.lastReadMessageId = null;
 
-					// Reset indicators
 					this.hasNewMessages = false;
 					this.newMessageCount = 0;
 
-					// Show success message
 					alert('Message deleted. The conversation has been removed since it was the last message.');
 				} else {
-					// Just remove the message from the current messages list
 					const messageIndex = this.messages.findIndex(msg => msg.id === message.id);
 					if (messageIndex !== -1) {
 						this.messages.splice(messageIndex, 1);
 					}
 
-					// Update chat preview if this was the last message
 					const chat = this.chats.find(c => c.id === this.selectedChatId);
 					if (chat && this.messages.length > 0) {
 						// Find the new last message
