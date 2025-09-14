@@ -114,10 +114,6 @@ export default {
 			messageImagePreviewUrl: null,
 			messageImageUrls: {},
 
-			// Image viewer
-			showImageViewer: false,
-			imageViewerUrl: null,
-			imageViewerTitle: null,
 
 			// Scroll management properties
 			lastMessageCount: 0,
@@ -1833,33 +1829,15 @@ export default {
 			}
 		},
 
-		// Fixed handleMessageImageError method for Vue 3
 		handleMessageImageError(message) {
 			console.error('Image load error for message:', message.id);
 
-			// Vue 3: Direct assignment
 			message.imageError = true;
 
-			// Remove from cache
 			if (this.messageImageUrls[message.id]) {
 				URL.revokeObjectURL(this.messageImageUrls[message.id]);
 				delete this.messageImageUrls[message.id];
 			}
-		},
-
-
-		// Open image viewer
-		openImageViewer(imageUrl, title) {
-			this.imageViewerUrl = imageUrl;
-			this.imageViewerTitle = title;
-			this.showImageViewer = true;
-		},
-
-		// Close image viewer
-		closeImageViewer() {
-			this.showImageViewer = false;
-			this.imageViewerUrl = null;
-			this.imageViewerTitle = null;
 		},
 
 		getLastMessagePreview(chat) {

@@ -14,7 +14,6 @@
 		<MessageContent
 			:message="message"
 			:message-image-url="messageImageUrl"
-			@open-image-viewer="$emit('open-image-viewer', $event)"
 			@image-error="$emit('image-error', message)"
 		/>
 
@@ -87,7 +86,6 @@ export default {
 	},
 	emits: [
 		'jump-to-message',
-		'open-image-viewer',
 		'image-error',
 		'reply-image-error',
 		'toggle-likes-dropdown',

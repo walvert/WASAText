@@ -24,7 +24,6 @@
 				:src="messageImageUrl"
 				:alt="message.mediaUrl || 'Image'"
 				class="message-image"
-				@click="handleImageClick"
 				@error="$emit('image-error')"
 			>
 
@@ -63,17 +62,7 @@ export default {
 			default: null
 		}
 	},
-	emits: ['image-error', 'open-image-viewer'],
-	methods: {
-		handleImageClick() {
-			if (this.messageImageUrl) {
-				this.$emit('open-image-viewer', {
-					url: this.messageImageUrl,
-					title: this.message.mediaUrl
-				})
-			}
-		}
-	}
+	emits: ['image-error'],
 }
 </script>
 

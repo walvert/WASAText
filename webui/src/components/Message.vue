@@ -22,7 +22,6 @@
 				:reply-preview-text="replyPreviewText"
 				:show-likes-dropdown="showLikesDropdown === message.id"
 				@jump-to-message="$emit('jump-to-message', $event)"
-				@open-image-viewer="$emit('open-image-viewer', $event)"
 				@image-error="$emit('image-error', $event)"
 				@reply-image-error="$emit('reply-image-error', $event)"
 				@toggle-likes-dropdown="$emit('toggle-likes-dropdown', message.id)"
@@ -119,7 +118,6 @@ export default {
 	},
 	emits: [
 		'jump-to-message',
-		'open-image-viewer',
 		'image-error',
 		'reply-image-error',
 		'toggle-like',

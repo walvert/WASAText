@@ -47,7 +47,6 @@
 			:scroll-threshold="scrollThreshold"
 			ref="messagesSection"
 			@jump-to-message="$emit('jump-to-message', $event)"
-			@open-image-viewer="$emit('open-image-viewer', $event)"
 			@message-image-error="$emit('handle-message-image-error', $event)"
 			@reply-image-error="$emit('handle-reply-image-error', $event)"
 			@toggle-message-like="$emit('toggle-message-like', $event)"
@@ -254,7 +253,6 @@ export default {
 		'get-group-members',
 
 		// Media and error handling
-		'open-image-viewer',
 		'handle-image-error',
 		'handle-message-image-error',
 		'handle-reply-image-error',

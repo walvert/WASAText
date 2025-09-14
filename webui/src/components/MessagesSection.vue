@@ -16,7 +16,6 @@
 			:show-delete-dropdown="showDeleteDropdown"
 			:deleting-message="deletingMessage"
 			@jump-to-message="$emit('jump-to-message', $event)"
-			@open-image-viewer="$emit('open-image-viewer', $event)"
 			@image-error="$emit('message-image-error', $event)"
 			@reply-image-error="$emit('reply-image-error', $event)"
 			@toggle-like="$emit('toggle-message-like', $event)"
@@ -115,7 +114,6 @@ export default {
 
 	emits: [
 		'jump-to-message',
-		'open-image-viewer',
 		'message-image-error',
 		'reply-image-error',
 		'toggle-message-like',
