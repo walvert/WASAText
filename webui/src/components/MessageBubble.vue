@@ -7,7 +7,6 @@
 			:reply-message="replyMessage"
 			:reply-image-url="replyImageUrl"
 			:reply-preview-text="replyPreviewText"
-			@jump-to-message="$emit('jump-to-message', message.replyTo)"
 			@image-error="$emit('reply-image-error', message.replyTo)"
 		/>
 
@@ -85,7 +84,6 @@ export default {
 		}
 	},
 	emits: [
-		'jump-to-message',
 		'image-error',
 		'reply-image-error',
 		'toggle-likes-dropdown',

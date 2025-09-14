@@ -46,7 +46,6 @@
 			:new-message-count="newMessageCount"
 			:scroll-threshold="scrollThreshold"
 			ref="messagesSection"
-			@jump-to-message="$emit('jump-to-message', $event)"
 			@message-image-error="$emit('handle-message-image-error', $event)"
 			@reply-image-error="$emit('handle-reply-image-error', $event)"
 			@toggle-message-like="$emit('toggle-message-like', $event)"
@@ -237,7 +236,6 @@ export default {
 		'clear-reply',
 		'open-forward-modal',
 		'confirm-delete-message',
-		'jump-to-message',
 		'retry-load-messages',
 
 		// Input actions

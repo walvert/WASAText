@@ -492,7 +492,7 @@ main.col-md-8.col-lg-9 {
 .like-btn.liked {
 	background: #ff69b4;
 	border-color: #ff69b4;
-	color: white; /* Not muted when liked */
+	color: white;
 }
 
 .like-btn.liked:hover {

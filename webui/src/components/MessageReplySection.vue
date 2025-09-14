@@ -2,7 +2,6 @@
 	<div
 		class="message-reply-section"
 		:class="{ 'reply-deleted': !replyMessage }"
-		@click="handleClick"
 		:style="{ cursor: replyMessage ? 'pointer' : 'not-allowed' }"
 	>
 		<div v-if="replyMessage" class="reply-section-header">
@@ -67,13 +66,8 @@ export default {
 			default: ''
 		}
 	},
-	emits: ['jump-to-message', 'image-error'],
+	emits: ['image-error'],
 	methods: {
-		handleClick() {
-			if (this.replyMessage) {
-				this.$emit('jump-to-message')
-			}
-		},
 		handleImageError() {
 			this.$emit('image-error')
 		}

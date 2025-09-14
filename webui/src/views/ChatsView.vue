@@ -135,11 +135,14 @@ export default {
 			selectedNewChatImage: null,
 			newChatImagePreviewUrl: null,
 
+			// Like dropdown
 			showLikesDropdown: null,
 
+			// Delete dropdown
 			showDeleteDropdown: null,
 			deletingMessage: null,
 
+			// Reply dropdown
 			showReplyDropdown: null,
 			replyingToMessage: null,
 
@@ -355,7 +358,6 @@ export default {
 				console.log('Loading new image from:', response.data.imageUrl)
 				this.currentUserImageUrl = await this.getImage(response.data.imageUrl)
 			} else {
-				// Fallback: reload user image from server
 				await this.getMyPhoto()
 			}
 		},
@@ -373,15 +375,13 @@ export default {
 				this.loading = true;
 				this.error = null;
 
-				// Track active request
 				this.activeRequests.add(requestId);
 
 				console.log('Fetching chats with token:', localStorage.getItem('token') ? 'present' : 'missing');
 
-				// Add timeout and abort signal
 				const response = await this.$axios.get('/chats', {
 					signal: controller.signal,
-					timeout: 10000 // 10 second timeout
+					timeout: 10000
 				});
 
 				console.log('Chats fetched successfully:', response.data);
@@ -966,14 +966,12 @@ export default {
 
 				console.log('Chat members loaded:', this.chatMembers);
 
-				// Load member images
 				await this.loadMemberImages();
 
 			} catch (error) {
 				console.error('Failed to load chat members:', error);
 				this.chatMembers = [];
 
-				// Don't show error for 404 (not a group chat) or 401
 				if (error.response?.status === 401) {
 					this.$emit('logout');
 				}
@@ -1138,7 +1136,6 @@ export default {
 			}
 		},
 
-		// Handle member image load error
 		handleMemberImageError(memberId) {
 			if (this.memberImageUrls[memberId]) {
 				URL.revokeObjectURL(this.memberImageUrls[memberId]);
@@ -1198,9 +1195,7 @@ export default {
 				this.lastReadMessageId = response.data.lastReadId;
 
 			} catch (err) {
-				if (err.response?.status === "404") {
-					console.log("Last read id not found")
-				} else if (err.name === 'AbortError' || err.code === 'ECONNABORTED') {
+				if (err.name === 'AbortError' || err.code === 'ECONNABORTED') {
 					console.log('Last read request aborted or timed out');
 					return;
 				}
@@ -1213,74 +1208,21 @@ export default {
 
 		startReply(message) {
 			this.replyingToMessage = message;
-			this.showReplyDropdown = null; // Close dropdown
-
-			// Focus the message input after reply is set
+			this.showReplyDropdown = null;
 			this.focusMessageInput();
 		},
 
 		clearReply() {
 			this.replyingToMessage = null;
-			// Maintain focus when clearing reply
 			this.focusMessageInput();
-		},
-
-		jumpToMessage(messageId) {
-			console.log('Attempting to jump to message:', messageId);
-
-			// Close any open dropdowns first
-			this.showReplyDropdown = null;
-			this.showDeleteDropdown = null;
-			this.showLikesDropdown = null;
-
-			this.$nextTick(() => {
-				// Find the message element using the data attribute
-				const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-
-				if (messageElement) {
-					console.log('Found message element, scrolling to it');
-
-					// Scroll to the message with smooth animation
-					messageElement.scrollIntoView({
-						behavior: 'smooth',
-						block: 'center',
-						inline: 'nearest'
-					});
-
-					// Add highlight effect to make the message stand out
-					const messageBubble = messageElement.querySelector('.message-bubble');
-					if (messageBubble) {
-						// Add highlight class or inline style
-						messageBubble.style.transition = 'background-color 0.3s ease';
-						messageBubble.style.backgroundColor = 'rgba(0, 123, 255, 0.2)';
-						messageBubble.style.borderRadius = '1rem';
-
-						// Remove highlight after 3 seconds
-						setTimeout(() => {
-							messageBubble.style.backgroundColor = '';
-							messageBubble.style.transition = '';
-						}, 3000);
-					}
-				} else {
-					console.warn('Message element not found for ID:', messageId);
-					console.log('Available message elements:',
-						Array.from(document.querySelectorAll('[data-message-id]'))
-							.map(el => el.getAttribute('data-message-id'))
-					);
-				}
-			});
 		},
 
 		openForwardModal(message) {
 			this.forwardingMessage = message;
 			this.showForwardModal = true;
 			this.showForwardDropdown = null;
-
-			// Auto-fetch users when modal opens
-			// this.getForwardUsers();
 		},
 
-		// Close forward modal
 		closeForwardModal() {
 			this.showForwardModal = false;
 			this.forwardingMessage = null;
@@ -1300,14 +1242,11 @@ export default {
 
 				console.log('Forward response:', response.data);
 
-				// Close modal on success
 				this.closeForwardModal();
 
-				// Show success message
 				const recipientCount = recipients.length;
 				alert(`Message forwarded successfully to ${recipientCount} recipient${recipientCount !== 1 ? 's' : ''}!`);
 
-				// Refresh conversations
 				await this.getMyConversations();
 
 				return { success: true, data: response.data };
@@ -1349,16 +1288,13 @@ export default {
 		},
 
 		handleNewChatImageSelect(data) {
-			// data contains { file, previewUrl }
 			this.selectedNewChatImage = data.file
 
-			// Create preview URL for new chat
 			if (this.newChatImagePreviewUrl) {
 				URL.revokeObjectURL(this.newChatImagePreviewUrl)
 			}
 			this.newChatImagePreviewUrl = data.previewUrl
 
-			// Close modal
 			this.closeNewChatImageModal()
 		},
 
@@ -1392,7 +1328,6 @@ export default {
 			if (chatIndex !== -1) {
 				const chat = this.chats[chatIndex];
 
-				// Create updated chat object
 				const updatedChat = {
 					...chat,
 					...updates
@@ -1405,19 +1340,14 @@ export default {
 					lastMsgType: updatedChat.lastMsgType
 				});
 
-				// Replace the chat object and move to top in one operation
 				this.chats.splice(chatIndex, 1);
 				this.chats.unshift(updatedChat);
-
 			}
 		},
 
-		// Confirm message deletion
 		confirmDeleteMessage(message) {
-			// Close dropdown first
 			this.showDeleteDropdown = null;
 
-			// Show confirmation dialog
 			if (confirm('Are you sure you want to delete this message? This action cannot be undone.')) {
 				this.deleteMessage(message);
 			}
@@ -1506,7 +1436,6 @@ export default {
 				this.selectedUsers.splice(index, 1);
 			}
 
-			// Clear group name if only one user is selected
 			if (this.selectedUsers.length <= 1) {
 				this.newChatName = '';
 			}
@@ -1536,10 +1465,8 @@ export default {
 			this.loadingUsers = false;
 			this.userImageUrls = {};
 
-			// Clear media selection
 			this.clearNewChatImageSelection();
 
-			// Focus message input if a chat is selected
 			if (this.selectedChatId) {
 				this.focusMessageInput();
 			}
@@ -1549,7 +1476,6 @@ export default {
 			console.log('Opening new chat modal...'); // Debug log
 			this.showNewChatModal = true;
 
-			// Automatically fetch users when modal opens
 			this.getUsers();
 		},
 
@@ -2012,17 +1938,13 @@ export default {
 
 		async logout() {
 			if (confirm('Are you sure you want to logout?')) {
-				// Stop polling and clean up first
 				this.cleanup();
 
-				// Clear all localStorage data
 				localStorage.removeItem('token');
 				localStorage.removeItem('user');
 
-				// Clear axios auth header
 				delete this.$axios.defaults.headers.common['Authorization'];
 
-				// Emit logout event to App.vue
 				this.$emit('logout');
 			}
 		},
