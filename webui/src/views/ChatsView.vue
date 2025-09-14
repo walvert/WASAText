@@ -370,7 +370,6 @@ export default {
 		},
 
 		async getMyConversations() {
-			// Create abort controller for this request
 			const controller = new AbortController();
 			const requestId = 'getMyConversations-' + Date.now();
 
@@ -909,7 +908,7 @@ export default {
 
 					const chat = this.chats.find(c => c.id === this.selectedChatId);
 					if (chat && this.messages.length > 0) {
-						// Find the new last message
+						// find the new most recent message
 						const lastMessage = this.messages[this.messages.length - 1];
 						this.updateChatPreview(this.selectedChatId, {
 							lastMsgText: lastMessage.text || (lastMessage.type === 'image' ? '📷 Photo' : '🎞️ GIF'),
@@ -918,19 +917,14 @@ export default {
 							lastMsgUsername: lastMessage.username
 						});
 					}
-
-					// Force reactivity update
-					this.$forceUpdate();
 				}
 
 			} catch (error) {
 				console.error('Failed to delete message:', error);
 
 				// Handle specific error cases
-				if (error.response?.status === 403) {
-					alert('You can only delete your own messages.');
-				} else if (error.response?.status === 404) {
-					alert('Message not found or already deleted.');
+				if (error.response?.status === 404) {
+					alert('Message not found.');
 				} else if (error.response?.status === 401) {
 					console.log('Authentication error during message deletion');
 					this.$emit('logout');
@@ -1025,7 +1019,6 @@ export default {
 			try {
 				const response = await this.$axios.put(`/messages/${message.id}/comments`);
 				message.likes = response.data || [];
-				this.$forceUpdate();
 			} catch (error) {
 				console.error('Failed to add like:', error);
 			}
@@ -1035,7 +1028,6 @@ export default {
 			try {
 				const response = await this.$axios.delete(`/messages/${message.id}/comments`);
 				message.likes = response.data || [];
-				this.$forceUpdate();
 			} catch (error) {
 				console.error('Failed to remove like:', error);
 			}
@@ -1172,7 +1164,6 @@ export default {
 			return message.likes && message.likes.includes(this.currentUsername);
 		},
 
-		// Add this new method to track user scroll position
 		handleScroll() {
 			const messagesContainer = this.$refs.messagesContainer;
 			if (!messagesContainer) return;
@@ -1210,11 +1201,10 @@ export default {
 
 				this.lastReadMessageId = response.data.lastReadId;
 
-				// Force reactivity update if needed (Vue 2)
-				this.$forceUpdate();
-
 			} catch (err) {
-				if (err.name === 'AbortError' || err.code === 'ECONNABORTED') {
+				if (err.response?.status === "404") {
+					console.log("Last read id not found")
+				} else if (err.name === 'AbortError' || err.code === 'ECONNABORTED') {
 					console.log('Last read request aborted or timed out');
 					return;
 				}
@@ -1404,38 +1394,25 @@ export default {
 		updateChatPreview(chatId, updates) {
 			const chatIndex = this.chats.findIndex(chat => chat.id === chatId);
 			if (chatIndex !== -1) {
-				// Update the chat with new message info
 				const chat = this.chats[chatIndex];
 
-				// Ensure we're updating the correct fields
-				if (updates.lastMsgText !== undefined) {
-					chat.lastMsgText = updates.lastMsgText;
-				}
-				if (updates.lastMsgTime !== undefined) {
-					chat.lastMsgTime = updates.lastMsgTime;
-				}
-				if (updates.lastMsgType !== undefined) {
-					chat.lastMsgType = updates.lastMsgType;
-				}
-				if (updates.lastMsgUsername !== undefined) {
-					chat.lastMsgUsername = updates.lastMsgUsername;
-				}
+				// Create updated chat object
+				const updatedChat = {
+					...chat,
+					...updates
+				};
 
 				console.log('Updated chat preview:', {
 					chatId,
-					chatName: this.getChatName(chat),
-					lastMsgText: chat.lastMsgText,
-					lastMsgType: chat.lastMsgType
+					chatName: this.getChatName(updatedChat),
+					lastMsgText: updatedChat.lastMsgText,
+					lastMsgType: updatedChat.lastMsgType
 				});
 
-				// Move the chat to the top of the list
-				if (chatIndex > 0) {
-					const updatedChat = this.chats.splice(chatIndex, 1)[0];
-					this.chats.unshift(updatedChat);
-				}
+				// Replace the chat object and move to top in one operation
+				this.chats.splice(chatIndex, 1);
+				this.chats.unshift(updatedChat);
 
-				// Force reactivity update for Vue 3
-				this.$forceUpdate();
 			}
 		},
 
@@ -1629,22 +1606,19 @@ export default {
 			const chatIndex = this.chats.findIndex(chat => chat.id === chatId);
 			if (chatIndex !== -1 && this.chats[chatIndex].unread > 0) {
 				this.chats[chatIndex].unread = 0;
-				this.$forceUpdate();
 			}
 
 			this.selectedChatId = chatId;
 			this.lastReadMessageId = null;
-
-			// Reset indicators
 			this.hasNewMessages = false;
 			this.newMessageCount = 0;
 			this.isUserAtBottom = true;
 			this.shouldScrollAfterSend = false;
 
-			// Load chat for first time - will scroll to bottom
+			// Load chat for first time and scroll to bottom
 			this.getConversation(chatId, true);
 
-			// Focus message input after chat is loaded
+			// Focus input on message input bar
 			this.$nextTick(() => {
 				this.focusMessageInput();
 			});
@@ -1654,7 +1628,6 @@ export default {
 			if (chat.isGroup) {
 				return chat.name || 'Unnamed Group';
 			} else {
-				// For private chats, use the name field (which should contain the other user's name)
 				return chat.name || 'Private Chat';
 			}
 		},
@@ -2022,10 +1995,9 @@ export default {
 				try {
 					if (this.activeRequests.size < 2) {
 						if (this.selectedChatId) {
-							console.log('Polling - preserving scroll position');
 
 							await Promise.all([
-								this.getConversation(this.selectedChatId, false), // false = preserve position
+								this.getConversation(this.selectedChatId, false),
 								this.getLastRead(this.selectedChatId),
 								this.getMyConversations()
 							]);

@@ -448,7 +448,7 @@ main.col-md-8.col-lg-9 {
 
 .message-hover-actions {
 	position: absolute;
-	right: -110px; /* Increased width to accommodate three buttons */
+	right: -110px;
 	top: 50%;
 	transform: translateY(-50%);
 	opacity: 0;
@@ -459,7 +459,7 @@ main.col-md-8.col-lg-9 {
 }
 
 .message-wrapper.message-sent .message-hover-actions {
-	left: -150px; /* Increased for sent messages */
+	left: -150px;
 	right: auto;
 }
 
@@ -479,7 +479,7 @@ main.col-md-8.col-lg-9 {
 	cursor: pointer;
 	transition: all 0.2s ease;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-	color: #6c757d; /* Muted color by default */
+	color: #6c757d;
 }
 
 .like-btn:hover {
