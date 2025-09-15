@@ -185,6 +185,7 @@
 <script>
 import ErrorMsg from './ErrorMsg.vue';
 import { getUserInitials } from '../utils/helpers';
+import {formatFileSize} from "../utils/helpers";
 
 export default {
 	name: 'CreateChatModal',
@@ -263,11 +264,6 @@ export default {
 			this.$emit('filter-users', searchQuery);
 		},
 
-		// Keep other existing methods...
-		filterUsers() {
-			this.$emit('filter-users', this.userSearchQuery);
-		},
-
 		toggleUserSelection(user) {
 			this.$emit('toggle-user-selection', user);
 		},
@@ -284,14 +280,7 @@ export default {
 			this.$emit('clear-new-chat-image-selection');
 		},
 
-		formatFileSize(bytes) {
-			if (bytes === 0) return '0 Bytes';
-			const k = 1024;
-			const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-			const i = Math.floor(Math.log(bytes) / Math.log(k));
-			return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-		},
-
+		formatFileSize,
 		createChat() {
 			this.$emit('create-new-chat');
 		}

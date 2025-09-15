@@ -1493,21 +1493,10 @@ export default {
 			}
 		},
 
-		// Format file size for display
-		formatFileSize(bytes) {
-			if (bytes === 0) return '0 Bytes';
-			const k = 1024;
-			const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-			const i = Math.floor(Math.log(bytes) / Math.log(k));
-			return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-		},
-
-		// Open image selection modal
 		openImageModal() {
 			this.showImageModal = true;
 			this.tempSelectedImage = null;
 			this.tempImagePreviewUrl = null;
-			this.imageModalError = null;
 		},
 
 		// Close image selection modal
@@ -1515,22 +1504,17 @@ export default {
 			this.showImageModal = false;
 		},
 
-		// Handle image selection from modal
 		handleImageSelect(data) {
-			// data contains { file, previewUrl }
 			this.selectedMessageImage = data.file
 
-			// Create preview URL for message input
 			if (this.messageImagePreviewUrl) {
 				URL.revokeObjectURL(this.messageImagePreviewUrl)
 			}
 			this.messageImagePreviewUrl = data.previewUrl
 
-			// Close modal
 			this.closeImageModal()
 		},
 
-		// Clear selected message image
 		clearMessageImageSelection() {
 			this.selectedMessageImage = null;
 
@@ -1540,11 +1524,9 @@ export default {
 			}
 		},
 
-		// Updated getMessageImageUrl method
 		async getMessageImageUrl(mediaUrl) {
 			if (!mediaUrl) return null;
 
-			// Check cache first using message ID or mediaUrl as key
 			const cacheKey = mediaUrl;
 			if (this.messageImageUrls[cacheKey]) {
 				return this.messageImageUrls[cacheKey];
@@ -1566,7 +1548,6 @@ export default {
 
 				const blobUrl = URL.createObjectURL(response.data);
 
-				// Vue 3: Direct assignment to reactive object
 				this.messageImageUrls[cacheKey] = blobUrl;
 
 				return blobUrl;
@@ -1584,7 +1565,6 @@ export default {
 
 			for (const message of imageMessages) {
 				if (!this.messageImageUrls[message.id] && !message.imageLoading) {
-					// Set loading state - Vue 3 way
 					message.imageLoading = true;
 
 					try {
@@ -1617,7 +1597,7 @@ export default {
 		},
 
 		handleImageError(event) {
-			// Get the chat ID from the image element or find it another way
+			// Get the chat ID
 			const imgElement = event.target;
 			const chatId = imgElement.getAttribute('data-chat-id');
 
@@ -1625,7 +1605,7 @@ export default {
 				// Remove the failed image URL from cache
 				delete this.chatImageUrls[chatId];
 
-				// Also remove from image cache
+				// Remove from image cache
 				const chat = this.chats.find(c => c.id === chatId);
 				if (chat && chat.image && this.imageCache[chat.image]) {
 					URL.revokeObjectURL(this.imageCache[chat.image]);
@@ -1685,7 +1665,6 @@ export default {
 				this.pollingInterval = null;
 			}
 
-			// Cancel all active requests
 			this.cancelAllRequests();
 		},
 
@@ -1711,7 +1690,6 @@ export default {
 			this.stopPolling();
 			this.cancelAllRequests();
 
-			// Clean up blob URLs to prevent memory leaks
 			Object.values(this.imageCache).forEach(blobUrl => {
 				URL.revokeObjectURL(blobUrl);
 			});
