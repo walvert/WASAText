@@ -54,10 +54,8 @@ export default {
 	},
 	methods: {
 		async doLogin() {
-			// Reset error state
 			this.error = '';
 
-			// Validate username
 			if (!this.username.trim()) {
 				this.error = 'Username is required';
 				return;
@@ -66,12 +64,10 @@ export default {
 			try {
 				this.loading = true;
 
-				// Make API call to log-in
 				const response = await this.$axios.post('/session', {
 					username: this.username.trim()
 				});
 
-				// Extract token from response
 				const token = response.data.token || response.data;
 				console.log("token:", token);
 
@@ -79,16 +75,14 @@ export default {
 					throw new Error('No token received from server');
 				}
 
-				// Store user data in localStorage (but not the token - that's handled in App.vue)
 				const userData = {
 					username: this.username,
 				};
 				localStorage.setItem('user', JSON.stringify(userData));
 
-				// Set default auth header for future requests
+				// Set default auth header
 				this.$axios.defaults.headers.common['Authorization'] = `${token}`;
 
-				// Emit login success event to parent (App.vue) with the token
 				this.$emit('login-success', token);
 
 			} catch (err) {

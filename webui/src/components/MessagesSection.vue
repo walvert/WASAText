@@ -184,12 +184,16 @@ export default {
 		},
 
 		scrollToBottom() {
-			this.$nextTick(() => {
-				const messagesContainer = this.$refs.messagesContainer;
-				if (messagesContainer) {
+			const messagesContainer = this.$refs.messagesContainer;
+			if (messagesContainer) {
+				const lastMessage = messagesContainer.lastElementChild;
+				if (lastMessage) {
+					lastMessage.scrollIntoView({ block: 'end' });
+					messagesContainer.scrollTop += 20;
+				} else {
 					messagesContainer.scrollTop = messagesContainer.scrollHeight;
 				}
-			});
+			}
 		},
 		formatMessageTime
 	},
@@ -197,9 +201,7 @@ export default {
 	watch: {
 		messages: {
 			handler(newMessages, oldMessages) {
-				// Scroll to bottom when new messages are added
 				if (newMessages && newMessages.length > 0) {
-					// Check if this is a new message (length increased)
 					if (!oldMessages || newMessages.length > oldMessages.length) {
 						this.scrollToBottom();
 					}
@@ -210,25 +212,33 @@ export default {
 
 		sendingMessage(newVal) {
 			if (newVal) {
-				// Scroll when a message starts sending
-				this.$nextTick(() => {
-					this.scrollToBottom();
-				});
+				this.scrollToBottom();
 			}
-		}
+		},
+		immediate: true
 	},
 
 	mounted() {
-		// Close dropdowns when clicking outside
+		this.scrollToBottom();
+
+		if (this.$refs.messagesContainer) {
+			this.resizeObserver = new ResizeObserver(() => {
+				this.scrollToBottom();
+			});
+			this.resizeObserver.observe(this.$refs.messagesContainer);
+		}
+
 		document.addEventListener('click', () => {
 			this.showLikesDropdown = null;
 			this.showDeleteDropdown = null;
 			this.showReplyDropdown = null;
 			this.showForwardDropdown = null;
 		});
-
-		// Scroll to bottom on initial load
-		this.scrollToBottom();
+	},
+	beforeUnmount() {
+		if (this.resizeObserver) {
+			this.resizeObserver.disconnect();
+		}
 	}
 }
 </script>

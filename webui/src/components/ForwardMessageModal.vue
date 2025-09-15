@@ -297,7 +297,6 @@ export default {
 					this.users = result.data
 					this.filteredUsers = result.data
 
-					// Emit event to load user images
 					this.$emit('load-user-images', result.data)
 				} else {
 					this.error = result.error

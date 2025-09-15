@@ -201,10 +201,8 @@ export default {
 	beforeUnmount() {
 		this.cleanup();
 
-		// Remove visibility change listener
 		document.removeEventListener('visibilitychange', this.handleVisibilityChange);
 
-		// Clean up blob URLs to prevent memory leaks
 		Object.values(this.imageCache).forEach(blobUrl => {
 			URL.revokeObjectURL(blobUrl);
 		});
@@ -219,7 +217,6 @@ export default {
 			}
 		});
 
-		// Close dropdowns when clicking outside
 		document.addEventListener('click', () => {
 			this.showLikesDropdown = null;
 			this.showDeleteDropdown = null;
@@ -258,7 +255,6 @@ export default {
 					await this.setMyPhoto(profileImage)
 				}
 
-				// Close modal and show success
 				this.showProfileModal = false
 				alert('Profile updated successfully!')
 
@@ -266,7 +262,6 @@ export default {
 				console.error('Failed to update profile', err)
 				console.error('Error response:', err.response)
 
-				// Authentication error
 				if (err.response?.status === 401) {
 					console.log('Authentication error during profile update, logging out')
 					this.$emit('logout')
@@ -300,7 +295,6 @@ export default {
 
 			console.log('Username update response:', response.data)
 
-			// Update current user info from server response
 			if (response.data && response.data.username) {
 				this.currentUsername = response.data.username
 
@@ -359,11 +353,11 @@ export default {
 				console.log('Chats fetched successfully:', response.data);
 				this.chats = response.data;
 
-				// Sort chats by lastMsgTime (most recent first)
+				// Sort chats by lastMsgTime
 				this.chats = response.data.sort((a, b) => {
 					const timeA = new Date(a.lastMsgTime || 0);
 					const timeB = new Date(b.lastMsgTime || 0);
-					return timeB - timeA; // Descending order (newest first)
+					return timeB - timeA;
 				});
 
 				await this.loadChatImages();
@@ -373,7 +367,6 @@ export default {
 				this.currentPollingInterval = this.basePollingInterval;
 
 			} catch (err) {
-				// Don't handle aborted requests
 				if (err.name === 'AbortError' || err.code === 'ECONNABORTED') {
 					console.log('Request aborted or timed out');
 					return;
@@ -386,10 +379,9 @@ export default {
 				this.pollingRetryCount++;
 				this.currentPollingInterval = Math.min(
 					this.basePollingInterval * Math.pow(2, this.pollingRetryCount),
-					30000 // Max 30 seconds
+					30000
 				);
 
-				// If it's an auth error, logout
 				if (err.response?.status === 401) {
 					console.log('401 error in getMyConversations, logging out');
 					this.$emit('logout');
@@ -414,8 +406,7 @@ export default {
 					timeout: 10000
 				});
 
-				// Sort messages by timestamp (oldest first)
-				// Update messages
+				// Sort messages by timestamp
 				this.messages = response.data.sort((a, b) => {
 					return new Date(a.createdAt) - new Date(b.createdAt);
 				});
@@ -426,16 +417,10 @@ export default {
 					this.chats[chatIndex].unread = 0;
 				}
 
-				// Load images for image messages
 				await this.loadMessageImages();
-
-				// Load likes for all messages
 				await this.getComments();
-
-				// Fetch last read message ID
 				await this.getLastRead(chatId);
 
-				// Focus message input after loading (only for first load)
 				if (isFirstLoad) {
 					setTimeout(() => {
 						this.focusMessageInput();
@@ -504,17 +489,9 @@ export default {
 						}
 					};
 				}
-
-				console.log('Creating chat with media support...');
-
-				// Create the chat
 				const response = await this.$axios.post('/chats', requestData, requestConfig);
 
-				console.log('Chat created successfully:', response.data);
-
-				// Close modal and reset form
 				this.closeNewChatModal();
-
 				await this.getMyConversations();
 
 				if (response.data && response.data.id) {
@@ -666,13 +643,10 @@ export default {
 					this.chats[chatIndex].name = newName.trim();
 				}
 
-				// Close modal and reset form
 				this.showRenameGroupModal = false;
 
-				// Refresh chats to get latest data from server
 				await this.getMyConversations();
 
-				// Show success message
 				alert('Group renamed successfully!');
 
 			} catch (err) {
@@ -697,11 +671,10 @@ export default {
 				this.setGroupPhotoLoading = true;
 				this.setGroupPhotoError = null;
 
-				// Create FormData for multipart/form-data request
+				// Create FormData
 				const formData = new FormData();
 				formData.append('image', photoFile);
 
-				// Make the API request
 				const response = await this.$axios.put(`/chats/${this.selectedChatId}/image`, formData, {
 					headers: {
 						'Content-Type': 'multipart/form-data'
@@ -723,19 +696,15 @@ export default {
 					delete this.imageCache[chat.image];
 				}
 
-				// Close modal and reset form
 				this.closeSetGroupPhotoModal();
 
-				// Refresh chats to get the updated image path from server
 				await this.getMyConversations();
 
-				// Show success message
 				alert('Group photo updated successfully!');
 
 			} catch (err) {
 				console.error('Failed to update group photo', err);
 
-				// Handle specific error cases
 				if (err.response?.status === 413) {
 					this.setGroupPhotoError = 'File is too large. Please choose a smaller image.';
 				} else if (err.response?.status === 400) {
@@ -749,7 +718,6 @@ export default {
 		},
 
 		async addToGroup(username) {
-			// Add proper parameter validation
 			if (!username || typeof username !== 'string' || !username.trim()) {
 				this.addToGroupError = 'Username is required';
 				return;
@@ -770,19 +738,15 @@ export default {
 
 				console.log('Member added successfully:', response.data);
 
-				// Close modal and reset form
 				this.closeAddToGroupModal();
 
-				// Refresh chats to get latest data
 				await this.getMyConversations();
 
-				// Show success message
 				alert(`${username.trim()} has been added to the group!`);
 
 			} catch (err) {
 				console.error('Failed to add member', err);
 
-				// Handle specific error cases
 				if (err.response?.status === 404) {
 					this.addToGroupError = 'User not found. Please check the username.';
 				} else if (err.response?.status === 409) {
@@ -798,7 +762,6 @@ export default {
 		async leaveGroup() {
 			if (!confirm('Are you sure you want to leave this group?')) return;
 
-			// Store the current chat ID before we start the async operation
 			const leavingChatId = this.selectedChatId;
 
 			if (!leavingChatId) {
@@ -822,12 +785,10 @@ export default {
 
 				await this.getMyConversations();
 
-				// Show success message
 				alert('You have successfully left the group.');
 			} catch (err) {
 				console.error('Failed to leave group', err);
 
-				// Handle specific error cases
 				if (err.response?.status === 403) {
 					alert('You are not authorized to leave this group.');
 				} else if (err.response?.status === 404) {
@@ -888,7 +849,6 @@ export default {
 			} catch (error) {
 				console.error('Failed to delete message:', error);
 
-				// Handle specific error cases
 				if (error.response?.status === 404) {
 					alert('Message not found.');
 				} else if (error.response?.status === 401) {
@@ -898,7 +858,6 @@ export default {
 					alert('Failed to delete message. Please try again.');
 				}
 			} finally {
-				// Clear loading state
 				this.deletingMessage = null;
 			}
 		},
@@ -914,7 +873,6 @@ export default {
 
 				console.log('Users fetched successfully:', this.users);
 
-				// Load user profile images
 				await this.loadUserImages();
 
 			} catch (err) {
@@ -1461,20 +1419,6 @@ export default {
 			}
 		},
 
-		getChatInitials(chat) {
-			const name = this.getChatName(chat);
-			if (chat.isGroup) {
-				return name.charAt(0).toUpperCase();
-			} else {
-				const words = name.split(' ');
-				if (words.length >= 2) {
-					return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
-				}
-				return name.charAt(0).toUpperCase();
-			}
-		},
-
-		// Handle user image load error
 		handleUserImageError() {
 			this.currentUserImageUrl = null;
 		},
@@ -1505,7 +1449,6 @@ export default {
 			this.tempImagePreviewUrl = null;
 		},
 
-		// Close image selection modal
 		closeImageModal() {
 			this.showImageModal = false;
 		},
@@ -1576,7 +1519,6 @@ export default {
 					try {
 						const imageUrl = await this.getMessageImageUrl(message.mediaUrl);
 						if (imageUrl) {
-							// Vue 3: Direct assignment works due to Proxy reactivity
 							this.messageImageUrls[message.id] = imageUrl;
 						} else {
 							message.imageError = true;
@@ -1603,7 +1545,6 @@ export default {
 		},
 
 		handleImageError(event) {
-			// Get the chat ID
 			const imgElement = event.target;
 			const chatId = imgElement.getAttribute('data-chat-id');
 
@@ -1651,9 +1592,8 @@ export default {
 							]);
 						}
 
-						if (Math.random() < 0.5) {
-							await this.getMyConversations();
-						}
+						await this.getMyConversations();
+
 					}
 				} catch (error) {
 					console.error('Polling error:', error);

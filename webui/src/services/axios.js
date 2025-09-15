@@ -5,7 +5,7 @@ const instance = axios.create({
 	timeout: 1000 * 5
 });
 
-// Add a request interceptor to include auth token in all requests
+// Request interceptor
 instance.interceptors.request.use(
 	config => {
 		const token = localStorage.getItem('token');
@@ -19,7 +19,7 @@ instance.interceptors.request.use(
 	}
 );
 
-// Add a response interceptor to handle authentication errors
+// Response interceptor to handle authentication errors
 instance.interceptors.response.use(
 	response => {
 		return response;
@@ -35,11 +35,9 @@ instance.interceptors.response.use(
 		if (error.response && error.response.status === 401) {
 			console.log('401 error detected, removing token and redirecting to login');
 
-			// Token is invalid or expired
 			localStorage.removeItem('token');
 			localStorage.removeItem('user');
 
-			// Only redirect if we're not already on the session page
 			if (window.location.hash !== '#/session') {
 				window.location.href = '/#/session';
 			}

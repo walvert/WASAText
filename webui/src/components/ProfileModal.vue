@@ -139,7 +139,6 @@ export default {
 		},
 		show(newShow) {
 			if (newShow) {
-				// Reset form when opening
 				this.username = this.currentUsername || ''
 				this.clearProfileImageSelection()
 			}
@@ -163,7 +162,6 @@ export default {
 
 				this.selectedProfileImage = file
 
-				// Create preview URL
 				const reader = new FileReader()
 				reader.onload = (e) => {
 					this.profileImagePreviewUrl = e.target.result
@@ -198,7 +196,6 @@ export default {
 				return
 			}
 
-			// Emit the update event with the form data
 			this.$emit('update-profile', {
 				username: hasUsernameChange ? this.username.trim() : null,
 				profileImage: this.selectedProfileImage

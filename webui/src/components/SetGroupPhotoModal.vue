@@ -109,7 +109,6 @@ export default {
 	},
 
 	computed: {
-		// Use local error if present, otherwise use prop error
 		displayError() {
 			return this.localError || this.error
 		}
@@ -118,14 +117,12 @@ export default {
 	watch: {
 		show(newVal) {
 			if (!newVal) {
-				// Reset modal state when closed
 				this.resetModal()
 			}
 		}
 	},
 
 	beforeUnmount() {
-		// Clean up blob URLs
 		this.clearPhotoSelection()
 	},
 
@@ -146,7 +143,7 @@ export default {
 			}
 
 			// Validate file size (10MB limit)
-			const maxSize = 10 * 1024 * 1024 // 10MB in bytes
+			const maxSize = 10 * 1024 * 1024 // 10MB
 			if (file.size > maxSize) {
 				this.localError = 'File size must be less than 10MB'
 				this.clearPhotoSelection()
@@ -156,7 +153,6 @@ export default {
 			this.selectedPhotoFile = file
 			this.localError = null
 
-			// Create preview URL
 			if (this.photoPreviewUrl) {
 				URL.revokeObjectURL(this.photoPreviewUrl)
 			}
@@ -171,7 +167,6 @@ export default {
 				this.photoPreviewUrl = null
 			}
 
-			// Clear the file input
 			if (this.$refs.photoFileInput) {
 				this.$refs.photoFileInput.value = ''
 			}
@@ -185,7 +180,6 @@ export default {
 				return
 			}
 
-			// Emit the file to parent component
 			this.$emit('set-photo', this.selectedPhotoFile)
 		},
 

@@ -111,7 +111,7 @@ export default {
 				return
 			}
 
-			const maxSize = 10 * 1024 * 1024 // 10MB in bytes
+			const maxSize = 10 * 1024 * 1024 // 10MB
 			if (file.size > maxSize) {
 				this.error = 'File size must be less than 10MB'
 				this.clearSelection()
@@ -121,7 +121,6 @@ export default {
 			this.selectedFile = file
 			this.error = null
 
-			// Create preview URL
 			this.cleanupPreviewUrl()
 			this.previewUrl = URL.createObjectURL(file)
 		},
