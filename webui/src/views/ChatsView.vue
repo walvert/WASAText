@@ -420,6 +420,12 @@ export default {
 					return new Date(a.createdAt) - new Date(b.createdAt);
 				});
 
+				// Clear unread count
+				const chatIndex = this.chats.findIndex(chat => chat.id === chatId);
+				if (chatIndex !== -1 && this.chats[chatIndex].unread > 0) {
+					this.chats[chatIndex].unread = 0;
+				}
+
 				// Load images for image messages
 				await this.loadMessageImages();
 

@@ -192,7 +192,6 @@ export default {
 	},
 
 	mounted() {
-		// Emit focus event when component is ready
 		this.$emit('focus-input', this.focusInput)
 	}
 }
