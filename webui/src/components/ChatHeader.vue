@@ -157,6 +157,8 @@
 </template>
 
 <script>
+import { getUserInitials } from '../utils/helpers';
+
 export default {
 	name: 'ChatHeader',
 	props: {
@@ -183,7 +185,7 @@ export default {
 		memberImageUrls: {
 			type: Object,
 			default: () => ({})
-		}
+		},
 	},
 
 	emits: [
@@ -205,6 +207,7 @@ export default {
 	},
 
 	methods: {
+		getUserInitials,
 		getChatName() {
 			if (this.selectedChat.isGroup) {
 				return this.selectedChat.name || 'Unnamed Group';
@@ -224,15 +227,6 @@ export default {
 				}
 				return name.charAt(0).toUpperCase();
 			}
-		},
-
-		getUserInitials(username) {
-			if (!username) return '?';
-			const words = username.split(' ');
-			if (words.length >= 2) {
-				return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
-			}
-			return username.charAt(0).toUpperCase();
 		},
 
 		toggleChatInfoDropdown() {

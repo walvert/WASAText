@@ -184,6 +184,7 @@
 
 <script>
 import ErrorMsg from './ErrorMsg.vue';
+import { getUserInitials } from '../utils/helpers';
 
 export default {
 	name: 'CreateChatModal',
@@ -246,10 +247,12 @@ export default {
 		userSearchQuery: {
 			type: String,
 			default: ''
-		}
+		},
 	},
 
 	methods: {
+		getUserInitials,
+
 		closeModal() {
 			this.$emit('close');
 		},
@@ -271,15 +274,6 @@ export default {
 
 		removeUserSelection(user) {
 			this.$emit('remove-user-selection', user);
-		},
-
-		getUserInitials(username) {
-			if (!username) return '?';
-			const words = username.split(' ');
-			if (words.length >= 2) {
-				return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
-			}
-			return username.charAt(0).toUpperCase();
 		},
 
 		handleUsersImageError(userId) {

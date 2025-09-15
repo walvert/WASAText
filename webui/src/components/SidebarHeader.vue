@@ -49,6 +49,8 @@
 </template>
 
 <script>
+import { getUserInitials } from '../utils/helpers';
+
 export default {
 	name: 'SidebarHeader',
 	props: {
@@ -57,15 +59,7 @@ export default {
 	},
 	emits: ['open-profile', 'new-chat', 'logout', 'user-image-error'],
 	methods: {
-		getUserInitials(username) {
-			if (!username) return '?';
-
-			const words = username.split(' ');
-			if (words.length >= 2) {
-				return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
-			}
-			return username.charAt(0).toUpperCase();
-		}
+		getUserInitials
 	}
 }
 </script>

@@ -75,7 +75,6 @@ export default {
 			const date = new Date(timestamp);
 			const now = new Date();
 
-			// If today, show time only (HH:MM format)
 			if (date.toDateString() === now.toDateString()) {
 				return date.toLocaleTimeString([], {
 					hour: '2-digit',
@@ -84,7 +83,6 @@ export default {
 				});
 			}
 
-			// If yesterday
 			const yesterday = new Date(now);
 			yesterday.setDate(now.getDate() - 1);
 			if (date.toDateString() === yesterday.toDateString()) {
@@ -95,7 +93,6 @@ export default {
 				});
 			}
 
-			// If this week (within 7 days)
 			const weekAgo = new Date(now);
 			weekAgo.setDate(now.getDate() - 7);
 			if (date > weekAgo) {
@@ -103,13 +100,11 @@ export default {
 					date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false});
 			}
 
-			// If this year, show month and day with time
 			if (date.getFullYear() === now.getFullYear()) {
 				return date.toLocaleDateString([], {month: 'short', day: 'numeric'}) + ' ' +
 					date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false});
 			}
 
-			// Otherwise show full date with time
 			return date.toLocaleDateString() + ' ' +
 				date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false});
 		}

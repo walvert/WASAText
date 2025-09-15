@@ -14,7 +14,6 @@ import AddToGroupModal from '../components/AddToGroupModal.vue'
 import SetGroupPhotoModal from '../components/SetGroupPhotoModal.vue'
 
 
-
 export default {
 	name: 'ChatsView',
 	components: {
@@ -416,12 +415,10 @@ export default {
 				});
 
 				// Sort messages by timestamp (oldest first)
-				const newMessages = response.data.sort((a, b) => {
+				// Update messages
+				this.messages = response.data.sort((a, b) => {
 					return new Date(a.createdAt) - new Date(b.createdAt);
 				});
-
-				// Update messages
-				this.messages = newMessages;
 
 				// Load images for image messages
 				await this.loadMessageImages();
@@ -594,7 +591,7 @@ export default {
 
 				console.log('Sending message...');
 
-				const response = await this.$axios.post(
+				await this.$axios.post(
 					`/chats/${this.selectedChatId}/messages`,
 					requestData,
 					requestConfig
@@ -1361,16 +1358,6 @@ export default {
 			}
 		},
 
-		getUserInitials(username) {
-			if (!username) return '?';
-
-			const words = username.split(' ');
-			if (words.length >= 2) {
-				return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
-			}
-			return username.charAt(0).toUpperCase();
-		},
-
 		closeNewChatModal() {
 			this.showNewChatModal = false;
 
@@ -1393,7 +1380,7 @@ export default {
 		},
 
 		openNewChatModal() {
-			console.log('Opening new chat modal...'); // Debug log
+			console.log('Opening new chat modal...');
 			this.showNewChatModal = true;
 
 			this.getUsers();
@@ -1428,7 +1415,6 @@ export default {
 			this.setGroupPhotoError = null;
 		},
 
-		// Add method to handle visibility changes (pause polling when tab is hidden)
 		handleVisibilityChange() {
 			if (document.hidden) {
 				this.stopPolling();
@@ -1453,7 +1439,6 @@ export default {
 			this.selectedChatId = chatId;
 			this.lastReadMessageId = null;
 
-			// Load chat for first time and scroll to bottom
 			this.getConversation(chatId, true);
 
 			// Focus input on message input bar
@@ -1473,10 +1458,8 @@ export default {
 		getChatInitials(chat) {
 			const name = this.getChatName(chat);
 			if (chat.isGroup) {
-				// For groups, use first letter of group name
 				return name.charAt(0).toUpperCase();
 			} else {
-				// For private chats, use first letter of each word (up to 2 letters)
 				const words = name.split(' ');
 				if (words.length >= 2) {
 					return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
@@ -1507,54 +1490,6 @@ export default {
 						console.error(`Failed to load image for user ${user.id}:`, error);
 					}
 				}
-			}
-		},
-
-		// Handle profile image selection
-		handleProfileImageSelect(event) {
-			const file = event.target.files[0];
-
-			if (!file) {
-				this.clearProfileImageSelection();
-				return;
-			}
-
-			// Validate file type
-			if (!file.type.startsWith('image/')) {
-				this.profileError = 'Please select a valid image file';
-				this.clearProfileImageSelection();
-				return;
-			}
-
-			// Validate file size (5MB limit)
-			const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-			if (file.size > maxSize) {
-				this.profileError = 'File size must be less than 5MB';
-				this.clearProfileImageSelection();
-				return;
-			}
-
-			this.selectedProfileImage = file;
-			this.profileError = null;
-
-			// Create preview URL
-			if (this.profileImagePreviewUrl) {
-				URL.revokeObjectURL(this.profileImagePreviewUrl);
-			}
-			this.profileImagePreviewUrl = URL.createObjectURL(file);
-		},
-
-		clearProfileImageSelection() {
-			this.selectedProfileImage = null;
-
-			if (this.profileImagePreviewUrl) {
-				URL.revokeObjectURL(this.profileImagePreviewUrl);
-				this.profileImagePreviewUrl = null;
-			}
-
-			// Clear the file input
-			if (this.$refs.profileImageInput) {
-				this.$refs.profileImageInput.value = '';
 			}
 		},
 
@@ -1682,98 +1617,6 @@ export default {
 			}
 		},
 
-		getLastMessagePreview(chat) {
-			if (!chat.lastMsgText) {
-				return 'No messages yet';
-			}
-
-			let preview = chat.lastMsgText;
-
-			// Handle different message types
-			if (chat.lastMsgType === 'image') {
-				// If lastMsgText is a caption, show it; otherwise show image indicator
-				if (preview && !preview.includes('📷')) {
-					// It's a caption, use as is
-				} else {
-					preview = '📷 Photo';
-				}
-			} else if (chat.lastMsgType === 'gif') {
-				// If lastMsgText is a caption, show it; otherwise show GIF indicator
-				if (preview && !preview.includes('🎞️')) {
-					// It's a caption, use as is
-				} else {
-					preview = '🎞️ GIF';
-				}
-			}
-
-			// For group chats, prepend the username (but not for media indicators)
-			if (chat.isGroup && chat.lastMsgUsername) {
-				if (preview === '📷 Photo' || preview === '🎞️ GIF') {
-					preview = `${chat.lastMsgUsername}: ${preview}`;
-				} else if (preview && preview.length > 0) {
-					preview = `${chat.lastMsgUsername}: ${preview}`;
-				}
-			}
-
-			// Truncate long messages
-			const maxLength = 40;
-			if (preview.length > maxLength) {
-				return preview.substring(0, maxLength) + '...';
-			}
-
-			return preview;
-		},
-
-		isCurrentUserMessage(message) {
-			// Compare using username since that's what you have in the message object
-			return message.username === this.currentUsername;
-		},
-
-		formatMessageTime(timestamp) {
-			if (!timestamp) return '';
-
-			const date = new Date(timestamp);
-			const now = new Date();
-
-			// If today, show time only (HH:MM format)
-			if (date.toDateString() === now.toDateString()) {
-				return date.toLocaleTimeString([], {
-					hour: '2-digit',
-					minute: '2-digit',
-					hour12: false // Use 24-hour format, change to true for 12-hour
-				});
-			}
-
-			// If yesterday
-			const yesterday = new Date(now);
-			yesterday.setDate(now.getDate() - 1);
-			if (date.toDateString() === yesterday.toDateString()) {
-				return 'Yesterday ' + date.toLocaleTimeString([], {
-					hour: '2-digit',
-					minute: '2-digit',
-					hour12: false
-				});
-			}
-
-			// If this week (within 7 days)
-			const weekAgo = new Date(now);
-			weekAgo.setDate(now.getDate() - 7);
-			if (date > weekAgo) {
-				return date.toLocaleDateString([], {weekday: 'short'}) + ' ' +
-					date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false});
-			}
-
-			// If this year, show month and day with time
-			if (date.getFullYear() === now.getFullYear()) {
-				return date.toLocaleDateString([], {month: 'short', day: 'numeric'}) + ' ' +
-					date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false});
-			}
-
-			// Otherwise show full date with time
-			return date.toLocaleDateString() + ' ' +
-				date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', hour12: false});
-		},
-
 		handleImageError(event) {
 			// Get the chat ID from the image element or find it another way
 			const imgElement = event.target;
@@ -1823,7 +1666,7 @@ export default {
 							]);
 						}
 
-						if (Math.random() < 0.1) {
+						if (Math.random() < 0.5) {
 							await this.getMyConversations();
 						}
 					}

@@ -218,6 +218,8 @@
 </template>
 
 <script>
+import { getUserInitials } from '../utils/helpers';
+
 export default {
 	name: 'ForwardMessageModal',
 	props: {
@@ -252,7 +254,7 @@ export default {
 		userImageUrls: {
 			type: Object,
 			default: () => ({})
-		}
+		},
 	},
 	emits: ['close', "load-user-images"],
 	data() {
@@ -276,6 +278,8 @@ export default {
 		}
 	},
 	methods: {
+		getUserInitials,
+
 		resetModal() {
 			this.activeTab = 'users'
 			this.selectedRecipients = []
@@ -401,15 +405,6 @@ export default {
 			if (index > -1) {
 				this.selectedRecipients.splice(index, 1)
 			}
-		},
-
-		getUserInitials(username) {
-			if (!username) return '?'
-			const words = username.split(' ')
-			if (words.length >= 2) {
-				return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase()
-			}
-			return username.charAt(0).toUpperCase()
 		},
 
 		getChatName(chat) {
@@ -663,6 +658,6 @@ export default {
 .forward-loading .spinner-border {
 	width: 2rem;
 	height: 2rem;
-} 
+}
 
 </style>
