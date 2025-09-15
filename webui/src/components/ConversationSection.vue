@@ -42,9 +42,6 @@
 			:sending-message="sendingMessage"
 			:pending-message="pendingMessage"
 			:deleting-message="deletingMessage"
-			:has-new-messages="hasNewMessages"
-			:new-message-count="newMessageCount"
-			:scroll-threshold="scrollThreshold"
 			ref="messagesSection"
 			@message-image-error="$emit('handle-message-image-error', $event)"
 			@reply-image-error="$emit('handle-reply-image-error', $event)"
@@ -52,8 +49,6 @@
 			@start-reply="$emit('start-reply', $event)"
 			@open-forward-modal="$emit('open-forward-modal', $event)"
 			@confirm-delete="$emit('confirm-delete-message', $event)"
-			@scroll-position-changed="handleScrollPositionChanged"
-			@scroll-to-new-messages="handleScrollToNewMessages"
 		/>
 
 		<!-- Loading Messages State -->
@@ -208,19 +203,6 @@ export default {
 		loadingChatMembers: {
 			type: Boolean,
 			default: false
-		},
-
-		hasNewMessages: {
-			type: Boolean,
-			default: false
-		},
-		newMessageCount: {
-			type: Number,
-			default: 0
-		},
-		scrollThreshold: {
-			type: Number,
-			default: 100
 		}
 	},
 
@@ -254,11 +236,7 @@ export default {
 		'handle-image-error',
 		'handle-message-image-error',
 		'handle-reply-image-error',
-		'handle-member-image-error',
-
-		// Scroll events
-		'scroll-position-changed',
-		'scroll-to-new-messages'
+		'handle-member-image-error'
 	],
 
 	data() {
@@ -268,14 +246,6 @@ export default {
 	},
 
 	methods: {
-		handleScrollPositionChanged(scrollData) {
-			this.$emit('scroll-position-changed', scrollData)
-		},
-
-		handleScrollToNewMessages() {
-			this.$emit('scroll-to-new-messages')
-		},
-
 		handleFocusInput(focusFunction) {
 			this.messageInputFocusFunction = focusFunction
 		},
@@ -285,18 +255,6 @@ export default {
 				this.messageInputFocusFunction()
 			}
 		},
-
-		scrollToBottom() {
-			if (this.$refs.messagesSection) {
-				this.$refs.messagesSection.scrollToBottom()
-			}
-		},
-
-		restoreScrollPosition(savedScrollTop, heightDifference = 0) {
-			if (this.$refs.messagesSection) {
-				this.$refs.messagesSection.restoreScrollPosition(savedScrollTop, heightDifference)
-			}
-		}
 	},
 
 	mounted() {

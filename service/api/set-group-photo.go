@@ -25,12 +25,18 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 		http.Error(w, "Invalid user ID", http.StatusBadRequest)
 		return
 	}
-	// Parse the form data
+
+	r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
 	err = r.ParseMultipartForm(10 << 20)
 	if err != nil {
+		if err.Error() == "http: request body too large" {
+			http.Error(w, "File too large", http.StatusRequestEntityTooLarge)
+			return
+		}
+		ctx.Logger.WithError(err).Error("Error parsing multipart form")
 		http.Error(w, "Error parsing the image", http.StatusInternalServerError)
 		return
-	} // Max file size: 10MB
+	}
 
 	// Get the uploaded file
 	file, header, err := r.FormFile("image")

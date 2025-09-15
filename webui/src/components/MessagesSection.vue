@@ -182,7 +182,6 @@ export default {
 			// Prevents dropdown from closing when hovering
 		},
 
-		// Simple scroll to bottom method
 		scrollToBottom() {
 			this.$nextTick(() => {
 				const messagesContainer = this.$refs.messagesContainer;
@@ -233,11 +232,10 @@ export default {
 		}
 	},
 
-	// Watch for message changes and auto-scroll
 	watch: {
 		messages: {
 			handler(newMessages, oldMessages) {
-				// Scroll to bottom when messages change
+				// Scroll to bottom when new messages are added
 				if (newMessages && newMessages.length > 0) {
 					// Check if this is a new message (length increased)
 					if (!oldMessages || newMessages.length > oldMessages.length) {
@@ -248,7 +246,6 @@ export default {
 			deep: true
 		},
 
-		// Also scroll when sending message (pending state)
 		sendingMessage(newVal) {
 			if (newVal) {
 				// Scroll when a message starts sending
@@ -283,27 +280,13 @@ export default {
 	display: flex;
 	flex-direction: column;
 	min-height: min-content;
-	overflow-y: auto;
+	overflow-y: hidden;
 	height: 100%;
 	flex: 1;
 	padding: 1rem;
 }
 
-/* Webkit Scrollbar Styling */
 .messages-list::-webkit-scrollbar {
-	width: 6px;
-}
-
-.messages-list::-webkit-scrollbar-track {
-	background: transparent;
-}
-
-.messages-list::-webkit-scrollbar-thumb {
-	background: rgba(0, 0, 0, 0.2);
-	border-radius: 3px;
-}
-
-.messages-list::-webkit-scrollbar-thumb:hover {
-	background: rgba(0, 0, 0, 0.3);
+	display: none;
 }
 </style>

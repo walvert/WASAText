@@ -87,7 +87,7 @@
 </template>
 
 <script>
-import ErrorMsg from './ErrorMsg.vue' // Assuming you have this component
+import ErrorMsg from './ErrorMsg.vue'
 
 export default {
 	name: 'ProfileModal',

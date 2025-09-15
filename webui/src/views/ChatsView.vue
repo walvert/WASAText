@@ -114,22 +114,6 @@ export default {
 			messageImagePreviewUrl: null,
 			messageImageUrls: {},
 
-
-			// Scroll management properties
-			lastMessageCount: 0,
-			shouldScrollToBottom: false,
-			lastScrollTop: 0,
-			isUserAtBottom: true,
-			hasNewMessages: false,
-			newMessageCount: 0,
-			scrollThreshold: 100,
-			preserveScrollPosition: false,
-			savedScrollPosition: 0,
-
-			// Flags for different scenarios
-			isFirstChatLoad: false,
-			shouldScrollAfterSend: false,
-
 			// New Chat Image Support
 			showNewChatImageModal: false,
 			selectedNewChatImage: null,
@@ -216,11 +200,6 @@ export default {
 		this.startPolling();
 	},
 	beforeUnmount() {
-		const messagesContainer = this.$refs.messagesContainer;
-		if (messagesContainer) {
-			messagesContainer.removeEventListener('scroll', this.handleScroll);
-		}
-		// Cleanup
 		this.cleanup();
 
 		// Remove visibility change listener
@@ -234,12 +213,6 @@ export default {
 
 	mounted() {
 		this.$nextTick(() => {
-			const messagesContainer = this.$refs.messagesContainer;
-			if (messagesContainer) {
-				messagesContainer.addEventListener('scroll', this.handleScroll);
-			}
-
-			// Focus input if there's already a selected chat (page refresh case)
 			if (this.selectedChatId) {
 				setTimeout(() => {
 					this.focusMessageInput();
@@ -294,7 +267,7 @@ export default {
 				console.error('Failed to update profile', err)
 				console.error('Error response:', err.response)
 
-				// Check for authentication errors
+				// Authentication error
 				if (err.response?.status === 401) {
 					console.log('Authentication error during profile update, logging out')
 					this.$emit('logout')
@@ -841,8 +814,6 @@ export default {
 				this.selectedChatId = null;
 				this.messages = [];
 				this.lastReadMessageId = null;
-				this.hasNewMessages = false;
-				this.newMessageCount = 0;
 				this.chatMembers = [];
 
 				this.chats = this.chats.filter(chat => chat.id !== leavingChatId);
@@ -891,9 +862,6 @@ export default {
 					this.selectedChatId = null;
 					this.messages = [];
 					this.lastReadMessageId = null;
-
-					this.hasNewMessages = false;
-					this.newMessageCount = 0;
 
 					alert('Message deleted. The conversation has been removed since it was the last message.');
 				} else {
@@ -1157,29 +1125,6 @@ export default {
 			return message.likes && message.likes.includes(this.currentUsername);
 		},
 
-		handleScroll() {
-			const messagesContainer = this.$refs.messagesContainer;
-			if (!messagesContainer) return;
-
-			const { scrollTop, scrollHeight, clientHeight } = messagesContainer;
-
-			// Calculate distance from bottom
-			const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
-
-			// Consider user "at bottom" if within threshold
-			this.isUserAtBottom = distanceFromBottom <= this.scrollThreshold;
-
-			// Store the current scroll position for debugging
-			this.lastScrollTop = scrollTop;
-
-			// Hide indicator if user scrolls to bottom
-			if (this.isUserAtBottom && this.hasNewMessages) {
-				this.hasNewMessages = false;
-				this.newMessageCount = 0;
-			}
-		},
-
-
 		async getLastRead(chatId) {
 			const controller = new AbortController();
 			const requestId = 'getLastRead-' + chatId + '-' + Date.now();
@@ -1366,33 +1311,9 @@ export default {
 			}
 		},
 
-		// Helper method to handle scroll position changes
-		handleScrollPositionChanged(scrollData) {
-			this.isUserAtBottom = scrollData.isUserAtBottom;
-			this.lastScrollTop = scrollData.scrollTop;
-
-			// Hide indicator if user scrolls to bottom
-			if (scrollData.isUserAtBottom && this.hasNewMessages) {
-				this.hasNewMessages = false;
-				this.newMessageCount = 0;
-			}
-		},
-
-		// Helper method to handle scroll to new messages
-		scrollToNewMessages() {
-			this.hasNewMessages = false;
-			this.newMessageCount = 0;
-		},
-
 		focusMessageInput() {
 			if (this.$refs.conversationSection) {
 				this.$refs.conversationSection.focusMessageInput();
-			}
-		},
-
-		restoreScrollPosition(savedScrollTop, heightDifference = 0) {
-			if (this.$refs.conversationSection) {
-				this.$refs.conversationSection.restoreScrollPosition(savedScrollTop, heightDifference);
 			}
 		},
 
@@ -1532,10 +1453,6 @@ export default {
 
 			this.selectedChatId = chatId;
 			this.lastReadMessageId = null;
-			this.hasNewMessages = false;
-			this.newMessageCount = 0;
-			this.isUserAtBottom = true;
-			this.shouldScrollAfterSend = false;
 
 			// Load chat for first time and scroll to bottom
 			this.getConversation(chatId, true);

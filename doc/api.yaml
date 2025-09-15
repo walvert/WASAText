@@ -140,6 +140,8 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFoundError'
+        "413":
+          $ref: '#/components/responses/EntityTooLargeError'
         "500":
           $ref: '#/components/responses/InternalServerError'
     put:
@@ -503,6 +505,8 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         "404":
           $ref: '#/components/responses/NotFoundError'
+        "413":
+          $ref: '#/components/responses/EntityTooLargeError'
         "500":
           $ref: '#/components/responses/InternalServerError'
 
@@ -1176,6 +1180,13 @@ components:
 
     BadRequestError:
       description: Invalid request data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    EntityTooLargeError:
+      description: request entity too large
       content:
         application/json:
           schema:

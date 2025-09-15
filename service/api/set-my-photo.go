@@ -37,8 +37,13 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		}
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
 	err = r.ParseMultipartForm(10 << 20)
 	if err != nil {
+		if err.Error() == "http: request body too large" {
+			http.Error(w, "File too large", http.StatusRequestEntityTooLarge)
+			return
+		}
 		ctx.Logger.WithError(err).Error("Error parsing multipart form")
 		http.Error(w, "Error parsing the image", http.StatusInternalServerError)
 		return

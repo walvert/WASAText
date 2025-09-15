@@ -29,7 +29,7 @@
 							@change="handlePhotoFileSelect"
 							accept="image/*"
 						>
-						<div class="form-text">Supported formats: JPG, PNG, GIF. Max size: 5MB</div>
+						<div class="form-text">Supported formats: JPG, PNG, GIF. Max size: 10MB</div>
 					</div>
 
 					<!-- Photo Preview -->
@@ -145,10 +145,10 @@ export default {
 				return
 			}
 
-			// Validate file size (5MB limit)
-			const maxSize = 5 * 1024 * 1024 // 5MB in bytes
+			// Validate file size (10MB limit)
+			const maxSize = 10 * 1024 * 1024 // 10MB in bytes
 			if (file.size > maxSize) {
-				this.localError = 'File size must be less than 5MB'
+				this.localError = 'File size must be less than 10MB'
 				this.clearPhotoSelection()
 				return
 			}
