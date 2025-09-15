@@ -10,14 +10,17 @@
 					<!-- Message Preview -->
 					<div class="forward-message-preview">
 						<div class="forward-preview-header">Forwarding message:</div>
-						<div class="forward-preview-content">
+						<div class="forward-preview-content"
+							 :class="{ 'has-image': message && (message.type === 'image' || message.type === 'gif') && messageImageUrls[message.id] }">
 							<img
 								v-if="message && (message.type === 'image' || message.type === 'gif') && messageImageUrls[message.id]"
 								:src="messageImageUrls[message.id]"
 								:alt="message.mediaUrl || 'Image'"
 								class="forward-preview-image"
 							>
-							{{ getForwardPreviewText(message) }}
+							<div class="forward-preview-text">
+								{{ getForwardPreviewText(message) }}
+							</div>
 						</div>
 					</div>
 
@@ -624,20 +627,41 @@ export default {
 	font-size: 0.875rem;
 	color: #6c757d;
 	font-style: italic;
-	max-height: 3em;
+	max-height: 3em; /* Original compact height for text-only */
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	line-height: 1.5;
+}
+
+/* Enhanced styles when image is present */
+.forward-preview-content.has-image {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.75rem;
+	max-height: 80px; /* More space when image is present */
+	-webkit-box-orient: unset; /* Reset flexbox orientation */
+}
+
+.forward-preview-image {
+	width: 60px;
+	height: 60px;
+	border-radius: 0.25rem;
+	object-fit: cover;
+	flex-shrink: 0;
+}
+
+.has-image .forward-preview-text {
+	flex: 1;
+	max-height: 4.5em;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	display: -webkit-box;
 	-webkit-line-clamp: 3;
 	-webkit-box-orient: vertical;
-}
-
-.forward-preview-image {
-	max-width: 100px;
-	max-height: 100px;
-	border-radius: 0.25rem;
-	object-fit: cover;
-	margin-bottom: 0.5rem;
+	line-height: 1.5;
 }
 
 .forward-empty-state {

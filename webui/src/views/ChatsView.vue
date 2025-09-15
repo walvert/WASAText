@@ -1513,7 +1513,6 @@ export default {
 		// Close image selection modal
 		closeImageModal() {
 			this.showImageModal = false;
-			this.clearTempImageSelection();
 		},
 
 		// Handle image selection from modal
