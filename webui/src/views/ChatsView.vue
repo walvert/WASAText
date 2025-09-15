@@ -674,7 +674,6 @@ export default {
 
 			} catch (err) {
 				console.error('Failed to rename group', err);
-				// Error will be handled by the modal's error prop binding
 			} finally {
 				this.setGroupNameLoading = false;
 			}

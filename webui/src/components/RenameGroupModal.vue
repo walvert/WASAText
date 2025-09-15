@@ -17,7 +17,8 @@
 						ref="groupNameInput"
 					>
 				</div>
-				<div v-if="error" class="error-msg">{{ error }}</div>
+
+				<ErrorMsg v-if="displayError" :msg="displayError"/>
 			</div>
 			<div class="vue-modal-footer">
 				<button class="btn btn-secondary" @click="closeModal">Cancel</button>
@@ -37,8 +38,11 @@
 </template>
 
 <script>
+import ErrorMsg from "./ErrorMsg.vue";
+
 export default {
 	name: 'RenameGroupModal',
+	components: {ErrorMsg},
 	props: {
 		show: {
 			type: Boolean,
@@ -60,7 +64,8 @@ export default {
 
 	data() {
 		return {
-			groupName: ''
+			groupName: '',
+			validationError: ''
 		}
 	},
 
@@ -77,6 +82,12 @@ export default {
 		}
 	},
 
+	computed: {
+		displayError () {
+			return this.validationError || this.error
+		}
+	},
+
 	methods: {
 		closeModal() {
 			this.$emit('close');
@@ -84,8 +95,15 @@ export default {
 
 		handleRename() {
 			if (!this.groupName.trim()) {
+				this.validationError = "Group name must be at least 3 characters"
 				return;
 			}
+
+			if (this.groupName.trim() === this.currentName) {
+				this.validationError = "Select a different group name"
+				return
+			}
+
 			this.$emit('rename', this.groupName.trim());
 		},
 
